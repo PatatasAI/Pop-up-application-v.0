@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pop-up Maker - Pro Version</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .canvas-area { background-image: radial-gradient(#e5e7eb 1px, transparent 1px); background-size: 20px 20px; }
+        .draggable-item { cursor: grab; }
+        .draggable-item:active { cursor: grabbing; }
+        .canvas-element { cursor: move; position: relative; }
+        .canvas-element:hover { outline: 2px dashed #6366f1; }
+        .canvas-element.selected { outline: 2px solid #6366f1; }
+        .preview-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
+        .preview-popup { background: white; padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%; position: relative; animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .close-preview { position: absolute; top: 10px; right: 10px; cursor: pointer; color: #6b7280; }
+        .delete-btn { position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; background: #ef4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; }
+        .canvas-element:hover .delete-btn { display: flex; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal active">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl mx-auto mb-3">P</div>
+                <h2 class="text-2xl font-bold text-gray-800">Pop-up Maker</h2>
+                <p class="text-gray-600 mt-1">Create beautiful pop-ups in minutes</p>
+            </div>
+            
+            <div id="loginForm">
+                <h3 class="text-lg font-semibold mb-4">Sign In</h3>
+                <input type="email" id="loginEmail" placeholder="Email" class="w-full p-3 border border-gray-300 rounded mb-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <input type="password" id="loginPassword" placeholder="Password" class="w-full p-3 border border-gray-300 rounded mb-4 focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <button onclick="login()" class="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">Sign In</button>
+                <p class="text-center mt-4 text-sm text-gray-600">
+                    Don't have an account? 
+                    <button onclick="showSignup()" class="text-indigo-600 font-semibold hover:underline">Sign Up</button>
+                </p>
+            </div>
+            
+            <div id="signupForm" style="display:none;">
+                <h3 class="text-lg font-semibold mb-4">Create Account</h3>
+                <input type="text" id="signupName" placeholder="Full Name" class="w-full p-3 border border-gray-300 rounded mb-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <input type="email" id="signupEmail" placeholder="Email" class="w-full p-3 border border-gray-300 rounded mb-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <input type="password" id="signupPassword" placeholder="Password (min 6 characters)" class="w-full p-3 border border-gray-300 rounded mb-4 focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <button onclick="signup()" class="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">Create Account</button>
+                <p class="text-center mt-4 text-sm text-gray-600">
+                    Already have an account? 
+                    <button onclick="showLogin()" class="text-indigo-600 font-semibold hover:underline">Sign In</button>
+                </p>
+            </div>
+            
+            <div id="userWelcome" style="display:none;" class="text-center">
+                <h3 class="text-lg font-semibold mb-2">Welcome back!</h3>
+                <p id="welcomeName" class="text-gray-600 mb-4"></p>
+                <button onclick="enterApp()" class="w-full py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Continue to Editor</button>
+                <button onclick="logout()" class="w-full py-2 mt-2 text-gray-600 hover:text-gray-800 text-sm">Sign Out</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App (hidden until logged in) -->
+    <div id="mainApp" style="display:none;" class="h-screen flex flex-col overflow-hidden">
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 shadow-sm z-10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">P</div>
+                <h1 class="text-xl font-bold text-gray-800">Pop-up Maker <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full ml-2">Pro Edition</span></h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-user-circle text-gray-400"></i>
+                    <span id="headerUserName" class="text-sm text-gray-700"></span>
+                </div>
+                <button onclick="saveProject()" class="flex items-center gap-2 px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition text-sm">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button onclick="loadProjects()" class="flex items-center gap-2 px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition text-sm">
+                    <i class="fas fa-folder-open"></i> My Projects
+                </button>
+                <button onclick="togglePreview()" class="flex items-center gap-2 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition">
+                    <i class="fas fa-eye"></i> Preview
+                </button>
+                <button onclick="exportCode()" class="flex items-center gap-2 px-4 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition shadow-sm">
+                    <i class="fas fa-code"></i> Get Code
+                </button>
+                <button onclick="logout()" class="flex items-center gap-2 px-3 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition text-sm">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar: Elements & Templates -->
+            <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-0">
+                <div class="p-4 border-b border-gray-100">
+                    <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Elements</h2>
+                    <div class="space-y-2">
+                        <div draggable="true" ondragstart="drag(event)" data-type="headline" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                            <i class="fas fa-heading text-gray-400"></i> <span class="text-sm font-medium">Headline</span>
+                        </div>
+                        <div draggable="true" ondragstart="drag(event)" data-type="text" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                            <i class="fas fa-paragraph text-gray-400"></i> <span class="text-sm font-medium">Text Block</span>
+                        </div>
+                        <div draggable="true" ondragstart="drag(event)" data-type="button" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                            <i class="fas fa-square text-gray-400"></i> <span class="text-sm font-medium">Button</span>
+                        </div>
+                        <div draggable="true" ondragstart="drag(event)" data-type="image" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                            <i class="fas fa-image text-gray-400"></i> <span class="text-sm font-medium">Image</span>
+                        </div>
+                        <div draggable="true" ondragstart="drag(event)" data-type="input" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                            <i class="fas fa-envelope text-gray-400"></i> <span class="text-sm font-medium">Email Input</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4 flex-1 overflow-y-auto">
+                    <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Templates</h2>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div onclick="loadTemplate('newsletter')" class="cursor-pointer group relative aspect-video bg-gray-100 rounded border border-gray-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center p-2 text-center">
+                                <div class="w-8 h-8 bg-blue-100 rounded-full mb-2"></div>
+                                <div class="h-2 w-20 bg-gray-300 rounded mb-1"></div>
+                                <div class="h-2 w-12 bg-gray-300 rounded"></div>
+                            </div>
+                            <span class="absolute bottom-1 right-1 text-[10px] bg-white/80 px-1 rounded">Newsletter</span>
+                        </div>
+                        <div onclick="loadTemplate('discount')" class="cursor-pointer group relative aspect-video bg-gray-100 rounded border border-gray-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center p-2 text-center">
+                                <div class="text-2xl font-bold text-red-400 mb-1">50% OFF</div>
+                                <div class="h-6 w-20 bg-red-500 rounded"></div>
+                            </div>
+                            <span class="absolute bottom-1 right-1 text-[10px] bg-white/80 px-1 rounded">Discount</span>
+                        </div>
+                        <div onclick="loadTemplate('welcome')" class="cursor-pointer group relative aspect-video bg-gray-100 rounded border border-gray-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center p-2 text-center">
+                                <div class="h-2 w-24 bg-green-300 rounded mb-1"></div>
+                                <div class="h-2 w-16 bg-gray-300 rounded"></div>
+                            </div>
+                            <span class="absolute bottom-1 right-1 text-[10px] bg-white/80 px-1 rounded">Welcome</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Canvas -->
+            <main class="flex-1 canvas-area relative overflow-auto flex items-center justify-center p-8">
+                <div id="canvas" class="w-[400px] min-h-[500px] bg-white shadow-xl rounded-lg relative border border-gray-200 transition-all duration-200 overflow-hidden" 
+                     ondrop="drop(event)" ondragover="allowDrop(event)">
+                    
+                    <!-- Default Content -->
+                    <div class="p-6 text-center space-y-4" id="defaultContent">
+                        <h2 class="text-2xl font-bold text-gray-800 editable" contenteditable="true">Welcome!</h2>
+                        <p class="text-gray-600 editable" contenteditable="true">Subscribe to get special offers.</p>
+                        <button class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition" data-link="">Subscribe</button>
+                    </div>
+
+                    <!-- Close Button (Visual only in editor) -->
+                    <div class="absolute top-2 right-2 text-gray-400 hover:text-gray-600 cursor-pointer z-10">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+                
+                <div class="absolute bottom-4 right-4 bg-white p-3 rounded-lg shadow border border-gray-200 text-xs text-gray-500">
+                    <i class="fas fa-info-circle mr-1"></i> Drag elements from left. Click text to edit. Click element to select & move.
+                </div>
+            </main>
+
+            <!-- Properties Panel -->
+            <aside class="w-72 bg-white border-l border-gray-200 p-4 overflow-y-auto z-0">
+                <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Properties</h2>
+                
+                <div id="selectedElementProps" style="display:none;" class="space-y-4 mb-4 pb-4 border-b border-gray-100">
+                    <h3 class="text-sm font-semibold text-gray-700">Selected Element</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Link URL</label>
+                        <input type="url" id="elementLink" placeholder="https://example.com" class="w-full border-gray-300 rounded-md shadow-sm text-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500">
+                        <button onclick="updateElementLink()" class="mt-2 w-full py-1.5 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700">Update Link</button>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Text Color</label>
+                        <input type="color" id="elementColor" class="w-full h-8 cursor-pointer" onchange="updateElementColor(this.value)">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Background Color</label>
+                        <input type="color" id="elementBgColor" class="w-full h-8 cursor-pointer" onchange="updateElementBgColor(this.value)">
+                    </div>
+                    <button onclick="deleteSelectedElement()" class="w-full py-2 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100 border border-red-200">
+                        <i class="fas fa-trash mr-1"></i> Delete Element
+                    </button>
+                </div>
+
+                <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Popup Settings</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Trigger Type</label>
+                        <select id="triggerType" class="w-full border-gray-300 rounded-md shadow-sm text-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="load">On Page Load</option>
+                            <option value="exit">Exit Intent</option>
+                            <option value="scroll">Scroll 50%</option>
+                            <option value="delay">Time Delay (5s)</option>
+                            <option value="click">Click Trigger</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Background Color</label>
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="changeBg('white')" class="w-8 h-8 rounded-full border border-gray-300 bg-white hover:ring-2 hover:ring-indigo-500"></button>
+                            <button onclick="changeBg('black')" class="w-8 h-8 rounded-full border border-gray-300 bg-gray-900 hover:ring-2 hover:ring-indigo-500"></button>
+                            <button onclick="changeBg('indigo')" class="w-8 h-8 rounded-full border border-gray-300 bg-indigo-600 hover:ring-2 hover:ring-indigo-500"></button>
+                            <button onclick="changeBg('gradient')" class="w-8 h-8 rounded-full border border-gray-300 bg-gradient-to-r from-pink-500 to-orange-400 hover:ring-2 hover:ring-indigo-500"></button>
+                            <button onclick="changeBg('green')" class="w-8 h-8 rounded-full border border-gray-300 bg-green-600 hover:ring-2 hover:ring-indigo-500"></button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Popup Width</label>
+                        <input type="range" id="popupWidth" min="300" max="600" value="400" class="w-full" onchange="updatePopupWidth(this.value)">
+                        <span id="widthValue" class="text-xs text-gray-500">400px</span>
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-100">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Display Rules</label>
+                        <div class="flex items-center gap-2 mb-2">
+                            <input type="checkbox" id="showDesktop" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-sm text-gray-600">Desktop</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="showMobile" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-sm text-gray-600">Mobile</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="preview-overlay" onclick="if(event.target === this) togglePreview()">
+        <div class="preview-popup" id="previewContent">
+            <!-- Content injected via JS -->
+        </div>
+    </div>
+
+    <!-- Code Modal -->
+    <div id="codeModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="font-bold text-lg">Your Pop-up Code</h3>
+                <button onclick="document.getElementById('codeModal').classList.add('hidden')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-4 overflow-auto flex-1 bg-gray-50">
+                <pre id="codeOutput" class="text-xs text-gray-700 font-mono whitespace-pre-wrap"></pre>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end gap-2">
+                <button onclick="document.getElementById('codeModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200">Close</button>
+                <button onclick="copyCode()" class="px-4 py-2 text-white bg-indigo-600 rounded hover:bg-indigo-700">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Modal -->
+    <div id="projectsModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="font-bold text-lg">My Saved Projects</h3>
+                <button onclick="closeProjects()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-4 overflow-auto flex-1">
+                <div id="projectsList" class="space-y-3">
+                    <!-- Projects will be listed here -->
+                </div>
+                <div id="noProjects" class="text-center py-8 text-gray-500" style="display:none;">
+                    <i class="fas fa-folder-open text-4xl mb-3 text-gray-300"></i>
+                    <p>No saved projects yet</p>
+                    <p class="text-sm">Create and save your first pop-up!</p>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end">
+                <button onclick="closeProjects()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== AUTH SYSTEM ====================
+        let currentUser = null;
+        let selectedElement = null;
+
+        function initAuth() {
+            const savedUser = localStorage.getItem('popupMaker_currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showWelcome();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('userWelcome').style.display = 'none';
+        }
+
+        function showSignup() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+            document.getElementById('userWelcome').style.display = 'none';
+        }
+
+        function showWelcome() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('userWelcome').style.display = 'block';
+            document.getElementById('welcomeName').textContent = currentUser.name;
+        }
+
+        function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('popupMaker_users') || '[]');
+            const user = users.find(u => u.email === email && u.password === password);
+
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('popupMaker_currentUser', JSON.stringify(user));
+                showWelcome();
+            } else {
+                alert('Invalid email or password');
+            }
+        }
+
+        function signup() {
+            const name = document.getElementById('signupName').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value;
+
+            if (!name || !email || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('popupMaker_users') || '[]');
+            
+            if (users.find(u => u.email === email)) {
+                alert('Email already registered');
+                return;
+            }
+
+            const newUser = {
+                id: Date.now(),
+                name,
+                email,
+                password,
+                projects: [],
+                createdAt: new Date().toISOString()
+            };
+
+            users.push(newUser);
+            localStorage.setItem('popupMaker_users', JSON.stringify(users));
+            
+            currentUser = newUser;
+            localStorage.setItem('popupMaker_currentUser', JSON.stringify(newUser));
+            showWelcome();
+        }
+
+        function enterApp() {
+            document.getElementById('authModal').classList.remove('active');
+            document.getElementById('mainApp').style.display = 'flex';
+            document.getElementById('headerUserName').textContent = currentUser.name;
+            loadUserProject();
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('popupMaker_currentUser');
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('authModal').classList.add('active');
+            showLogin();
+            // Reset form fields
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('signupName').value = '';
+            document.getElementById('signupEmail').value = '';
+            document.getElementById('signupPassword').value = '';
+        }
+
+        // ==================== DRAG AND DROP SYSTEM ====================
+        function allowDrop(ev) { 
+            ev.preventDefault(); 
+        }
+        
+        function drag(ev) {
+            ev.dataTransfer.setData("type", ev.target.dataset.type);
+            ev.dataTransfer.effectAllowed = "copy";
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const type = ev.dataTransfer.getData("type");
+            const canvas = document.getElementById('canvas');
+            
+            // Remove default empty state if exists
+            const defaultContent = document.getElementById('defaultContent');
+            if (defaultContent && canvas.children.length <= 2) {
+                defaultContent.remove();
+            }
+
+            let element;
+            const elementId = 'el_' + Date.now();
+            
+            if (type === 'headline') {
+                element = document.createElement('h3');
+                element.className = "canvas-element text-xl font-bold text-gray-800 mt-4 p-2 rounded";
+                element.contentEditable = "true";
+                element.innerText = "New Headline";
+                element.dataset.link = "";
+            } else if (type === 'text') {
+                element = document.createElement('p');
+                element.className = "canvas-element text-gray-600 mt-2 p-2 rounded";
+                element.contentEditable = "true";
+                element.innerText = "Add your description here.";
+                element.dataset.link = "";
+            } else if (type === 'button') {
+                element = document.createElement('button');
+                element.className = "canvas-element mt-4 px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition";
+                element.contentEditable = "true";
+                element.innerText = "Click Me";
+                element.dataset.link = "https://example.com";
+            } else if (type === 'image') {
+                element = document.createElement('div');
+                element.className = "canvas-element mt-4 h-32 bg-gray-200 rounded flex items-center justify-center text-gray-400";
+                element.innerHTML = '<i class="fas fa-image text-2xl"></i><span class="ml-2 text-sm">Image Placeholder</span>';
+                element.dataset.link = "";
+            } else if (type === 'input') {
+                element = document.createElement('input');
+                element.className = "canvas-element w-full p-2 border border-gray-300 rounded mt-4";
+                element.type = "email";
+                element.placeholder = "Enter your email";
+                element.dataset.link = "";
+            }
+
+            if(element) {
+                element.id = elementId;
+                element.dataset.id = elementId;
+                
+                // Add delete button
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = "delete-btn";
+                deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    element.remove();
+                    selectedElement = null;
+                    document.getElementById('selectedElementProps').style.display = 'none';
+                };
+                element.appendChild(deleteBtn);
+
+                // Add click handler for selection
+                element.onclick = (e) => {
+                    e.stopPropagation();
+                    selectElement(element);
+                };
+
+                // Insert before the close button (last child)
+                const closeBtn = canvas.lastElementChild;
+                canvas.insertBefore(element, closeBtn);
+                
+                selectElement(element);
+            }
+        }
+
+        function selectElement(element) {
+            // Deselect previous
+            if (selectedElement) {
+                selectedElement.classList.remove('selected');
+            }
+            
+            selectedElement = element;
+            element.classList.add('selected');
+            
+            // Show properties panel
+            document.getElementById('selectedElementProps').style.display = 'block';
+            
+            // Set current values
+            const link = element.dataset.link || '';
+            document.getElementById('elementLink').value = link;
+            
+            // Get computed styles for color pickers
+            const style = window.getComputedStyle(element);
+            // Note: color picker setup would need more complex logic for existing colors
+        }
+
+        function updateElementLink() {
+            if (!selectedElement) return;
+            const link = document.getElementById('elementLink').value;
+            selectedElement.dataset.link = link;
+            if (selectedElement.tagName === 'BUTTON' || selectedElement.tagName === 'A') {
+                // Visual feedback
+                selectedElement.style.outline = "2px solid #22c55e";
+                setTimeout(() => {
+                    selectedElement.style.outline = "";
+                }, 500);
+            }
+            alert('Link updated! This will be active in the exported code.');
+        }
+
+        function updateElementColor(color) {
+            if (!selectedElement) return;
+            selectedElement.style.color = color;
+        }
+
+        function updateElementBgColor(color) {
+            if (!selectedElement) return;
+            selectedElement.style.backgroundColor = color;
+        }
+
+        function deleteSelectedElement() {
+            if (!selectedElement) return;
+            selectedElement.remove();
+            selectedElement = null;
+            document.getElementById('selectedElementProps').style.display = 'none';
+        }
+
+        // ==================== TEMPLATE SYSTEM ====================
+        function loadTemplate(type) {
+            const canvas = document.getElementById('canvas');
+            canvas.innerHTML = `<div class="absolute top-2 right-2 text-gray-400 hover:text-gray-600 cursor-pointer z-10"><i class="fas fa-times"></i></div>`;
+            
+            if (type === 'newsletter') {
+                const content = document.createElement('div');
+                content.className = "p-6 text-center";
+                content.innerHTML = `
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600"><i class="fas fa-envelope"></i></div>
+                    <h3 class="canvas-element text-2xl font-bold text-gray-800 editable" contenteditable="true">Join Our Newsletter</h3>
+                    <p class="canvas-element text-gray-600 mt-2 mb-6 editable" contenteditable="true">Get the latest updates sent straight to your inbox.</p>
+                    <input type="email" placeholder="Enter your email" class="canvas-element w-full p-2 border border-gray-300 rounded mb-3">
+                    <button class="canvas-element w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700" data-link="https://example.com/subscribe" contenteditable="true">Subscribe Now</button>
+                `;
+                canvas.insertBefore(content, canvas.firstChild);
+                addElementListeners(content);
+            } else if (type === 'discount') {
+                const content = document.createElement('div');
+                content.className = "p-6 text-center bg-red-50 h-full rounded-b-lg";
+                content.innerHTML = `
+                    <h3 class="canvas-element text-3xl font-extrabold text-red-600 my-4" contenteditable="true">FLASH SALE<br>50% OFF</h3>
+                    <p class="canvas-element text-gray-700 mb-6" contenteditable="true">Use code: SAVE50</p>
+                    <button class="canvas-element px-8 py-3 bg-red-600 text-white font-bold rounded shadow-lg hover:bg-red-700" data-link="https://example.com/shop" contenteditable="true">Shop Now</button>
+                `;
+                canvas.insertBefore(content, canvas.firstChild);
+                addElementListeners(content);
+            } else if (type === 'welcome') {
+                const content = document.createElement('div');
+                content.className = "p-6 text-center";
+                content.innerHTML = `
+                    <h3 class="canvas-element text-2xl font-bold text-green-600 mb-2" contenteditable="true">Welcome!</h3>
+                    <p class="canvas-element text-gray-600 mb-4" contenteditable="true">Thanks for visiting our site.</p>
+                    <button class="canvas-element px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700" data-link="" contenteditable="true">Get Started</button>
+                `;
+                canvas.insertBefore(content, canvas.firstChild);
+                addElementListeners(content);
+            }
+        }
+
+        function addElementListeners(container) {
+            const elements = container.querySelectorAll('.canvas-element');
+            elements.forEach(el => {
+                el.onclick = (e) => {
+                    e.stopPropagation();
+                    selectElement(el);
+                };
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = "delete-btn";
+                deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    el.remove();
+                    selectedElement = null;
+                    document.getElementById('selectedElementProps').style.display = 'none';
+                };
+                el.appendChild(deleteBtn);
+            });
+        }
+
+        // ==================== SETTINGS SYSTEM ====================
+        function changeBg(color) {
+            const canvas = document.getElementById('canvas');
+            // Reset classes
+            canvas.className = "w-[400px] min-h-[500px] shadow-xl rounded-lg relative border border-gray-200 transition-all duration-200 overflow-hidden p-6";
+            
+            if (color === 'black') {
+                canvas.classList.add('bg-gray-900', 'text-white');
+            } else if (color === 'indigo') {
+                canvas.classList.add('bg-indigo-600', 'text-white');
+            } else if (color === 'gradient') {
+                canvas.classList.add('bg-gradient-to-br', 'from-purple-500', 'to-pink-500', 'text-white');
+            } else if (color === 'green') {
+                canvas.classList.add('bg-green-600', 'text-white');
+            }
+            // white is default
+        }
+
+        function updatePopupWidth(value) {
+            const canvas = document.getElementById('canvas');
+            canvas.style.width = value + 'px';
+            document.getElementById('widthValue').textContent = value + 'px';
+        }
+
+        // ==================== PREVIEW SYSTEM ====================
+        function togglePreview() {
+            const modal = document.getElementById('previewModal');
+            const contentDiv = document.getElementById('previewContent');
+            const canvas = document.getElementById('canvas');
+            
+            if (modal.style.display === 'flex') {
+                modal.style.display = 'none';
+            } else {
+                // Clone canvas content
+                let html = canvas.innerHTML;
+                
+                // Clean up editor-specific stuff
+                html = html.replace(/contenteditable="true"/g, '');
+                html = html.replace(/canvas-element/g, '');
+                html = html.replace(/delete-btn.*?<\/div>/g, '');
+                html = html.replace(/selected/g, '');
+                
+                // Add specific styles for preview based on current canvas classes
+                let previewClasses = canvas.className
+                    .replace('w-[400px]', 'w-full')
+                    .replace('min-h-[500px]', '')
+                    .replace('overflow-hidden', '');
+                
+                contentDiv.className = previewClasses + " relative shadow-2xl";
+                contentDiv.innerHTML = html;
+                
+                // Re-bind close button in preview
+                const closeBtn = contentDiv.querySelector('.fa-times')?.parentElement;
+                if (closeBtn) {
+                    closeBtn.onclick = togglePreview;
+                }
+
+                modal.style.display = 'flex';
+            }
+        }
+
+        // ==================== EXPORT SYSTEM ====================
+        function exportCode() {
+            const canvas = document.getElementById('canvas');
+            const triggerType = document.getElementById('triggerType').value;
+            
+            let html = canvas.innerHTML;
+            
+            // Clean up editor-specific stuff
+            html = html.replace(/contenteditable="true"/g, '');
+            html = html.replace(/canvas-element/g, '');
+            html = html.replace(/delete-btn.*?<\/div>/g, '');
+            html = html.replace(/selected/g, '');
+            html = html.replace(/onclick=".*?"\s*class="delete-btn".*?<\/div>/g, '');
+            
+            // Generate trigger code
+            let triggerCode = '';
+            if (triggerType === 'load') {
+                triggerCode = `setTimeout(() => { document.getElementById('my-custom-popup').style.display = 'flex'; }, 500);`;
+            } else if (triggerType === 'exit') {
+                triggerCode = `document.addEventListener('mouseleave', () => { document.getElementById('my-custom-popup').style.display = 'flex'; });`;
+            } else if (triggerType === 'scroll') {
+                triggerCode = `window.addEventListener('scroll', () => { if (window.scrollY > document.body.scrollHeight / 2) { document.getElementById('my-custom-popup').style.display = 'flex'; } });`;
+            } else if (triggerType === 'delay') {
+                triggerCode = `setTimeout(() => { document.getElementById('my-custom-popup').style.display = 'flex'; }, 5000);`;
+            } else if (triggerType === 'click') {
+                triggerCode = `// Add this to your button: onclick="document.getElementById('my-custom-popup').style.display = 'flex'"`;
+            }
+
+            const code = `
+<!-- Pop-up Maker Generated Code -->
+<div id="my-custom-popup" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+    <div style="position:relative; background:white; padding:2rem; border-radius:8px; max-width:400px; width:90%; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <span onclick="document.getElementById('my-custom-popup').style.display='none'" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:20px; color:#666;">&times;</span>
+        ${html}
+    </div>
+</div>
+
+<script>
+    ${triggerCode}
+<\/script>
+            `.trim();
+
+            document.getElementById('codeOutput').textContent = code;
+            document.getElementById('codeModal').classList.remove('hidden');
+        }
+
+        function copyCode() {
+            const code = document.getElementById('codeOutput').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('Code copied to clipboard!');
+            });
+        }
+
+        // ==================== SAVE/LOAD PROJECTS SYSTEM ====================
+        function saveProject() {
+            if (!currentUser) return;
+            
+            const projectName = prompt('Enter project name:', 'My Pop-up ' + new Date().toLocaleDateString());
+            if (!projectName) return;
+            
+            const canvas = document.getElementById('canvas');
+            const triggerType = document.getElementById('triggerType').value;
+            
+            const projectData = {
+                id: Date.now(),
+                name: projectName,
+                content: canvas.innerHTML,
+                settings: {
+                    triggerType: triggerType,
+                    bgColor: canvas.className,
+                    width: canvas.style.width || '400px'
+                },
+                createdAt: new Date().toISOString()
+            };
+            
+            // Get user's projects
+            const users = JSON.parse(localStorage.getItem('popupMaker_users') || '[]');
+            const userIndex = users.findIndex(u => u.email === currentUser.email);
+            
+            if (userIndex !== -1) {
+                // Add or update project
+                const existingProjectIndex = users[userIndex].projects.findIndex(p => p.name === projectName);
+                if (existingProjectIndex !== -1) {
+                    users[userIndex].projects[existingProjectIndex] = projectData;
+                } else {
+                    users[userIndex].projects.push(projectData);
+                }
+                
+                localStorage.setItem('popupMaker_users', JSON.stringify(users));
+                currentUser = users[userIndex];
+                localStorage.setItem('popupMaker_currentUser', JSON.stringify(currentUser));
+                
+                alert('Project saved successfully!');
+            }
+        }
+
+        function loadUserProject() {
+            if (!currentUser || !currentUser.projects || currentUser.projects.length === 0) return;
+            
+            // Load most recent project
+            const latestProject = currentUser.projects[currentUser.projects.length - 1];
+            loadProjectData(latestProject);
+        }
+
+        function loadProjects() {
+            if (!currentUser) return;
+            
+            const projectsList = document.getElementById('projectsList');
+            const noProjects = document.getElementById('noProjects');
+            
+            if (!currentUser.projects || currentUser.projects.length === 0) {
+                projectsList.innerHTML = '';
+                noProjects.style.display = 'block';
+            } else {
+                noProjects.style.display = 'none';
+                projectsList.innerHTML = currentUser.projects.map(project => `
+                    <div class="p-4 border border-gray-200 rounded-lg hover:border-indigo-500 cursor-pointer transition" onclick="loadAndCloseProject(${project.id})">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-semibold text-gray-800">${project.name}</h4>
+                                <p class="text-xs text-gray-500 mt-1">Saved: ${new Date(project.createdAt).toLocaleString()}</p>
+                            </div>
+                            <button onclick="event.stopPropagation(); deleteProject(${project.id})" class="text-red-500 hover:text-red-700 text-sm">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            document.getElementById('projectsModal').classList.remove('hidden');
+            document.getElementById('projectsModal').classList.add('flex');
+        }
+
+        function loadAndCloseProject(projectId) {
+            const users = JSON.parse(localStorage.getItem('popupMaker_users') || '[]');
+            const user = users.find(u => u.email === currentUser.email);
+            const project = user.projects.find(p => p.id === projectId);
+            
+            if (project) {
+                loadProjectData(project);
+                closeProjects();
+            }
+        }
+
+        function loadProjectData(project) {
+            const canvas = document.getElementById('canvas');
+            canvas.innerHTML = project.content;
+            
+            // Restore settings
+            if (project.settings) {
+                document.getElementById('triggerType').value = project.settings.triggerType || 'load';
+                canvas.className = project.settings.bgColor || canvas.className;
+                if (project.settings.width) {
+                    canvas.style.width = project.settings.width;
+                    document.getElementById('popupWidth').value = parseInt(project.settings.width);
+                    document.getElementById('widthValue').textContent = project.settings.width;
+                }
+            }
+            
+            // Re-add event listeners to loaded elements
+            const elements = canvas.querySelectorAll('.canvas-element');
+            elements.forEach(el => {
+                el.onclick = (e) => {
+                    e.stopPropagation();
+                    selectElement(el);
+                };
+                if (!el.querySelector('.delete-btn')) {
+                    const deleteBtn = document.createElement('div');
+                    deleteBtn.className = "delete-btn";
+                    deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        el.remove();
+                        selectedElement = null;
+                        document.getElementById('selectedElementProps').style.display = 'none';
+                    };
+                    el.appendChild(deleteBtn);
+                }
+            });
+        }
+
+        function deleteProject(projectId) {
+            if (!confirm('Are you sure you want to delete this project?')) return;
+            
+            const users = JSON.parse(localStorage.getItem('popupMaker_users') || '[]');
+            const userIndex = users.findIndex(u => u.email === currentUser.email);
+            
+            if (userIndex !== -1) {
+                users[userIndex].projects = users[userIndex].projects.filter(p => p.id !== projectId);
+                localStorage.setItem('popupMaker_users', JSON.stringify(users));
+                currentUser = users[userIndex];
+                localStorage.setItem('popupMaker_currentUser', JSON.stringify(currentUser));
+                loadProjects(); // Refresh list
+            }
+        }
+
+        function closeProjects() {
+            document.getElementById('projectsModal').classList.add('hidden');
+            document.getElementById('projectsModal').classList.remove('flex');
+        }
+
+        // ==================== INITIALIZATION ====================
+        window.addEventListener('DOMContentLoaded', () => {
+            initAuth();
+            
+            // Prevent default drag behaviors on canvas
+            const canvas = document.getElementById('canvas');
+            canvas.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            });
+            
+            // Deselect when clicking on canvas background
+            canvas.addEventListener('click', (e) => {
+                if (e.target === canvas) {
+                    if (selectedElement) {
+                        selectedElement.classList.remove('selected');
+                        selectedElement = null;
+                        document.getElementById('selectedElementProps').style.display = 'none';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
