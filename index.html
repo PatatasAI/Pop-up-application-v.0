@@ -3,1014 +3,1151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PopMaker Pro - SaaS Platform</title>
+    <title>PopMaker Pro - Create Powerful Popups</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
-
-        /* Canvas Grid */
-        .canvas-bg {
-            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-
-        /* Draggable Items */
-        .draggable-item { cursor: grab; transition: all 0.2s; }
+        /* Editor Specific Styles */
+        .canvas-area { background-image: radial-gradient(#e5e7eb 1px, transparent 1px); background-size: 20px 20px; }
+        .draggable-item { cursor: grab; }
         .draggable-item:active { cursor: grabbing; }
-        .draggable-item:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-
-        /* Selected Element in Editor */
+        
+        /* Selection States */
         .selected-element { outline: 2px solid #4f46e5; position: relative; }
         .selected-element::after {
             content: ''; position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px;
             border: 1px dashed #4f46e5; pointer-events: none;
         }
+        .popup-selected { outline: 2px solid #10b981; }
+        
+        /* Modal Transitions */
+        .modal { transition: opacity 0.2s ease-in-out; }
+        .hidden-modal { opacity: 0; pointer-events: none; }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
 
-        /* Preview Overlay */
-        .preview-overlay {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999;
-            justify-content: center; align-items: center;
-        }
-        
-        /* Animations */
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
-        .slide-up { animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .preview-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; }
+        .preview-popup { position: absolute; background: white; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 h-screen overflow-hidden flex flex-col">
+<body class="bg-gray-50 text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- ================= APP CONTAINER ================= -->
-    <div id="app" class="flex-1 flex flex-col h-full overflow-hidden"></div>
+    <!-- ================= LANDING PAGE ================= -->
+    <div id="landingPage" class="flex flex-col h-full overflow-y-auto">
+        <nav class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold"><i class="fas fa-bullhorn"></i></div>
+                <span class="text-xl font-bold text-gray-900">PopMaker Pro</span>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="app.navigate('login')" class="text-gray-600 hover:text-indigo-600 font-medium">Login</button>
+                <button onclick="app.navigate('signup')" class="bg-indigo-600 text-white px-5 py-2 rounded-md hover:bg-indigo-700 font-medium transition">Get Started</button>
+            </div>
+        </nav>
 
-    <!-- ================= JAVASCRIPT LOGIC ================= -->
+        <header class="bg-white pt-16 pb-24 px-6 text-center">
+            <h1 class="text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">Create Powerful Popups Without the Hassle</h1>
+            <p class="text-xl text-gray-500 max-w-2xl mx-auto mb-10">Build, customize, and manage website popups from one simple platform. Drag, drop, and publish in minutes.</p>
+            <div class="flex justify-center gap-4">
+                <button onclick="app.startDemo()" class="bg-indigo-600 text-white px-8 py-3 rounded-md text-lg font-semibold hover:bg-indigo-700 shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5">View Demo</button>
+                <button onclick="app.navigate('signup')" class="bg-white text-indigo-600 border border-indigo-200 px-8 py-3 rounded-md text-lg font-semibold hover:bg-gray-50 transition">Sign Up Free</button>
+            </div>
+        </header>
+
+        <section class="py-20 bg-gray-50 px-6">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl font-bold text-gray-900">Everything you need to grow your list</h2>
+                </div>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 mb-4"><i class="fas fa-mouse-pointer text-xl"></i></div>
+                        <h3 class="text-xl font-bold mb-2">Drag & Drop Editor</h3>
+                        <p class="text-gray-500">Easy-to-use editor with real-time preview. No coding required.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600 mb-4"><i class="fas fa-layer-group text-xl"></i></div>
+                        <h3 class="text-xl font-bold mb-2">20+ Pro Templates</h3>
+                        <p class="text-gray-500">Start with professionally designed templates for any goal.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 mb-4"><i class="fas fa-bullseye text-xl"></i></div>
+                        <h3 class="text-xl font-bold mb-2">Smart Targeting</h3>
+                        <p class="text-gray-500">Show popups at the right time with exit intent, scroll, and delay triggers.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="bg-white border-t border-gray-200 py-12 px-6 mt-auto">
+            <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 bg-indigo-600 rounded flex items-center justify-center text-white text-xs"><i class="fas fa-bullhorn"></i></div>
+                    <span class="font-bold text-gray-900">PopMaker Pro</span>
+                </div>
+                <p class="text-gray-500 text-sm">© 2026 PopMaker Pro. All Rights Reserved.</p>
+                <div class="flex gap-6 text-gray-400">
+                    <i class="fab fa-twitter hover:text-indigo-600 cursor-pointer"></i>
+                    <i class="fab fa-facebook hover:text-indigo-600 cursor-pointer"></i>
+                    <i class="fab fa-instagram hover:text-indigo-600 cursor-pointer"></i>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ================= AUTH PAGES (Login/Signup) ================= -->
+    <div id="authPage" class="hidden fixed inset-0 bg-gray-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold mx-auto mb-4"><i class="fas fa-bullhorn"></i></div>
+                    <h2 id="authTitle" class="text-2xl font-bold text-gray-900">Welcome Back</h2>
+                    <p id="authSubtitle" class="text-gray-500 mt-2">Enter your details to access your account</p>
+                </div>
+                
+                <form id="authForm" onsubmit="event.preventDefault(); app.handleAuthSubmit();" class="space-y-4">
+                    <div id="companyField" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                        <input type="text" id="regCompany" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <input type="email" id="authEmail" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="authPassword" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                    </div>
+                    <button type="submit" id="authBtn" class="w-full bg-indigo-600 text-white py-2.5 rounded-md font-semibold hover:bg-indigo-700 transition shadow-md">Sign In</button>
+                </form>
+
+                <div class="mt-6 text-center text-sm text-gray-600">
+                    <span id="authToggleText">Don't have an account?</span>
+                    <button onclick="app.toggleAuthMode()" class="text-indigo-600 font-semibold hover:underline ml-1" id="authToggleBtn">Sign up</button>
+                </div>
+                <div class="mt-4 text-center">
+                    <button onclick="app.navigate('landing')" class="text-xs text-gray-400 hover:text-gray-600 underline">Back to Home</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= USER DASHBOARD ================= -->
+    <div id="userDashboard" class="hidden flex flex-col h-screen bg-gray-50">
+        <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 shadow-sm z-10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold"><i class="fas fa-bullhorn"></i></div>
+                <h1 class="text-xl font-bold text-gray-800">Dashboard</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p id="dashUserName" class="text-sm font-semibold text-gray-900">User Name</p>
+                    <p id="dashCompany" class="text-xs text-gray-500">Company</p>
+                </div>
+                <button onclick="app.logout()" class="text-gray-500 hover:text-red-600 transition"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-6">
+            <div class="max-w-6xl mx-auto">
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">My Popups</h2>
+                        <p class="text-gray-500 mt-1">Manage and track your campaign performance</p>
+                    </div>
+                    <button onclick="app.navigate('createType')" class="bg-indigo-600 text-white px-5 py-2.5 rounded-md font-semibold hover:bg-indigo-700 shadow-sm flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Create New
+                    </button>
+                </div>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <p class="text-sm font-medium text-gray-500 uppercase">Total Popups</p>
+                        <p id="statTotal" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <p class="text-sm font-medium text-gray-500 uppercase">Active</p>
+                        <p id="statActive" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <p class="text-sm font-medium text-gray-500 uppercase">Drafts</p>
+                        <p id="statDraft" class="text-3xl font-bold text-orange-500 mt-2">0</p>
+                    </div>
+                </div>
+
+                <!-- Popup List -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Name</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Type</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Last Updated</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="popupListBody" class="divide-y divide-gray-100">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                    <div id="emptyState" class="hidden p-12 text-center">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400"><i class="fas fa-inbox text-2xl"></i></div>
+                        <h3 class="text-lg font-medium text-gray-900">No popups yet</h3>
+                        <p class="text-gray-500 mt-1 mb-6">Create your first popup to get started.</p>
+                        <button onclick="app.navigate('createType')" class="text-indigo-600 font-semibold hover:underline">Create New Popup</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= CREATE TYPE SELECTOR ================= -->
+    <div id="createTypePage" class="hidden fixed inset-0 bg-gray-900/50 z-40 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-900">Choose Popup Type</h3>
+                <button onclick="app.navigate('dashboard')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-8 grid md:grid-cols-3 gap-6">
+                <!-- Regular -->
+                <div onclick="app.selectType('popup')" class="cursor-pointer group border-2 border-gray-200 rounded-xl p-6 hover:border-indigo-600 hover:bg-indigo-50 transition text-center">
+                    <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 group-hover:scale-110 transition"><i class="fas fa-window-maximize text-2xl"></i></div>
+                    <h4 class="text-lg font-bold text-gray-900">Regular Popup</h4>
+                    <p class="text-sm text-gray-500 mt-2">Classic modal centered or positioned anywhere on screen.</p>
+                </div>
+                <!-- Banner -->
+                <div onclick="app.selectType('banner')" class="cursor-pointer group border-2 border-gray-200 rounded-xl p-6 hover:border-indigo-600 hover:bg-indigo-50 transition text-center">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 group-hover:scale-110 transition"><i class="fas fa-bars text-2xl"></i></div>
+                    <h4 class="text-lg font-bold text-gray-900">Top/Bottom Banner</h4>
+                    <p class="text-sm text-gray-500 mt-2">Non-intrusive bar appearing at top or bottom of page.</p>
+                </div>
+                <!-- GHL -->
+                <div onclick="app.selectType('ghl')" class="cursor-pointer group border-2 border-gray-200 rounded-xl p-6 hover:border-indigo-600 hover:bg-indigo-50 transition text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600 group-hover:scale-110 transition"><i class="fas fa-code text-2xl"></i></div>
+                    <h4 class="text-lg font-bold text-gray-900">GHL Form Embed</h4>
+                    <p class="text-sm text-gray-500 mt-2">Embed your GoHighLevel form directly into a popup.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TEMPLATE SELECTOR ================= -->
+    <div id="templatePage" class="hidden fixed inset-0 bg-gray-900/50 z-40 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[80vh] flex flex-col">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900">Choose a Template</h3>
+                    <p class="text-sm text-gray-500">Start with a pre-designed layout</p>
+                </div>
+                <button onclick="app.startEditorBlank()" class="text-gray-500 hover:text-gray-800 font-medium">Skip & Start Blank</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div id="templateGrid" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <!-- Templates injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= EDITOR ================= -->
+    <div id="editorPage" class="hidden flex flex-col h-screen bg-gray-100">
+        <!-- Editor Header -->
+        <header class="bg-white border-b border-gray-200 h-14 flex items-center justify-between px-4 z-20">
+            <div class="flex items-center gap-3">
+                <button onclick="app.saveAndExit()" class="text-gray-500 hover:text-gray-800"><i class="fas fa-arrow-left"></i></button>
+                <div class="h-6 w-px bg-gray-300"></div>
+                <input type="text" id="editorPopupName" class="font-semibold text-gray-800 bg-transparent border-none focus:ring-0 p-0 text-sm w-48" value="Untitled Popup">
+                <span id="editorStatusBadge" class="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Draft</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="app.togglePreview()" class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition">
+                    <i class="fas fa-eye"></i> Preview
+                </button>
+                <button onclick="app.saveCurrentWork(true)" class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition shadow-sm">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Left Sidebar: Elements & Templates -->
+            <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-10">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Elements</h3>
+                    <div class="space-y-2">
+                        <div draggable="true" ondragstart="editor.drag(event, 'heading')" class="draggable-item p-2.5 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3 cursor-grab">
+                            <i class="fas fa-heading text-gray-400"></i> <span class="text-sm font-medium">Heading</span>
+                        </div>
+                        <div draggable="true" ondragstart="editor.drag(event, 'text')" class="draggable-item p-2.5 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3 cursor-grab">
+                            <i class="fas fa-paragraph text-gray-400"></i> <span class="text-sm font-medium">Text</span>
+                        </div>
+                        <div draggable="true" ondragstart="editor.drag(event, 'button')" class="draggable-item p-2.5 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3 cursor-grab">
+                            <i class="fas fa-square text-gray-400"></i> <span class="text-sm font-medium">Button</span>
+                        </div>
+                        <div draggable="true" ondragstart="editor.drag(event, 'image')" class="draggable-item p-2.5 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3 cursor-grab">
+                            <i class="fas fa-image text-gray-400"></i> <span class="text-sm font-medium">Image</span>
+                        </div>
+                        <div draggable="true" ondragstart="editor.drag(event, 'video')" class="draggable-item p-2.5 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3 cursor-grab">
+                            <i class="fas fa-video text-gray-400"></i> <span class="text-sm font-medium">Video</span>
+                        </div>
+                        <div draggable="true" ondragstart="editor.drag(event, 'form')" class="draggable-item p-2.5 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3 cursor-grab">
+                            <i class="fas fa-envelope text-gray-400"></i> <span class="text-sm font-medium">Form</span>
+                        </div>
+                        <div draggable="true" ondragstart="editor.drag(event, 'divider')" class="draggable-item p-2.5 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3 cursor-grab">
+                            <i class="fas fa-minus text-gray-400"></i> <span class="text-sm font-medium">Divider</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-4">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Templates</h3>
+                    <div id="editorTemplateGrid" class="grid grid-cols-2 gap-3">
+                        <!-- Mini templates for quick load -->
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Canvas Area -->
+            <main class="flex-1 canvas-area relative overflow-auto flex items-center justify-center p-8" onclick="editor.selectPopup(event)">
+                <div id="canvas" class="bg-white shadow-2xl relative transition-all duration-200" style="width: 400px; height: auto; min-height: 300px;">
+                    <!-- Elements go here -->
+                    <div class="absolute top-2 right-2 text-gray-300 hover:text-gray-500 cursor-pointer z-50" onclick="event.stopPropagation()">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-xs shadow-lg pointer-events-none opacity-0 transition-opacity duration-300" id="canvasHint">
+                    Click background to edit Popup settings
+                </div>
+            </main>
+
+            <!-- Right Sidebar: Properties -->
+            <aside class="w-72 bg-white border-l border-gray-200 flex flex-col z-10">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="text-sm font-bold text-gray-800" id="propTitle">Popup Settings</h3>
+                </div>
+                <div id="propertiesContent" class="p-4 overflow-y-auto flex-1 space-y-4">
+                    <!-- Dynamic Properties -->
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- ================= ADMIN DASHBOARD ================= -->
+    <div id="adminDashboard" class="hidden flex flex-col h-screen bg-gray-900 text-white">
+        <header class="bg-gray-800 border-b border-gray-700 h-16 flex items-center justify-between px-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold"><i class="fas fa-shield-alt"></i></div>
+                <h1 class="text-xl font-bold">Admin Panel</h1>
+                <span id="adminModeBadge" class="hidden bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full font-bold">Viewing User</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="exitAdminModeBtn" onclick="admin.exitImpersonation()" class="hidden bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition">Exit View Mode</button>
+                <button onclick="app.logout()" class="text-gray-400 hover:text-white transition"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-6">
+            <div class="max-w-7xl mx-auto">
+                <h2 class="text-2xl font-bold mb-6">User Management</h2>
+                <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-700/50 border-b border-gray-700">
+                            <tr>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Company / User</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Email</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Website</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Popups</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase">Joined</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-400 uppercase text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminUserList" class="divide-y divide-gray-700">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+    
+    <!-- Demo Signup Modal -->
+    <div id="demoSignupModal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
+            <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600">
+                <i class="fas fa-lock text-2xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Want to save your popup?</h3>
+            <p class="text-gray-500 mb-6">Create a free account to save your work permanently and access it from any device.</p>
+            <div class="space-y-3">
+                <button onclick="app.convertDemoToAccount()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg">Create Free Account</button>
+                <button onclick="document.getElementById('demoSignupModal').classList.add('hidden')" class="w-full text-gray-500 py-2 hover:text-gray-700 font-medium">Continue Editing (Temporary)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="preview-overlay" onclick="if(event.target === this) app.togglePreview()">
+        <div id="previewContainer" class="preview-popup">
+            <!-- Content injected via JS -->
+        </div>
+    </div>
+
     <script>
-        // --- 1. STATE MANAGEMENT & DATABASE SIMULATION ---
-        const DB_KEY = 'popmaker_db_v1';
+        /** 
+         * POPMAKER PRO - CORE LOGIC 
+         * Single File Architecture using LocalStorage
+         */
+
+        const DB_KEY = 'popmaker_db_v2';
         
-        const defaultData = {
-            users: [
-                { id: 'admin', email: 'admin@poptin.com', password: 'admin123', role: 'admin', companyName: 'PopMaker HQ', website: 'https://poptin.com' },
-                { id: 'demo', email: 'demo@example.com', password: 'demo123', role: 'user', companyName: 'Demo Company', website: 'https://example.com' }
-            ],
-            popups: [
-                { id: 'p1', userId: 'demo', name: 'Welcome Offer', type: 'popup', status: 'draft', position: 'center', width: '500px', height: 'auto', elements: [
-                    { id: 'e1', type: 'heading', content: 'Welcome!', style: { fontSize: '24px', color: '#1f2937', textAlign: 'center' } },
-                    { id: 'e2', type: 'text', content: 'Subscribe for exclusive deals.', style: { fontSize: '16px', color: '#4b5563', textAlign: 'center' } },
-                    { id: 'e3', type: 'button', content: 'Get Started', style: { backgroundColor: '#4f46e5', color: '#ffffff', padding: '10px 20px', borderRadius: '6px' } }
-                ]}
-            ]
+        // Initial State
+        const defaultDB = {
+            users: [],
+            popups: [],
+            adminEmail: 'admin@poptin.com',
+            adminPass: 'admin123'
         };
 
-        // Initialize DB
-        function getDB() {
-            const stored = localStorage.getItem(DB_KEY);
-            if (!stored) {
-                localStorage.setItem(DB_KEY, JSON.stringify(defaultData));
-                return defaultData;
+        // --- Database Helper ---
+        const db = {
+            get: () => JSON.parse(localStorage.getItem(DB_KEY)) || defaultDB,
+            save: (data) => localStorage.setItem(DB_KEY, JSON.stringify(data)),
+            
+            // User Ops
+            findUser: (email) => db.get().users.find(u => u.email === email),
+            addUser: (user) => {
+                const data = db.get();
+                data.users.push(user);
+                db.save(data);
+                return user;
+            },
+            updateUser: (email, updates) => {
+                const data = db.get();
+                const idx = data.users.findIndex(u => u.email === email);
+                if(idx !== -1) {
+                    data.users[idx] = { ...data.users[idx], ...updates };
+                    db.save(data);
+                    return data.users[idx];
+                }
+                return null;
+            },
+            deleteUser: (email) => {
+                let data = db.get();
+                data.users = data.users.filter(u => u.email !== email);
+                // Also delete their popups
+                data.popups = data.popups.filter(p => p.userEmail !== email);
+                db.save(data);
+            },
+
+            // Popup Ops
+            addPopup: (popup) => {
+                const data = db.get();
+                data.popups.push(popup);
+                db.save(data);
+                return popup;
+            },
+            updatePopup: (id, updates) => {
+                const data = db.get();
+                const idx = data.popups.findIndex(p => p.id === id);
+                if(idx !== -1) {
+                    data.popups[idx] = { ...data.popups[idx], ...updates, lastUpdated: new Date().toISOString() };
+                    db.save(data);
+                    return data.popups[idx];
+                }
+                return null;
+            },
+            getPopupsByUser: (email) => db.get().popups.filter(p => p.userEmail === email),
+            getPopupById: (id) => db.get().popups.find(p => p.id === id),
+            deletePopup: (id) => {
+                let data = db.get();
+                data.popups = data.popups.filter(p => p.id !== id);
+                db.save(data);
             }
-            return JSON.parse(stored);
-        }
+        };
 
-        function saveDB(data) {
-            localStorage.setItem(DB_KEY, JSON.stringify(data));
-        }
+        // --- App Controller ---
+        const app = {
+            currentUser: null,
+            isDemo: false,
+            demoData: null, // Temp storage for demo work
+            
+            init: () => {
+                if(!localStorage.getItem(DB_KEY)) db.save(defaultDB);
+                app.checkSession();
+            },
 
-        let currentUser = null;
-        let currentPopup = null;
-        let selectedElementId = null;
-        let adminImpersonating = null; // Stores ID of user admin is viewing
+            checkSession: () => {
+                const session = sessionStorage.getItem('pm_session');
+                if(session) {
+                    const user = JSON.parse(session);
+                    if(user.email === 'admin') {
+                        app.currentUser = user;
+                        app.navigate('admin');
+                    } else {
+                        app.currentUser = user;
+                        app.isDemo = user.isDemo || false;
+                        app.navigate('dashboard');
+                        app.loadDashboard();
+                    }
+                } else {
+                    app.navigate('landing');
+                }
+            },
 
-        // --- 2. AUTHENTICATION ---
-        function login(email, password) {
-            const db = getDB();
-            const user = db.users.find(u => u.email === email && u.password === password);
-            if (user) {
-                currentUser = user;
-                adminImpersonating = null;
-                renderApp();
-                return true;
-            }
-            return false;
-        }
+            navigate: (pageId) => {
+                ['landingPage', 'authPage', 'userDashboard', 'createTypePage', 'templatePage', 'editorPage', 'adminDashboard'].forEach(id => {
+                    document.getElementById(id).classList.add('hidden');
+                });
+                
+                if(pageId === 'landing') document.getElementById('landingPage').classList.remove('hidden');
+                if(pageId === 'login' || pageId === 'signup') {
+                    document.getElementById('authPage').classList.remove('hidden');
+                    app.setupAuthForm(pageId === 'signup');
+                }
+                if(pageId === 'dashboard') {
+                    document.getElementById('userDashboard').classList.remove('hidden');
+                    app.loadDashboard();
+                }
+                if(pageId === 'createType') document.getElementById('createTypePage').classList.remove('hidden');
+                if(pageId === 'templates') document.getElementById('templatePage').classList.remove('hidden');
+                if(pageId === 'editor') document.getElementById('editorPage').classList.remove('hidden');
+                if(pageId === 'admin') {
+                    document.getElementById('adminDashboard').classList.remove('hidden');
+                    admin.load();
+                }
+            },
 
-        function signup(name, email, password, company, website) {
-            const db = getDB();
-            if (db.users.find(u => u.email === email)) return false;
-            const newUser = {
-                id: 'u_' + Date.now(),
-                email, password, role: 'user',
-                companyName: company || name,
-                website: website || ''
-            };
-            db.users.push(newUser);
-            saveDB(db);
-            currentUser = newUser;
-            renderApp();
-            return true;
-        }
+            setupAuthForm: (isSignup) => {
+                const title = document.getElementById('authTitle');
+                const sub = document.getElementById('authSubtitle');
+                const btn = document.getElementById('authBtn');
+                const toggleText = document.getElementById('authToggleText');
+                const toggleBtn = document.getElementById('authToggleBtn');
+                const companyField = document.getElementById('companyField');
 
-        function logout() {
-            currentUser = null;
-            adminImpersonating = null;
-            currentPopup = null;
-            renderApp();
-        }
+                if(isSignup) {
+                    title.innerText = "Create Account";
+                    sub.innerText = "Start building popups today";
+                    btn.innerText = "Sign Up";
+                    toggleText.innerText = "Already have an account?";
+                    toggleBtn.innerText = "Log in";
+                    companyField.classList.remove('hidden');
+                } else {
+                    title.innerText = "Welcome Back";
+                    sub.innerText = "Enter your details";
+                    btn.innerText = "Sign In";
+                    toggleText.innerText = "Don't have an account?";
+                    toggleBtn.innerText = "Sign up";
+                    companyField.classList.add('hidden');
+                }
+            },
 
-        function impersonateUser(userId) {
-            const db = getDB();
-            const user = db.users.find(u => u.id === userId);
-            if (user) {
-                adminImpersonating = user.id;
-                currentUser = user; // Switch context
-                renderApp();
-            }
-        }
+            toggleAuthMode: () => {
+                const isCurrentlyLogin = document.getElementById('authTitle').innerText === "Welcome Back";
+                app.navigate(isCurrentlyLogin ? 'signup' : 'login');
+            },
 
-        function stopImpersonation() {
-            adminImpersonating = null;
-            currentUser = db.users.find(u => u.email === 'admin@poptin.com'); // Return to admin
-            renderApp();
-        }
+            handleAuthSubmit: () => {
+                const email = document.getElementById('authEmail').value;
+                const pass = document.getElementById('authPassword').value;
+                const company = document.getElementById('regCompany').value;
+                const isSignup = !document.getElementById('companyField').classList.contains('hidden');
 
-        // --- 3. POPUP DATA HANDLING ---
-        function createPopup(type, templateName) {
-            const db = getDB();
-            const newPopup = {
-                id: 'p_' + Date.now(),
-                userId: currentUser.id,
-                name: `New ${type} ${db.popups.filter(p => p.userId === currentUser.id).length + 1}`,
-                type: type, // 'popup', 'banner', 'ghl'
-                status: 'draft',
-                position: 'center',
-                width: '500px',
-                height: 'auto',
-                bannerPosition: 'bottom', // for banners
-                ghlEmbedCode: '', // for GHL
-                elements: templateName ? getTemplateElements(templateName) : []
-            };
-            db.popups.push(newPopup);
-            saveDB(db);
-            openEditor(newPopup);
-        }
+                if(isSignup) {
+                    if(db.findUser(email)) {
+                        alert("Email already exists!");
+                        return;
+                    }
+                    const newUser = {
+                        email, password: pass, company: company || "My Company", 
+                        website: "", joined: new Date().toISOString(), isDemo: false
+                    };
+                    db.addUser(newUser);
+                    app.login(newUser);
+                } else {
+                    // Login Check
+                    if(email === db.get().adminEmail && pass === db.get().adminPass) {
+                        app.login({ email: 'admin', role: 'admin' });
+                        return;
+                    }
+                    const user = db.findUser(email);
+                    if(user && user.password === pass) {
+                        app.login(user);
+                    } else {
+                        alert("Invalid credentials");
+                    }
+                }
+            },
 
-        function savePopup(popupData) {
-            const db = getDB();
-            const index = db.popups.findIndex(p => p.id === popupData.id);
-            if (index !== -1) {
-                db.popups[index] = popupData;
-                saveDB(db);
-                // Show toast
-                const toast = document.getElementById('save-toast');
-                if(toast) {
-                    toast.classList.remove('hidden');
-                    setTimeout(() => toast.classList.add('hidden'), 2000);
+            login: (user) => {
+                app.currentUser = user;
+                app.isDemo = user.isDemo || false;
+                sessionStorage.setItem('pm_session', JSON.stringify(user));
+                if(user.role === 'admin') app.navigate('admin');
+                else {
+                    app.navigate('dashboard');
+                    app.loadDashboard();
+                }
+            },
+
+            startDemo: () => {
+                app.isDemo = true;
+                app.currentUser = { email: 'demo_user_temp', isDemo: true, company: 'Demo Company' };
+                // Don't save to DB yet
+                app.demoData = []; 
+                app.navigate('dashboard');
+                app.loadDashboard();
+            },
+
+            convertDemoToAccount: () => {
+                document.getElementById('demoSignupModal').classList.add('hidden');
+                app.navigate('signup');
+                // We will transfer data after successful signup in handleAuthSubmit logic if needed
+                // For simplicity, we just let them sign up, and on success, we check if demoData exists
+                const originalLogin = app.login;
+                app.login = (user) => {
+                    if(app.isDemo && app.demoData && app.demoData.length > 0) {
+                        // Transfer popups
+                        app.demoData.forEach(p => {
+                            p.userEmail = user.email;
+                            p.id = 'popup_' + Date.now() + Math.random().toString(16).slice(2);
+                            db.addPopup(p);
+                        });
+                        alert("Welcome! Your demo popups have been saved.");
+                        app.demoData = null;
+                    }
+                    app.isDemo = false;
+                    originalLogin(user);
+                };
+            },
+
+            logout: () => {
+                sessionStorage.removeItem('pm_session');
+                app.currentUser = null;
+                app.isDemo = false;
+                app.demoData = null;
+                app.navigate('landing');
+            },
+
+            loadDashboard: () => {
+                const email = app.currentUser.email;
+                const popups = app.isDemo ? (app.demoData || []) : db.getPopupsByUser(email);
+                
+                document.getElementById('dashUserName').innerText = email.split('@')[0];
+                document.getElementById('dashCompany').innerText = app.currentUser.company || "Company";
+
+                document.getElementById('statTotal').innerText = popups.length;
+                document.getElementById('statActive').innerText = popups.filter(p => p.status === 'active').length;
+                document.getElementById('statDraft').innerText = popups.filter(p => p.status === 'draft').length;
+
+                const tbody = document.getElementById('popupListBody');
+                tbody.innerHTML = '';
+                
+                if(popups.length === 0) {
+                    document.getElementById('emptyState').classList.remove('hidden');
+                } else {
+                    document.getElementById('emptyState').classList.add('hidden');
+                    popups.forEach(p => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-gray-50 transition";
+                        tr.innerHTML = `
+                            <td class="px-6 py-4 font-medium text-gray-900">${p.name}</td>
+                            <td class="px-6 py-4 text-sm text-gray-500 capitalize">${p.type}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs rounded-full ${p.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${p.status}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500">${new Date(p.lastUpdated).toLocaleDateString()}</td>
+                            <td class="px-6 py-4 text-right">
+                                <button onclick="app.editPopup('${p.id}')" class="text-indigo-600 hover:text-indigo-900 font-medium text-sm mr-3">Edit</button>
+                                <button onclick="app.deletePopup('${p.id}')" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            },
+
+            selectType: (type) => {
+                app.currentType = type;
+                app.navigate('templates');
+                app.renderTemplates();
+            },
+
+            renderTemplates: () => {
+                const grid = document.getElementById('templateGrid');
+                const editorGrid = document.getElementById('editorTemplateGrid');
+                grid.innerHTML = '';
+                editorGrid.innerHTML = '';
+
+                const templates = [
+                    { id: 't1', name: 'Newsletter', color: 'bg-blue-50' },
+                    { id: 't2', name: 'Discount', color: 'bg-red-50' },
+                    { id: 't3', name: 'Welcome', color: 'bg-green-50' },
+                    { id: 't4', name: 'Lead Gen', color: 'bg-purple-50' },
+                    { id: 't5', name: 'Contact', color: 'bg-gray-50' },
+                    { id: 't6', name: 'Event', color: 'bg-pink-50' },
+                    { id: 't7', name: 'Product', color: 'bg-orange-50' },
+                    { id: 't8', name: 'Limited Offer', color: 'bg-yellow-50' },
+                    { id: 't9', name: 'Consultation', color: 'bg-teal-50' },
+                    { id: 't10', name: 'Get Started', color: 'bg-indigo-50' },
+                    { id: 't11', name: 'Announcement', color: 'bg-cyan-50' },
+                    { id: 't12', name: 'New Product', color: 'bg-fuchsia-50' },
+                    { id: 't13', name: 'Holiday', color: 'bg-red-100' },
+                    { id: 't14', name: 'Exit Intent', color: 'bg-slate-50' },
+                    { id: 't15', name: 'Booking', color: 'bg-emerald-50' },
+                    { id: 't16', name: 'Social', color: 'bg-blue-100' },
+                    { id: 't17', name: 'Web Announce', color: 'bg-violet-50' },
+                    { id: 't18', name: 'Email Signup', color: 'bg-amber-50' },
+                    { id: 't19', name: 'Special Offer', color: 'bg-rose-50' },
+                    { id: 't20', name: 'Simple CTA', color: 'bg-zinc-50' }
+                ];
+
+                templates.forEach(t => {
+                    // Main Grid
+                    const card = document.createElement('div');
+                    card.className = `${t.color} border border-gray-200 rounded-lg p-4 cursor-pointer hover:ring-2 hover:ring-indigo-500 transition flex flex-col items-center justify-center h-32`;
+                    card.onclick = () => app.startEditor(t.id);
+                    card.innerHTML = `<span class="font-bold text-gray-700">${t.name}</span>`;
+                    grid.appendChild(card);
+
+                    // Editor Sidebar Mini
+                    const mini = document.createElement('div');
+                    mini.className = "bg-gray-50 border border-gray-200 rounded p-2 cursor-pointer hover:bg-indigo-50 hover:border-indigo-500 transition text-center";
+                    mini.onclick = () => editor.loadTemplate(t.id);
+                    mini.innerHTML = `<span class="text-xs font-medium text-gray-600">${t.name}</span>`;
+                    editorGrid.appendChild(mini);
+                });
+            },
+
+            startEditorBlank: () => app.startEditor(null),
+
+            startEditor: (templateId) => {
+                const newPopup = {
+                    id: 'popup_' + Date.now(),
+                    userEmail: app.currentUser.email,
+                    name: "New " + (app.currentType || 'Popup'),
+                    type: app.currentType || 'popup',
+                    status: 'draft',
+                    lastUpdated: new Date().toISOString(),
+                    settings: {
+                        width: '400px', height: 'auto', position: 'center',
+                        bgColor: '#ffffff', textColor: '#333333'
+                    },
+                    elements: templateId ? editor.getTemplateData(templateId) : []
+                };
+
+                if(app.isDemo) {
+                    app.demoData.push(newPopup);
+                    app.currentPopupId = newPopup.id; // Temp ID
+                } else {
+                    db.addPopup(newPopup);
+                    app.currentPopupId = newPopup.id;
+                }
+                
+                app.navigate('editor');
+                editor.init(newPopup);
+            },
+
+            editPopup: (id) => {
+                let popup;
+                if(app.isDemo) {
+                    popup = app.demoData.find(p => p.id === id);
+                } else {
+                    popup = db.getPopupById(id);
+                }
+                
+                if(popup) {
+                    app.currentPopupId = id;
+                    app.navigate('editor');
+                    editor.init(popup);
+                }
+            },
+
+            deletePopup: (id) => {
+                if(confirm("Are you sure?")) {
+                    if(app.isDemo) {
+                        app.demoData = app.demoData.filter(p => p.id !== id);
+                        app.loadDashboard();
+                    } else {
+                        db.deletePopup(id);
+                        app.loadDashboard();
+                    }
+                }
+            },
+
+            saveCurrentWork: (showMsg = false) => {
+                if(app.isDemo) {
+                    document.getElementById('demoSignupModal').classList.remove('hidden');
+                    return;
+                }
+
+                const popup = db.getPopupById(app.currentPopupId);
+                if(popup) {
+                    const updated = {
+                        name: document.getElementById('editorPopupName').value,
+                        settings: editor.currentSettings,
+                        elements: editor.getElements(),
+                        status: popup.status // Keep existing status
+                    };
+                    db.updatePopup(app.currentPopupId, updated);
+                    if(showMsg) alert("Saved successfully!");
+                    app.loadDashboard(); // Refresh stats if needed later
+                }
+            },
+
+            saveAndExit: () => {
+                if(app.isDemo) {
+                     if(confirm("Save locally for now? You can export code, but account needed to save online.")) {
+                         // Just exit
+                     }
+                } else {
+                    app.saveCurrentWork();
+                }
+                app.navigate('dashboard');
+            },
+
+            togglePreview: () => {
+                const modal = document.getElementById('previewModal');
+                const container = document.getElementById('previewContainer');
+                const popup = app.isDemo ? app.demoData.find(p=>p.id===app.currentPopupId) : db.getPopupById(app.currentPopupId);
+                
+                if(modal.style.display === 'block') {
+                    modal.style.display = 'none';
+                } else {
+                    // Render Preview
+                    container.innerHTML = editor.renderElements(popup.elements);
+                    container.style.width = popup.settings.width;
+                    if(popup.settings.height !== 'auto') container.style.height = popup.settings.height;
+                    
+                    // Position Logic for Preview
+                    container.style.top = '50%'; container.style.left = '50%'; container.style.transform = 'translate(-50%, -50%)';
+                    
+                    if(popup.settings.position === 'top-left') { container.style.top = '20px'; container.style.left = '20px'; container.style.transform = 'none'; }
+                    if(popup.settings.position === 'top-right') { container.style.top = '20px'; container.style.right = '20px'; container.style.left = 'auto'; container.style.transform = 'none'; }
+                    if(popup.settings.position === 'bottom-left') { container.style.bottom = '20px'; container.style.top = 'auto'; container.style.left = '20px'; container.style.transform = 'none'; }
+                    if(popup.settings.position === 'bottom-right') { container.style.bottom = '20px'; container.style.top = 'auto'; container.style.right = '20px'; container.style.left = 'auto'; container.style.transform = 'none'; }
+                    
+                    // Type Specifics
+                    if(popup.type === 'banner') {
+                        container.style.width = '100%'; container.style.height = 'auto'; container.style.borderRadius = '0';
+                        container.style.top = popup.settings.position.includes('bottom') ? 'auto' : '0';
+                        container.style.bottom = popup.settings.position.includes('bottom') ? '0' : 'auto';
+                        container.style.left = '0'; container.style.right = '0'; container.style.transform = 'none';
+                    }
+
+                    container.style.backgroundColor = popup.settings.bgColor;
+                    modal.style.display = 'block';
                 }
             }
-        }
+        };
 
-        function deletePopup(id) {
-            if(!confirm('Are you sure?')) return;
-            const db = getDB();
-            db.popups = db.popups.filter(p => p.id !== id);
-            saveDB(db);
-            renderDashboard();
-        }
+        // --- Editor Logic ---
+        const editor = {
+            currentSettings: {},
+            selectedElId: null,
 
-        function getTemplateElements(name) {
-            if (name === 'newsletter') return [
-                { id: 't1', type: 'heading', content: 'Join Our Newsletter', style: { fontSize: '24px', fontWeight: 'bold', textAlign: 'center', color: '#111827' } },
-                { id: 't2', type: 'text', content: 'Get the latest updates directly in your inbox.', style: { fontSize: '16px', textAlign: 'center', color: '#4b5563', marginTop: '8px' } },
-                { id: 't3', type: 'input', placeholder: 'Enter email', style: { width: '100%', padding: '10px', marginTop: '16px', border: '1px solid #d1d5db', borderRadius: '4px' } },
-                { id: 't4', type: 'button', content: 'Subscribe', style: { width: '100%', backgroundColor: '#2563eb', color: 'white', padding: '12px', marginTop: '12px', borderRadius: '4px', fontWeight: 'bold' } }
-            ];
-            if (name === 'discount') return [
-                { id: 't1', type: 'heading', content: 'FLASH SALE', style: { fontSize: '32px', fontWeight: '900', textAlign: 'center', color: '#dc2626' } },
-                { id: 't2', type: 'heading', content: '50% OFF', style: { fontSize: '48px', fontWeight: '900', textAlign: 'center', color: '#dc2626', lineHeight: '1' } },
-                { id: 't3', type: 'button', content: 'Shop Now', style: { backgroundColor: '#000', color: 'white', padding: '15px 30px', marginTop: '20px', borderRadius: '0', textTransform: 'uppercase' } }
-            ];
-            return [];
-        }
-
-        // --- 4. VIEW RENDERERS ---
-
-        function renderLandingPage() {
-            const app = document.getElementById('app');
-            app.innerHTML = `
-                <nav class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">P</div>
-                        <span class="text-xl font-bold text-gray-900">PopMaker Pro</span>
-                    </div>
-                    <div class="flex gap-4">
-                        <button onclick="showLogin()" class="text-gray-600 hover:text-indigo-600 font-medium">Log In</button>
-                        <button onclick="showSignup()" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">Get Started</button>
-                    </div>
-                </nav>
+            init: (popup) => {
+                document.getElementById('editorPopupName').value = popup.name;
+                editor.currentSettings = popup.settings;
+                editor.renderCanvas(popup.elements);
+                editor.renderProperties('popup'); // Default to popup settings
                 
-                <main class="flex-1 overflow-y-auto">
-                    <!-- Hero -->
-                    <section class="py-20 px-6 text-center max-w-5xl mx-auto">
-                        <h1 class="text-5xl font-extrabold text-gray-900 mb-6 leading-tight">
-                            Create Powerful Popups <br/><span class="text-indigo-600">Without the Hassle</span>
-                        </h1>
-                        <p class="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-                            Build, customize, and manage high-converting website popups from one simple platform. No coding required.
-                        </p>
-                        <div class="flex justify-center gap-4">
-                            <button onclick="handleDemo()" class="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 shadow-lg hover:shadow-xl transition transform hover:-translate-y-1">
-                                View Demo
-                            </button>
-                            <button onclick="showLogin()" class="bg-white text-gray-700 border border-gray-300 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-50 transition">
-                                Log In
-                            </button>
-                        </div>
-                    </section>
+                // Setup Hint
+                const hint = document.getElementById('canvasHint');
+                setTimeout(() => hint.style.opacity = '1', 1000);
+                setTimeout(() => hint.style.opacity = '0', 4000);
+            },
 
-                    <!-- Features -->
-                    <section class="py-16 bg-white">
-                        <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-12">
-                            <div class="text-center">
-                                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl"><i class="fas fa-mouse-pointer"></i></div>
-                                <h3 class="text-xl font-bold mb-3">Drag & Drop Editor</h3>
-                                <p class="text-gray-600">Easily add headings, buttons, images, and forms with our intuitive visual editor.</p>
-                            </div>
-                            <div class="text-center">
-                                <div class="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl"><i class="fas fa-layer-group"></i></div>
-                                <h3 class="text-xl font-bold mb-3">Multiple Types</h3>
-                                <p class="text-gray-600">Create standard popups, top/bottom banners, or embed GoHighLevel forms instantly.</p>
-                            </div>
-                            <div class="text-center">
-                                <div class="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl"><i class="fas fa-chart-line"></i></div>
-                                <h3 class="text-xl font-bold mb-3">Boost Conversions</h3>
-                                <p class="text-gray-600">Use exit-intent triggers and professional templates to grow your email list.</p>
-                            </div>
-                        </div>
-                    </section>
-                </main>
-                
-                <footer class="bg-gray-900 text-gray-400 py-12 text-center">
-                    <p>&copy; 2023 PopMaker Pro. All rights reserved.</p>
-                </footer>
-            `;
-        }
+            drag: (ev, type) => {
+                ev.dataTransfer.setData("type", type);
+            },
 
-        function showLogin() {
-            const app = document.getElementById('app');
-            app.innerHTML = `
-                <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-                    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-                        <div class="text-center mb-8">
-                            <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">P</div>
-                            <h2 class="text-2xl font-bold text-gray-900">Welcome Back</h2>
-                            <p class="text-gray-500 mt-2">Sign in to your account</p>
-                        </div>
-                        <form onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                                <input type="email" id="login-email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="you@company.com">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                                <input type="password" id="login-pass" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="••••••••">
-                            </div>
-                            <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition shadow-md">Sign In</button>
-                        </form>
-                        <div class="mt-6 text-center">
-                            <p class="text-sm text-gray-600">Don't have an account? <button onclick="showSignup()" class="text-indigo-600 font-bold hover:underline">Sign up</button></p>
-                            <p class="text-xs text-gray-400 mt-2"><button onclick="renderLandingPage()" class="hover:underline">← Back to Home</button></p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function showSignup() {
-            const app = document.getElementById('app');
-            app.innerHTML = `
-                <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
-                    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-                        <div class="text-center mb-6">
-                            <h2 class="text-2xl font-bold text-gray-900">Create Account</h2>
-                            <p class="text-gray-500 mt-2">Start building popups today</p>
-                        </div>
-                        <form onsubmit="event.preventDefault(); handleSignupSubmit();" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                                <input type="text" id="signup-name" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                                <input type="text" id="signup-company" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input type="email" id="signup-email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                                <input type="password" id="signup-pass" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none">
-                            </div>
-                            <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition shadow-md">Create Account</button>
-                        </form>
-                        <div class="mt-6 text-center">
-                            <p class="text-sm text-gray-600">Already have an account? <button onclick="showLogin()" class="text-indigo-600 font-bold hover:underline">Log in</button></p>
-                            <p class="text-xs text-gray-400 mt-2"><button onclick="renderLandingPage()" class="hover:underline">← Back to Home</button></p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderDashboard() {
-            const db = getDB();
-            // If admin is impersonating, show that user's data, otherwise current user's
-            const viewUserId = adminImpersonating || currentUser.id;
-            const userPopups = db.popups.filter(p => p.userId === viewUserId);
-            
-            const isImpersonating = adminImpersonating !== null && currentUser.role === 'admin';
-
-            let dashboardContent = '';
-            
-            if (isImpersonating) {
-                dashboardContent = `
-                    <div class="bg-red-50 border-b border-red-200 p-4 flex justify-between items-center">
-                        <div class="flex items-center gap-2 text-red-700 font-bold">
-                            <i class="fas fa-user-shield"></i> Admin Mode: Viewing ${currentUser.companyName}
-                        </div>
-                        <button onclick="stopImpersonation()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm">Exit Admin Mode</button>
-                    </div>
-                `;
-            }
-
-            dashboardContent += `
-                <div class="p-8 max-w-7xl mx-auto">
-                    <div class="flex justify-between items-end mb-8">
-                        <div>
-                            <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
-                            <p class="text-gray-500 mt-1">Welcome back, ${currentUser.companyName}</p>
-                        </div>
-                        <button onclick="showCreateTypeSelection()" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 shadow-md flex items-center gap-2">
-                            <i class="fas fa-plus"></i> Create New Popup
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <p class="text-sm text-gray-500 font-medium uppercase">Total Popups</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">${userPopups.length}</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <p class="text-sm text-gray-500 font-medium uppercase">Active</p>
-                            <p class="text-3xl font-bold text-green-600 mt-2">${userPopups.filter(p => p.status === 'active').length}</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <p class="text-sm text-gray-500 font-medium uppercase">Drafts</p>
-                            <p class="text-3xl font-bold text-yellow-600 mt-2">${userPopups.filter(p => p.status === 'draft').length}</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <p class="text-sm text-gray-500 font-medium uppercase">Website</p>
-                            <p class="text-lg font-bold text-indigo-600 mt-2 truncate">${currentUser.website || 'Not set'}</p>
-                        </div>
-                    </div>
-
-                    <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Popups</h2>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Name</th>
-                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Type</th>
-                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Last Updated</th>
-                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                ${userPopups.length === 0 ? '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No popups created yet.</td></tr>' : ''}
-                                ${userPopups.map(p => `
-                                    <tr class="hover:bg-gray-50 transition">
-                                        <td class="px-6 py-4 font-medium text-gray-900">${p.name}</td>
-                                        <td class="px-6 py-4">
-                                            <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-bold uppercase">${p.type}</span>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <span class="px-2 py-1 ${p.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'} rounded text-xs font-bold uppercase">${p.status}</span>
-                                        </td>
-                                        <td class="px-6 py-4 text-gray-500 text-sm">Just now</td>
-                                        <td class="px-6 py-4 text-right space-x-2">
-                                            <button onclick='openEditorById("${p.id}")' class="text-indigo-600 hover:text-indigo-900 font-medium text-sm">Edit</button>
-                                            <button onclick="deletePopup('${p.id}')" class="text-red-500 hover:text-red-700 font-medium text-sm">Delete</button>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-
-            const app = document.getElementById('app');
-            app.innerHTML = `
-                <nav class="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center sticky top-0 z-40">
-                    <div class="flex items-center gap-4">
-                        <div class="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center text-white font-bold">P</div>
-                        <span class="font-bold text-gray-800">PopMaker Pro</span>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <div class="text-right hidden md:block">
-                            <p class="text-sm font-bold text-gray-900">${currentUser.companyName}</p>
-                            <p class="text-xs text-gray-500">${currentUser.email}</p>
-                        </div>
-                        <button onclick="logout()" class="text-gray-500 hover:text-red-600"><i class="fas fa-sign-out-alt"></i></button>
-                    </div>
-                </nav>
-                <div class="flex-1 overflow-y-auto bg-gray-50">
-                    ${dashboardContent}
-                </div>
-            `;
-        }
-
-        function renderAdminDashboard() {
-            const db = getDB();
-            const users = db.users.filter(u => u.role === 'user');
-            
-            const app = document.getElementById('app');
-            app.innerHTML = `
-                <nav class="bg-gray-900 border-b border-gray-800 px-6 py-3 flex justify-between items-center">
-                    <div class="flex items-center gap-2 text-white">
-                        <i class="fas fa-shield-alt text-indigo-400"></i>
-                        <span class="font-bold text-lg">Admin Dashboard</span>
-                    </div>
-                    <button onclick="logout()" class="text-gray-400 hover:text-white">Logout</button>
-                </nav>
-                <div class="flex-1 overflow-y-auto bg-gray-100 p-8">
-                    <div class="max-w-6xl mx-auto">
-                        <h1 class="text-3xl font-bold text-gray-900 mb-6">User Management</h1>
-                        
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                            <table class="w-full text-left">
-                                <thead class="bg-gray-50 border-b border-gray-200">
-                                    <tr>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Company / User</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Email</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Website</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">Popups</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    ${users.map(u => {
-                                        const count = db.popups.filter(p => p.userId === u.id).length;
-                                        return `
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="px-6 py-4">
-                                                <p class="font-bold text-gray-900">${u.companyName}</p>
-                                                <p class="text-xs text-gray-500">ID: ${u.id}</p>
-                                            </td>
-                                            <td class="px-6 py-4 text-gray-600">${u.email}</td>
-                                            <td class="px-6 py-4 text-indigo-600 underline text-sm">${u.website || '-'}</td>
-                                            <td class="px-6 py-4 font-bold text-gray-700">${count}</td>
-                                            <td class="px-6 py-4 text-right">
-                                                <button onclick="impersonateUser('${u.id}')" class="bg-indigo-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-700">
-                                                    <i class="fas fa-eye"></i> View Account
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    `}).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function showCreateTypeSelection() {
-            const app = document.getElementById('app');
-            // Keep nav, replace content
-            const nav = app.querySelector('nav');
-            app.innerHTML = '';
-            app.appendChild(nav);
-            
-            const content = document.createElement('div');
-            content.className = 'flex-1 overflow-y-auto bg-gray-50 p-8 flex items-center justify-center';
-            content.innerHTML = `
-                <div class="max-w-4xl w-full">
-                    <button onclick="renderDashboard()" class="mb-6 text-gray-500 hover:text-gray-800 flex items-center gap-2"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
-                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Choose Popup Type</h2>
-                    <p class="text-gray-500 mb-8">What kind of campaign do you want to create?</p>
-                    
-                    <div class="grid md:grid-cols-3 gap-6">
-                        <!-- Regular Popup -->
-                        <div onclick="showTemplateSelection('popup')" class="bg-white p-8 rounded-xl border-2 border-transparent hover:border-indigo-600 shadow-sm hover:shadow-xl cursor-pointer transition group">
-                            <div class="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center text-2xl mb-4 group-hover:bg-indigo-600 group-hover:text-white transition">
-                                <i class="far fa-window-maximize"></i>
-                            </div>
-                            <h3 class="text-xl font-bold text-gray-900 mb-2">Regular Popup</h3>
-                            <p class="text-gray-500 text-sm">Standard modal window. Perfect for newsletters, discounts, and announcements.</p>
-                        </div>
-
-                        <!-- Banner -->
-                        <div onclick="showTemplateSelection('banner')" class="bg-white p-8 rounded-xl border-2 border-transparent hover:border-indigo-600 shadow-sm hover:shadow-xl cursor-pointer transition group">
-                            <div class="w-14 h-14 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-2xl mb-4 group-hover:bg-purple-600 group-hover:text-white transition">
-                                <i class="fas fa-bars"></i>
-                            </div>
-                            <h3 class="text-xl font-bold text-gray-900 mb-2">Top/Bottom Banner</h3>
-                            <p class="text-gray-500 text-sm">Non-intrusive bar at the top or bottom of the screen. Great for announcements.</p>
-                        </div>
-
-                        <!-- GHL Form -->
-                        <div onclick="showTemplateSelection('ghl')" class="bg-white p-8 rounded-xl border-2 border-transparent hover:border-indigo-600 shadow-sm hover:shadow-xl cursor-pointer transition group">
-                            <div class="w-14 h-14 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-2xl mb-4 group-hover:bg-green-600 group-hover:text-white transition">
-                                <i class="fas fa-file-signature"></i>
-                            </div>
-                            <h3 class="text-xl font-bold text-gray-900 mb-2">GHL Embed Form</h3>
-                            <p class="text-gray-500 text-sm">Directly embed your GoHighLevel form into a stylish popup container.</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-            app.appendChild(content);
-        }
-
-        function showTemplateSelection(type) {
-            const app = document.getElementById('app');
-            const nav = app.querySelector('nav');
-            app.innerHTML = '';
-            app.appendChild(nav);
-
-            const content = document.createElement('div');
-            content.className = 'flex-1 overflow-y-auto bg-gray-50 p-8 flex items-center justify-center';
-            content.innerHTML = `
-                <div class="max-w-5xl w-full">
-                    <button onclick="showCreateTypeSelection()" class="mb-6 text-gray-500 hover:text-gray-800 flex items-center gap-2"><i class="fas fa-arrow-left"></i> Back</button>
-                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Choose a Template</h2>
-                    <p class="text-gray-500 mb-8">Start with a pre-designed layout or build from scratch.</p>
-                    
-                    <div class="grid md:grid-cols-4 gap-6">
-                        <div onclick="createPopup('${type}', '')" class="bg-white p-6 rounded-xl border-2 border-dashed border-gray-300 hover:border-indigo-600 hover:bg-indigo-50 cursor-pointer transition flex flex-col items-center justify-center min-h-[200px]">
-                            <i class="fas fa-plus text-3xl text-gray-400 mb-2"></i>
-                            <span class="font-bold text-gray-600">Start Blank</span>
-                        </div>
-                        
-                        ${type === 'popup' ? `
-                        <div onclick="createPopup('${type}', 'newsletter')" class="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-lg cursor-pointer transition">
-                            <div class="h-32 bg-gray-100 rounded mb-3 flex items-center justify-center text-gray-400"><i class="fas fa-envelope"></i></div>
-                            <h4 class="font-bold text-gray-800">Newsletter</h4>
-                        </div>
-                        <div onclick="createPopup('${type}', 'discount')" class="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-lg cursor-pointer transition">
-                            <div class="h-32 bg-red-50 rounded mb-3 flex items-center justify-center text-red-400 font-bold text-2xl">50% OFF</div>
-                            <h4 class="font-bold text-gray-800">Discount</h4>
-                        </div>
-                        ` : ''}
-                        
-                        ${type === 'banner' ? `
-                        <div onclick="createPopup('${type}', 'banner-simple')" class="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-lg cursor-pointer transition">
-                            <div class="h-32 bg-blue-50 rounded mb-3 flex items-center justify-center"><div class="w-full h-4 bg-blue-200"></div></div>
-                            <h4 class="font-bold text-gray-800">Simple Bar</h4>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            app.appendChild(content);
-        }
-
-        function openEditorById(id) {
-            const db = getDB();
-            const popup = db.popups.find(p => p.id === id);
-            if (popup) openEditor(popup);
-        }
-
-        function openEditor(popup) {
-            currentPopup = popup;
-            selectedElementId = null;
-            renderEditor();
-        }
-
-        function renderEditor() {
-            if (!currentPopup) return;
-            
-            const app = document.getElementById('app');
-            
-            // Determine canvas size based on type
-            let canvasClass = "bg-white shadow-2xl relative transition-all duration-300 overflow-hidden";
-            let canvasStyle = `width: ${currentPopup.width}; height: ${currentPopup.height};`;
-            
-            if (currentPopup.type === 'banner') {
-                canvasStyle = `width: 100%; height: auto; min-height: 100px;`;
-            }
-
-            app.innerHTML = `
-                <div class="flex flex-col h-full">
-                    <!-- Editor Header -->
-                    <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 z-20">
-                        <div class="flex items-center gap-4">
-                            <button onclick="renderDashboard()" class="text-gray-500 hover:text-gray-800"><i class="fas fa-arrow-left"></i></button>
-                            <div>
-                                <h1 class="font-bold text-gray-800">${currentPopup.name}</h1>
-                                <span class="text-xs text-gray-500 uppercase font-bold tracking-wide">${currentPopup.type}</span>
-                            </div>
-                        </div>
-                        <div class="flex gap-3">
-                            <button onclick="togglePreview()" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-sm flex items-center gap-2">
-                                <i class="fas fa-eye"></i> Preview
-                            </button>
-                            <button onclick="saveCurrentPopup()" class="px-4 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium text-sm flex items-center gap-2 shadow-md">
-                                <i class="fas fa-save"></i> Save
-                            </button>
-                        </div>
-                    </header>
-
-                    <div class="flex flex-1 overflow-hidden">
-                        <!-- Sidebar: Elements -->
-                        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-10">
-                            <div class="p-4 border-b border-gray-100">
-                                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Elements</h3>
-                                <div class="space-y-2">
-                                    ${getDraggableItem('heading', 'Heading', 'fas fa-heading')}
-                                    ${getDraggableItem('text', 'Text Block', 'fas fa-align-left')}
-                                    ${getDraggableItem('button', 'Button', 'fas fa-square')}
-                                    ${getDraggableItem('image', 'Image', 'fas fa-image')}
-                                    ${getDraggableItem('input', 'Input Field', 'fas fa-i-cursor')}
-                                    ${getDraggableItem('video', 'Video', 'fas fa-video')}
-                                    ${getDraggableItem('divider', 'Divider', 'fas fa-minus')}
-                                </div>
-                            </div>
-                            
-                            ${currentPopup.type === 'ghl' ? `
-                            <div class="p-4 bg-yellow-50 border-b border-yellow-100">
-                                <h3 class="text-xs font-bold text-yellow-700 uppercase mb-2">GHL Settings</h3>
-                                <textarea id="ghl-code" class="w-full text-xs p-2 border border-yellow-200 rounded h-24" placeholder="Paste GoHighLevel Embed Code here...">${currentPopup.ghlEmbedCode || ''}</textarea>
-                                <button onclick="updateGHLCode()" class="mt-2 w-full bg-yellow-500 text-white text-xs py-1 rounded font-bold">Update Form</button>
-                            </div>
-                            ` : ''}
-                        </aside>
-
-                        <!-- Canvas Area -->
-                        <main class="flex-1 canvas-bg relative overflow-auto flex items-center justify-center p-10" id="editor-canvas-area">
-                            <div id="editor-canvas" class="${canvasClass}" style="${canvasStyle}" ondrop="drop(event)" ondragover="allowDrop(event)">
-                                <!-- Close Button (Visual Only) -->
-                                <div class="absolute top-2 right-2 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 cursor-not-allowed" title="Close button appears on live site">
-                                    <i class="fas fa-times text-xs"></i>
-                                </div>
-                                
-                                <!-- Elements Container -->
-                                <div id="elements-container" class="w-full h-full p-6 relative">
-                                    ${renderElements()}
-                                </div>
-                            </div>
-                        </main>
-
-                        <!-- Properties Panel -->
-                        <aside class="w-72 bg-white border-l border-gray-200 p-4 overflow-y-auto z-10">
-                            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Properties</h3>
-                            
-                            ${selectedElementId ? renderElementProperties() : renderCanvasProperties()}
-                        </aside>
-                    </div>
-                    
-                    <!-- Toast -->
-                    <div id="save-toast" class="hidden fixed bottom-6 right-6 bg-gray-900 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium fade-in">
-                        <i class="fas fa-check-circle mr-2 text-green-400"></i> Saved Successfully
-                    </div>
-                </div>
-            `;
-        }
-
-        function getDraggableItem(type, label, icon) {
-            return `
-                <div draggable="true" ondragstart="drag(event)" data-type="${type}" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3 select-none">
-                    <i class="${icon} text-gray-400"></i>
-                    <span class="text-sm font-medium text-gray-700">${label}</span>
-                </div>
-            `;
-        }
-
-        function renderElements() {
-            if (!currentPopup.elements) return '';
-            return currentPopup.elements.map(el => {
-                const isSelected = el.id === selectedElementId ? 'selected-element' : '';
-                let contentHtml = '';
-                
-                if (el.type === 'heading') contentHtml = `<h2 style="font-size:${el.style.fontSize}; color:${el.style.color}; text-align:${el.style.textAlign}; font-weight:${el.style.fontWeight||'bold'}">${el.content}</h2>`;
-                else if (el.type === 'text') contentHtml = `<p style="font-size:${el.style.fontSize}; color:${el.style.color}; text-align:${el.style.textAlign}; margin-top:${el.style.marginTop||0}">${el.content}</p>`;
-                else if (el.type === 'button') contentHtml = `<button style="background-color:${el.style.backgroundColor}; color:${el.style.color}; padding:${el.style.padding}; border-radius:${el.style.borderRadius}; width:${el.style.width||'auto'}; font-weight:bold; border:none; cursor:pointer;">${el.content}</button>`;
-                else if (el.type === 'image') contentHtml = `<div style="width:${el.style.width||'100%'}; height:150px; background:#eee; display:flex; align-items:center; justify-content:center; color:#999;"><i class="fas fa-image text-2xl"></i></div>`;
-                else if (el.type === 'input') contentHtml = `<input type="text" placeholder="${el.placeholder}" style="width:${el.style.width||'100%'}; padding:${el.style.padding}; border:${el.style.border}; border-radius:${el.style.borderRadius}; margin-top:${el.style.marginTop||0}" disabled>`;
-                else if (el.type === 'video') contentHtml = `<div style="width:100%; height:200px; background:#000; display:flex; align-items:center; justify-content:center; color:white;"><i class="fas fa-play-circle text-3xl"></i></div>`;
-                else if (el.type === 'divider') contentHtml = `<hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">`;
-
-                return `
-                    <div class="relative group mb-2 ${isSelected}" onclick="selectElement('${el.id}')" draggable="true" ondragstart="dragExisting(event, '${el.id}')">
-                        ${contentHtml}
-                        ${isSelected ? `<button onclick="deleteElement('${el.id}')" class="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs shadow hover:bg-red-600"><i class="fas fa-times"></i></button>` : ''}
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderCanvasProperties() {
-            return `
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Popup Width</label>
-                        <input type="text" value="${currentPopup.width}" onchange="updateCanvasSetting('width', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                        <p class="text-xs text-gray-500 mt-1">e.g., 500px, 80%, auto</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Popup Height</label>
-                        <input type="text" value="${currentPopup.height}" onchange="updateCanvasSetting('height', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                        <p class="text-xs text-gray-500 mt-1">e.g., auto, 400px</p>
-                    </div>
-                    
-                    ${currentPopup.type === 'popup' ? `
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Position</label>
-                        <select onchange="updateCanvasSetting('position', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                            <option value="center" ${currentPopup.position === 'center' ? 'selected' : ''}>Center Screen</option>
-                            <option value="top-left" ${currentPopup.position === 'top-left' ? 'selected' : ''}>Top Left</option>
-                            <option value="top-right" ${currentPopup.position === 'top-right' ? 'selected' : ''}>Top Right</option>
-                            <option value="bottom-left" ${currentPopup.position === 'bottom-left' ? 'selected' : ''}>Bottom Left</option>
-                            <option value="bottom-right" ${currentPopup.position === 'bottom-right' ? 'selected' : ''}>Bottom Right</option>
-                        </select>
-                    </div>
-                    ` : ''}
-
-                    ${currentPopup.type === 'banner' ? `
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Banner Position</label>
-                        <select onchange="updateCanvasSetting('bannerPosition', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                            <option value="top" ${currentPopup.bannerPosition === 'top' ? 'selected' : ''}>Top of Page</option>
-                            <option value="bottom" ${currentPopup.bannerPosition === 'bottom' ? 'selected' : ''}>Bottom of Page</option>
-                        </select>
-                    </div>
-                    ` : ''}
-                    
-                    <div class="pt-4 border-t border-gray-200">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Status</label>
-                        <select onchange="updateCanvasSetting('status', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                            <option value="draft" ${currentPopup.status === 'draft' ? 'selected' : ''}>Draft</option>
-                            <option value="active" ${currentPopup.status === 'active' ? 'selected' : ''}>Active (Published)</option>
-                        </select>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderElementProperties() {
-            const el = currentPopup.elements.find(e => e.id === selectedElementId);
-            if (!el) return '';
-
-            return `
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Content / Text</label>
-                        <textarea onchange="updateElementStyle('content', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm h-20">${el.content || el.placeholder || ''}</textarea>
-                    </div>
-                    
-                    ${el.type !== 'image' && el.type !== 'divider' && el.type !== 'video' ? `
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Font Size</label>
-                        <input type="text" value="${el.style.fontSize || '16px'}" onchange="updateElementStyle('fontSize', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Text Color</label>
-                        <input type="color" value="${el.style.color || '#000000'}" onchange="updateElementStyle('color', this.value)" class="w-full h-8 border border-gray-300 rounded p-1">
-                    </div>
-                    ` : ''}
-
-                    ${el.type === 'button' ? `
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Bg Color</label>
-                        <input type="color" value="${el.style.backgroundColor || '#4f46e5'}" onchange="updateElementStyle('backgroundColor', this.value)" class="w-full h-8 border border-gray-300 rounded p-1">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Padding</label>
-                        <input type="text" value="${el.style.padding || '10px 20px'}" onchange="updateElementStyle('padding', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                    </div>
-                    ` : ''}
-                    
-                    <div class="pt-4 border-t border-gray-200">
-                         <button onclick="deleteElement('${el.id}')" class="w-full bg-red-50 text-red-600 border border-red-200 py-2 rounded text-xs font-bold hover:bg-red-100">Delete Element</button>
-                    </div>
-                </div>
-            `;
-        }
-
-        // --- 5. EDITOR ACTIONS ---
-
-        function allowDrop(ev) { ev.preventDefault(); }
-
-        function drag(ev) {
-            ev.dataTransfer.setData("type", ev.target.dataset.type);
-            ev.dataTransfer.setData("isNew", "true");
-        }
-
-        function dragExisting(ev, id) {
-            ev.dataTransfer.setData("id", id);
-            ev.dataTransfer.setData("isNew", "false");
-            ev.stopPropagation(); // Prevent triggering drop on parent
-        }
-
-        function drop(ev) {
-            ev.preventDefault();
-            const isNew = ev.dataTransfer.getData("isNew") === "true";
-            const container = document.getElementById('elements-container');
-            
-            if (isNew) {
+            drop: (ev) => {
+                ev.preventDefault();
                 const type = ev.dataTransfer.getData("type");
                 const newEl = {
                     id: 'el_' + Date.now(),
                     type: type,
-                    content: type === 'heading' ? 'New Heading' : (type === 'button' ? 'Click Me' : (type === 'text' ? 'Lorem ipsum dolor sit amet.' : '')),
-                    placeholder: type === 'input' ? 'Enter text...' : '',
-                    style: getDefaultStyle(type)
+                    content: type === 'button' ? 'Click Me' : (type === 'heading' ? 'New Headline' : 'Sample text'),
+                    styles: { width: 'auto', height: 'auto', fontSize: '16px', color: '#000000', padding: '10px', textAlign: 'center' }
                 };
-                currentPopup.elements.push(newEl);
-                selectedElementId = newEl.id;
-            } else {
-                // Moving existing element (simplified: just re-render for now, real DnD reorder needs more logic)
-                const id = ev.dataTransfer.getData("id");
-                selectedElementId = id;
-            }
-            renderEditor();
-        }
+                
+                // Add to state
+                const popup = app.isDemo ? app.demoData.find(p=>p.id===app.currentPopupId) : db.getPopupById(app.currentPopupId);
+                popup.elements.push(newEl);
+                editor.renderCanvas(popup.elements);
+                editor.selectElement(newEl.id);
+            },
 
-        function getDefaultStyle(type) {
-            switch(type) {
-                case 'heading': return { fontSize: '24px', color: '#111827', textAlign: 'center', fontWeight: 'bold' };
-                case 'text': return { fontSize: '16px', color: '#4b5563', textAlign: 'center', marginTop: '8px' };
-                case 'button': return { backgroundColor: '#4f46e5', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', width: 'auto' };
-                case 'input': return { width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '4px', marginTop: '10px' };
-                default: return {};
-            }
-        }
+            renderCanvas: (elements) => {
+                const canvas = document.getElementById('canvas');
+                // Keep close button
+                const closeBtn = canvas.querySelector('.fa-times').parentElement;
+                canvas.innerHTML = '';
+                canvas.appendChild(closeBtn);
 
-        function selectElement(id) {
-            selectedElementId = id;
-            renderEditor();
-        }
+                elements.forEach(el => {
+                    const div = document.createElement('div');
+                    div.id = el.id;
+                    div.className = "editable-element p-2 hover:bg-gray-50 cursor-pointer relative group";
+                    div.style.cssText = `width: ${el.styles.width}; height: ${el.styles.height}; font-size: ${el.styles.fontSize}; color: ${el.styles.color}; text-align: ${el.styles.textAlign}; padding: ${el.styles.padding};`;
+                    div.innerHTML = el.content;
+                    div.onclick = (e) => { e.stopPropagation(); editor.selectElement(el.id); };
+                    
+                    // Delete Btn (Hover)
+                    const delBtn = document.createElement('button');
+                    delBtn.className = "absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition shadow";
+                    delBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    delBtn.onclick = (e) => { e.stopPropagation(); editor.deleteElement(el.id); };
+                    div.appendChild(delBtn);
 
-        function deleteElement(id) {
-            currentPopup.elements = currentPopup.elements.filter(e => e.id !== id);
-            selectedElementId = null;
-            renderEditor();
-        }
-
-        function updateElementStyle(key, value) {
-            const el = currentPopup.elements.find(e => e.id === selectedElementId);
-            if (el) {
-                if (key === 'content') el.content = value;
-                else if (key === 'placeholder') el.placeholder = value;
-                else el.style[key] = value;
-                renderEditor(); // Re-render to show changes
-            }
-        }
-        
-        function updateGHLCode() {
-            const code = document.getElementById('ghl-code').value;
-            currentPopup.ghlEmbedCode = code;
-            // Add a special element to represent the form if not exists
-            if (!currentPopup.elements.find(e => e.type === 'ghl-form')) {
-                currentPopup.elements.push({
-                    id: 'ghl_' + Date.now(),
-                    type: 'ghl-form',
-                    content: code,
-                    style: {}
+                    canvas.appendChild(div);
                 });
-            } else {
-                const formEl = currentPopup.elements.find(e => e.type === 'ghl-form');
-                formEl.content = code;
-            }
-            alert("GHL Code Updated & Saved to Element");
-            renderEditor();
-        }
+            },
 
-        function updateCanvasSetting(key, value) {
-            currentPopup[key] = value;
-            renderEditor();
-        }
+            selectElement: (id) => {
+                editor.selectedElId = id;
+                // Visual selection
+                document.querySelectorAll('.editable-element').forEach(el => el.classList.remove('selected-element'));
+                const el = document.getElementById(id);
+                if(el) el.classList.add('selected-element');
+                
+                // Load Props
+                const popup = app.isDemo ? app.demoData.find(p=>p.id===app.currentPopupId) : db.getPopupById(app.currentPopupId);
+                const data = popup.elements.find(e => e.id === id);
+                editor.renderProperties('element', data);
+            },
 
-        function saveCurrentPopup() {
-            saveDB(getDB()); // Ensure DB ref is fresh
-            savePopup(currentPopup);
-        }
+            selectPopup: (e) => {
+                if(e.target.id === 'canvas' || e.target.classList.contains('canvas-area')) {
+                    editor.selectedElId = null;
+                    document.querySelectorAll('.editable-element').forEach(el => el.classList.remove('selected-element'));
+                    editor.renderProperties('popup');
+                }
+            },
 
-        function togglePreview() {
-            saveCurrentPopup(); // Save before preview
+            deleteElement: (id) => {
+                const popup = app.isDemo ? app.demoData.find(p=>p.id===app.currentPopupId) : db.getPopupById(app.currentPopupId);
+                popup.elements = popup.elements.filter(e => e.id !== id);
+                editor.renderCanvas(popup.elements);
+                editor.renderProperties('popup');
+            },
+
+            getElements: () => {
+                const els = [];
+                document.querySelectorAll('.editable-element').forEach(div => {
+                    els.push({
+                        id: div.id,
+                        type: 'generic', // Simplified for this version
+                        content: div.innerHTML.replace(/<button[^>]*>.*?<\/button>/, '').trim(), // Rough cleanup
+                        styles: {
+                            width: div.style.width,
+                            height: div.style.height,
+                            fontSize: div.style.fontSize,
+                            color: div.style.color,
+                            textAlign: div.style.textAlign,
+                            padding: div.style.padding
+                        }
+                    });
+                });
+                return els;
+            },
+
+            renderProperties: (mode, data = null) => {
+                const container = document.getElementById('propertiesContent');
+                const title = document.getElementById('propTitle');
+                container.innerHTML = '';
+
+                if(mode === 'popup') {
+                    title.innerText = "Popup Settings";
+                    container.innerHTML = `
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Width</label>
+                            <input type="text" value="${editor.currentSettings.width}" onchange="editor.updateSetting('width', this.value)" class="w-full border rounded px-2 py-1 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Height</label>
+                            <input type="text" value="${editor.currentSettings.height}" onchange="editor.updateSetting('height', this.value)" class="w-full border rounded px-2 py-1 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Position</label>
+                            <select onchange="editor.updateSetting('position', this.value)" class="w-full border rounded px-2 py-1 text-sm">
+                                <option value="center" ${editor.currentSettings.position==='center'?'selected':''}>Center</option>
+                                <option value="top-left" ${editor.currentSettings.position==='top-left'?'selected':''}>Top Left</option>
+                                <option value="top-right" ${editor.currentSettings.position==='top-right'?'selected':''}>Top Right</option>
+                                <option value="bottom-left" ${editor.currentSettings.position==='bottom-left'?'selected':''}>Bottom Left</option>
+                                <option value="bottom-right" ${editor.currentSettings.position==='bottom-right'?'selected':''}>Bottom Right</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Background Color</label>
+                            <input type="color" value="${editor.currentSettings.bgColor}" onchange="editor.updateSetting('bgColor', this.value)" class="w-full h-8 border rounded cursor-pointer">
+                        </div>
+                    `;
+                } else if (mode === 'element' && data) {
+                    title.innerText = "Element Settings";
+                    container.innerHTML = `
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Content (HTML allowed)</label>
+                            <textarea onchange="editor.updateElement('${data.id}', 'content', this.value)" class="w-full border rounded px-2 py-1 text-sm h-20">${data.content}</textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Width</label>
+                                <input type="text" value="${data.styles.width}" onchange="editor.updateElement('${data.id}', 'width', this.value)" class="w-full border rounded px-2 py-1 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Height</label>
+                                <input type="text" value="${data.styles.height}" onchange="editor.updateElement('${data.id}', 'height', this.value)" class="w-full border rounded px-2 py-1 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Font Size</label>
+                            <input type="text" value="${data.styles.fontSize}" onchange="editor.updateElement('${data.id}', 'fontSize', this.value)" class="w-full border rounded px-2 py-1 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Color</label>
+                            <input type="color" value="${data.styles.color}" onchange="editor.updateElement('${data.id}', 'color', this.value)" class="w-full h-8 border rounded cursor-pointer">
+                        </div>
+                    `;
+                }
+            },
+
+            updateSetting: (key, val) => {
+                editor.currentSettings[key] = val;
+                const canvas = document.getElementById('canvas');
+                if(key === 'width') canvas.style.width = val;
+                if(key === 'height') canvas.style.height = val;
+                if(key === 'bgColor') canvas.style.backgroundColor = val;
+                // Position is visual only in editor, applied in preview
+            },
+
+            updateElement: (id, key, val) => {
+                const popup = app.isDemo ? app.demoData.find(p=>p.id===app.currentPopupId) : db.getPopupById(app.currentPopupId);
+                const el = popup.elements.find(e => e.id === id);
+                if(key === 'content') el.content = val;
+                else el.styles[key] = val;
+                
+                // Re-render specific element styles
+                const domEl = document.getElementById(id);
+                if(key === 'width') domEl.style.width = val;
+                if(key === 'height') domEl.style.height = val;
+                if(key === 'fontSize') domEl.style.fontSize = val;
+                if(key === 'color') domEl.style.color = val;
+                if(key === 'content') domEl.innerHTML = val + domEl.querySelector('button')?.outerHTML; 
+            },
+
+            getTemplateData: (tid) => {
+                // Simple mock templates
+                if(tid === 't2') return [
+                    { id:'e1', type:'heading', content:'<h2 class="text-2xl font-bold text-red-600">50% OFF!</h2>', styles:{width:'auto', height:'auto', fontSize:'24px', color:'#dc2626', textAlign:'center', padding:'10px'} },
+                    { id:'e2', type:'text', content:'<p>Use code SAVE50 at checkout.</p>', styles:{width:'auto', height:'auto', fontSize:'16px', color:'#333', textAlign:'center', padding:'5px'} },
+                    { id:'e3', type:'button', content:'<button class="bg-red-600 text-white px-4 py-2 rounded">Shop Now</button>', styles:{width:'auto', height:'auto', fontSize:'16px', color:'#fff', textAlign:'center', padding:'10px'} }
+                ];
+                // Default generic
+                return [
+                    { id:'e1', type:'heading', content:'<h3 class="text-xl font-bold">Welcome</h3>', styles:{width:'auto', height:'auto', fontSize:'20px', color:'#333', textAlign:'center', padding:'10px'} },
+                    { id:'e2', type:'text', content:'<p>Subscribe for updates.</p>', styles:{width:'auto', height:'auto', fontSize:'14px', color:'#666', textAlign:'center', padding:'5px'} }
+                ];
+            },
             
-            const overlay = document.createElement('div');
-            overlay.id = 'preview-overlay';
-            overlay.className = 'preview-overlay';
-            overlay.style.display = 'flex';
+            loadTemplate: (tid) => {
+                const data = editor.getTemplateData(tid);
+                const popup = app.isDemo ? app.demoData.find(p=>p.id===app.currentPopupId) : db.getPopupById(app.currentPopupId);
+                popup.elements = data;
+                editor.renderCanvas(data);
+            },
             
-            // Calculate position styles
-            let posStyles = "";
-            if (currentPopup.type === 'popup') {
-                if (currentPopup.position === 'top-left') posStyles = "top: 20px; left: 20px; right: auto; bottom: auto;";
-                else if (currentPopup.position === 'top-right') posStyles = "top: 20px; right: 20px; left: auto; bottom: auto;";
-                else if (currentPopup.position === 'bottom-left') posStyles = "bottom: 20px; left: 20px; right: auto; top: auto;";
-                else if (currentPopup.position === 'bottom-right') posStyles = "bottom: 20px; right: 20px; left: auto; top: auto;";
-                else posStyles = ""; // Center is default flex
-            } else if (currentPopup.type === 'banner') {
-                posStyles = currentPopup.bannerPosition === 'top' ? "top:0; left:0; right:0; width:100%; border-radius:0;" : "bottom:0; left:0; right:0; width:100%; border-radius:0;";
+            renderElements: (elements) => {
+                return elements.map(el => `<div style="width:${el.styles.width}; height:${el.styles.height}; font-size:${el.styles.fontSize}; color:${el.styles.color}; text-align:${el.styles.textAlign}; padding:${el.styles.padding};">${el.content}</div>`).join('');
             }
+        };
 
-            // Generate Inner HTML
-            let innerHTML = '';
-            if (currentPopup.type === 'ghl' && currentPopup.ghlEmbedCode) {
-                innerHTML = currentPopup.ghlEmbedCode;
-            } else {
-                innerHTML = currentPopup.elements.map(el => {
-                    let html = '';
-                    if (el.type === 'heading') html = `<h2 style="font-size:${el.style.fontSize}; color:${el.style.color}; text-align:${el.style.textAlign}; margin:0">${el.content}</h2>`;
-                    else if (el.type === 'text') html = `<p style="font-size:${el.style.fontSize}; color:${el.style.color}; text-align:${el.style.textAlign}; margin:10px 0">${el.content}</p>`;
-                    else if (el.type === 'button') html = `<button style="background:${el.style.backgroundColor}; color:${el.style.color}; padding:${el.style.padding}; border:none; border-radius:${el.style.borderRadius}; cursor:pointer; font-weight:bold;">${el.content}</button>`;
-                    else if (el.type === 'input') html = `<input type="text" placeholder="${el.placeholder}" style="width:100%; padding:10px; margin:10px 0; border:1px solid #ccc; border-radius:4px;" />`;
-                    else if (el.type === 'ghl-form') html = el.content;
-                    else if (el.type === 'image') html = `<div style="width:100%; height:150px; background:#eee; margin:10px 0; display:flex; align-items:center; justify-content:center; color:#999;">Image Placeholder</div>`;
-                    else if (el.type === 'video') html = `<div style="width:100%; height:200px; background:#000; margin:10px 0; display:flex; align-items:center; justify-content:center; color:white;">Video Placeholder</div>`;
-                    else if (el.type === 'divider') html = `<hr style="border:0; border-top:1px solid #ddd; margin:15px 0;">`;
-                    return html;
-                }).join('');
+        // --- Admin Logic ---
+        const admin = {
+            impersonating: null,
+
+            load: () => {
+                if(admin.impersonating) return; // Already in view mode
+
+                const users = db.get().users;
+                const tbody = document.getElementById('adminUserList');
+                tbody.innerHTML = '';
+
+                users.forEach(u => {
+                    const pCount = db.getPopupsByUser(u.email).length;
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-700/50 transition";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-white">${u.company}</div>
+                            <div class="text-xs text-gray-400">${u.email.split('@')[0]}</div>
+                        </td>
+                        <td class="px-6 py-4 text-gray-300">${u.email}</td>
+                        <td class="px-6 py-4 text-gray-300">${u.website || '-'}</td>
+                        <td class="px-6 py-4"><span class="bg-gray-700 px-2 py-1 rounded text-xs">${pCount}</span></td>
+                        <td class="px-6 py-4 text-gray-400 text-sm">${new Date(u.joined).toLocaleDateString()}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="admin.impersonate('${u.email}')" class="text-indigo-400 hover:text-indigo-300 text-sm font-medium mr-3">View Account</button>
+                            <button onclick="admin.deleteUser('${u.email}')" class="text-red-400 hover:text-red-300 text-sm">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            },
+
+            impersonate: (email) => {
+                admin.impersonating = email;
+                const user = db.findUser(email);
+                
+                // Switch UI to User Dashboard but keep Admin Header info
+                document.getElementById('adminDashboard').classList.add('hidden');
+                document.getElementById('userDashboard').classList.remove('hidden');
+                document.getElementById('adminModeBadge').classList.remove('hidden');
+                document.getElementById('exitAdminModeBtn').classList.remove('hidden');
+                
+                // Mock current user
+                app.currentUser = user;
+                app.isDemo = false;
+                app.loadDashboard();
+            },
+
+            exitImpersonation: () => {
+                admin.impersonating = null;
+                document.getElementById('userDashboard').classList.add('hidden');
+                document.getElementById('adminDashboard').classList.remove('hidden');
+                document.getElementById('adminModeBadge').classList.add('hidden');
+                document.getElementById('exitAdminModeBtn').classList.add('hidden');
+                app.currentUser = { email: 'admin', role: 'admin' };
+                admin.load();
+            },
+
+            deleteUser: (email) => {
+                if(confirm(`Delete ${email} and all their data?`)) {
+                    db.deleteUser(email);
+                    admin.load();
+                }
             }
+        };
 
-            // Close button logic
-            const closeBtn = `<span onclick="this.parentElement.parentElement.style.display='none'" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:20px; color:#999;">&times;</span>`;
+        // Initialize
+        app.init();
 
-            let popupStyle = `background:white; padding:2rem; border-radius:8px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); position:relative; max-width:100%;`;
-            if (currentPopup.type === 'popup') popupStyle += ` width: ${currentPopup.width}; min-height: ${currentPopup.height};`;
-            
-            // Handle Center alignment specifically for flex container
-            const centerClass = (currentPopup.type === 'popup' && currentPopup.position === 'center') ? '' : 'style="align-items:flex-start;' + (currentPopup.type === 'banner' ? ' padding:0;' : '') + '"';
-
-            overlay.innerHTML = `
-                <div class="relative w-full h-full" ${centerClass}>
-                    <div style="${popupStyle} ${posStyles}">
-                        ${closeBtn}
-                        ${innerHTML}
-                    </div>
-                </div>
-            `;
-            
-            overlay.onclick = (e) => { if(e.target === overlay || e.target.classList.contains('relative')) overlay.remove(); };
-            document.body.appendChild(overlay);
-        }
-
-        // --- 6. INITIALIZATION & HELPERS ---
-
-        function handleLoginSubmit() {
-            const email = document.getElementById('login-email').value;
-            const pass = document.getElementById('login-pass').value;
-            if (login(email, pass)) {
-                // Redirect handled by renderApp
-            } else {
-                alert('Invalid credentials. Try admin@poptin.com / admin123');
-            }
-        }
-
-        function handleSignupSubmit() {
-            const name = document.getElementById('signup-name').value;
-            const company = document.getElementById('signup-company').value;
-            const email = document.getElementById('signup-email').value;
-            const pass = document.getElementById('signup-pass').value;
-            
-            if (signup(name, email, pass, company)) {
-                // Success
-            } else {
-                alert('Email already exists.');
-            }
-        }
-
-        function handleDemo() {
-            login('demo@example.com', 'demo123');
-        }
-
-        function renderApp() {
-            const app = document.getElementById('app');
-            if (!currentUser) {
-                renderLandingPage();
-            } else if (currentUser.role === 'admin' && !adminImpersonating) {
-                renderAdminDashboard();
-            } else {
-                renderDashboard();
-            }
-        }
-
-        // Start App
-        renderApp();
+        // Global Drag Drop Handlers
+        function allowDrop(ev) { ev.preventDefault(); }
+        document.getElementById('canvas').addEventListener('dragover', allowDrop);
+        document.getElementById('canvas').addEventListener('drop', editor.drop);
 
     </script>
 </body>
