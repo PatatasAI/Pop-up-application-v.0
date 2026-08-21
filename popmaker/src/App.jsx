@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Type, Image, Mail, Button as ButtonIcon, Copy, Check } from 'lucide-react';
+import { Type, Image, Mail, Square, Copy, Check } from 'lucide-react';
 import DraggableElement from './components/DraggableElement';
 import DropZone from './components/DropZone';
 import TemplateLibrary from './components/TemplateLibrary';
@@ -122,7 +122,7 @@ function App() {
                 <DraggableElement
                   type="button"
                   label="Button"
-                  icon={ButtonIcon}
+                  icon={Square}
                 />
               </div>
             </div>
