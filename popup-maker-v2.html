@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pop-up Maker Pro v2.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        
+        /* Editor Canvas Area */
+        .canvas-area { 
+            background-image: radial-gradient(#d1d5db 1px, transparent 1px); 
+            background-size: 24px 24px; 
+            background-color: #f9fafb;
+        }
+
+        /* Draggable Items in Sidebar */
+        .draggable-item { cursor: grab; transition: all 0.2s; }
+        .draggable-item:active { cursor: grabbing; }
+        .draggable-item:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+
+        /* Canvas Elements */
+        .canvas-element { 
+            position: relative; 
+            cursor: pointer; 
+            user-select: none;
+        }
+        .canvas-element.selected { 
+            outline: 2px solid #3b82f6; 
+            z-index: 10;
+        }
+        .canvas-element:hover:not(.selected) { 
+            outline: 1px dashed #9ca3af; 
+        }
+
+        /* Resize Handles */
+        .resize-handle {
+            display: none;
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #3b82f6;
+            border: 1px solid white;
+            z-index: 20;
+        }
+        .canvas-element.selected .resize-handle { display: block; }
+        .rh-tl { top: -5px; left: -5px; cursor: nw-resize; }
+        .rh-tr { top: -5px; right: -5px; cursor: ne-resize; }
+        .rh-bl { bottom: -5px; left: -5px; cursor: sw-resize; }
+        .rh-br { bottom: -5px; right: -5px; cursor: se-resize; }
+
+        /* Delete Button on Element */
+        .delete-btn {
+            display: none;
+            position: absolute;
+            top: -25px;
+            right: 0;
+            background: #ef4444;
+            color: white;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 30;
+        }
+        .canvas-element.selected .delete-btn { display: block; }
+
+        /* Preview Overlay */
+        .preview-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.6); 
+            z-index: 9999; 
+            justify-content: center; 
+            align-items: center; 
+        }
+        
+        /* Animation Classes for Preview */
+        .anim-slide-down { animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .anim-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .anim-fade-in { animation: fadeIn 0.3s ease-out; }
+        .anim-bounce-in { animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+
+        @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { transform: scale(1); opacity: 1; } }
+
+        /* Modal */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-gray-800">
+
+    <!-- ================= AUTH SCREEN ================= -->
+    <div id="authScreen" class="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="bg-indigo-600 p-6 text-center">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 text-white text-2xl font-bold">P</div>
+                <h1 class="text-2xl font-bold text-white">Pop-up Maker Pro</h1>
+                <p class="text-indigo-200 text-sm mt-1">Create stunning popups in minutes</p>
+            </div>
+            
+            <div class="p-8">
+                <!-- Login Form -->
+                <div id="loginForm">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Sign In</h2>
+                    <input type="email" id="loginEmail" placeholder="Email" class="w-full mb-3 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <input type="password" id="loginPass" placeholder="Password" class="w-full mb-4 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <button onclick="handleLogin()" class="w-full py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition">Sign In</button>
+                    <p class="mt-4 text-center text-sm text-gray-600">
+                        Don't have an account? <a href="#" onclick="toggleAuth('signup')" class="text-indigo-600 font-medium hover:underline">Create one</a>
+                    </p>
+                    <div class="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400 text-center">
+                        Admin Demo: admin@poptin.com / admin123
+                    </div>
+                </div>
+
+                <!-- Signup Form -->
+                <div id="signupForm" class="hidden">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Create Account</h2>
+                    <input type="text" id="regName" placeholder="Full Name" class="w-full mb-3 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <input type="text" id="regCompany" placeholder="Company Name" class="w-full mb-3 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <input type="email" id="regEmail" placeholder="Email" class="w-full mb-3 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <input type="password" id="regPass" placeholder="Password (min 6 chars)" class="w-full mb-4 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <button onclick="handleSignup()" class="w-full py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition">Create Account</button>
+                    <p class="mt-4 text-center text-sm text-gray-600">
+                        Already have an account? <a href="#" onclick="toggleAuth('login')" class="text-indigo-600 font-medium hover:underline">Sign In</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ADMIN DASHBOARD ================= -->
+    <div id="adminDashboard" class="hidden fixed inset-0 bg-gray-100 z-40 overflow-y-auto">
+        <div class="max-w-7xl mx-auto p-6">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+                    <p class="text-gray-500">Manage users and view system stats</p>
+                </div>
+                <button onclick="logout()" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Logout</button>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="text-gray-500 text-sm font-medium uppercase">Total Users</div>
+                    <div class="text-3xl font-bold text-indigo-600 mt-2" id="statUsers">0</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="text-gray-500 text-sm font-medium uppercase">Total Designs</div>
+                    <div class="text-3xl font-bold text-purple-600 mt-2" id="statDesigns">0</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="text-gray-500 text-sm font-medium uppercase">System Status</div>
+                    <div class="text-3xl font-bold text-green-500 mt-2">Active</div>
+                </div>
+            </div>
+
+            <!-- User Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="font-semibold text-gray-800">User Accounts</h3>
+                </div>
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+                        <tr>
+                            <th class="px-6 py-3">Name</th>
+                            <th class="px-6 py-3">Company</th>
+                            <th class="px-6 py-3">Email</th>
+                            <th class="px-6 py-3">Designs</th>
+                            <th class="px-6 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody" class="divide-y divide-gray-200">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MAIN APP INTERFACE ================= -->
+    <div id="appInterface" class="hidden flex-1 flex flex-col h-screen">
+        
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 shadow-sm z-20">
+            <div class="flex items-center gap-4">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">P</div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-800 leading-tight">Pop-up Maker</h1>
+                    <p class="text-xs text-gray-500" id="userDisplay">Logged in as...</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button onclick="showSection('editor')" class="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition">Editor</button>
+                <button onclick="showSection('projects')" class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">My Projects</button>
+                <div class="h-6 w-px bg-gray-300 mx-1"></div>
+                <button onclick="togglePreview()" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition">
+                    <i class="fas fa-eye"></i> Preview
+                </button>
+                <button onclick="exportCode()" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm transition">
+                    <i class="fas fa-code"></i> Get Code
+                </button>
+                <button onclick="logout()" class="ml-2 text-gray-400 hover:text-red-500 transition"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            
+            <!-- LEFT SIDEBAR: Elements -->
+            <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-10">
+                <div class="p-4 border-b border-gray-100">
+                    <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Elements</h2>
+                    <div class="space-y-2">
+                        <div draggable="true" ondragstart="drag(event)" data-type="headline" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3">
+                            <i class="fas fa-heading text-gray-400"></i> <span class="text-sm font-medium">Headline</span>
+                        </div>
+                        <div draggable="true" ondragstart="drag(event)" data-type="text" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3">
+                            <i class="fas fa-paragraph text-gray-400"></i> <span class="text-sm font-medium">Text Block</span>
+                        </div>
+                        <div draggable="true" ondragstart="drag(event)" data-type="button" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3">
+                            <i class="fas fa-square text-gray-400"></i> <span class="text-sm font-medium">Button</span>
+                        </div>
+                        <div draggable="true" ondragstart="drag(event)" data-type="image" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3">
+                            <i class="fas fa-image text-gray-400"></i> <span class="text-sm font-medium">Image</span>
+                        </div>
+                        <div draggable="true" ondragstart="drag(event)" data-type="input" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3">
+                            <i class="fas fa-envelope text-gray-400"></i> <span class="text-sm font-medium">Email Input</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4 flex-1 overflow-y-auto">
+                    <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Templates</h2>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div onclick="loadTemplate('newsletter')" class="cursor-pointer group relative aspect-video bg-gray-100 rounded-lg border border-gray-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center p-2 text-center">
+                                <div class="w-8 h-8 bg-blue-100 rounded-full mb-2 flex items-center justify-center text-blue-500"><i class="fas fa-envelope"></i></div>
+                                <div class="h-2 w-20 bg-gray-300 rounded mb-1"></div>
+                                <div class="h-2 w-12 bg-gray-300 rounded"></div>
+                            </div>
+                            <span class="absolute bottom-1 right-1 text-[10px] bg-white/90 px-1.5 py-0.5 rounded font-medium text-gray-600">Newsletter</span>
+                        </div>
+                        <div onclick="loadTemplate('discount')" class="cursor-pointer group relative aspect-video bg-gray-100 rounded-lg border border-gray-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center p-2 text-center">
+                                <div class="text-lg font-bold text-red-500 mb-1">50% OFF</div>
+                                <div class="h-6 w-20 bg-red-500 rounded"></div>
+                            </div>
+                            <span class="absolute bottom-1 right-1 text-[10px] bg-white/90 px-1.5 py-0.5 rounded font-medium text-gray-600">Discount</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- CENTER: Canvas -->
+            <main class="flex-1 canvas-area relative overflow-auto flex items-center justify-center p-8" id="mainCanvasArea">
+                
+                <!-- The Popup Container (Fixed Center in Editor) -->
+                <div id="popupContainer" class="relative w-[450px] min-h-[400px] transition-all duration-300">
+                    
+                    <!-- The Actual Popup Design -->
+                    <div id="canvas" class="w-full h-full bg-white shadow-2xl rounded-lg relative border border-gray-200 overflow-hidden" 
+                         ondrop="drop(event)" ondragover="allowDrop(event)">
+                        
+                        <!-- Default Content -->
+                        <div class="p-8 text-center space-y-4">
+                            <h2 class="text-2xl font-bold text-gray-800" style="font-size: 24px;">Welcome!</h2>
+                            <p class="text-gray-600" style="font-size: 16px;">Subscribe to get special offers.</p>
+                            <button class="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition" style="font-size: 16px; padding: 12px 24px;">Subscribe</button>
+                        </div>
+
+                        <!-- Close Button (Default) -->
+                        <div id="defaultCloseBtn" class="canvas-element absolute top-2 right-2 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600" 
+                             style="width: 32px; height: 32px; font-size: 20px; color: #9ca3af;"
+                             onclick="selectElement(this)">
+                            <i class="fas fa-times"></i>
+                            <!-- Resize Handles -->
+                            <div class="resize-handle rh-tl"></div><div class="resize-handle rh-tr"></div>
+                            <div class="resize-handle rh-bl"></div><div class="resize-handle rh-br"></div>
+                            <div class="delete-btn" onclick="deleteElement(event)"><i class="fas fa-trash"></i></div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="absolute bottom-4 right-4 bg-white p-3 rounded-lg shadow-lg border border-gray-200 text-xs text-gray-500 max-w-xs">
+                    <i class="fas fa-info-circle mr-1 text-indigo-500"></i> Drag elements to add. Click to edit text or style. Drag inside canvas to move.
+                </div>
+            </main>
+
+            <!-- RIGHT SIDEBAR: Properties -->
+            <aside class="w-72 bg-white border-l border-gray-200 flex flex-col z-10">
+                
+                <!-- Position Settings (Always Visible) -->
+                <div class="p-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Popup Position</h2>
+                    <select id="positionSelect" onchange="updatePositionSetting()" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="center">Center Screen</option>
+                        <option value="top-left">Top Left Corner</option>
+                        <option value="top-right">Top Right Corner</option>
+                        <option value="bottom-left">Bottom Left Corner</option>
+                        <option value="bottom-right">Bottom Right Corner</option>
+                        <option value="bottom-center">Bottom Center</option>
+                    </select>
+                    <p class="text-[10px] text-gray-400 mt-2">Changes apply in Preview & Live Site only.</p>
+                </div>
+
+                <!-- Dynamic Properties Panel -->
+                <div id="propertiesPanel" class="flex-1 overflow-y-auto p-4 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Element Settings</h2>
+                        <button onclick="deselectAll()" class="text-xs text-gray-400 hover:text-gray-600">Clear Selection</button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Text Content -->
+                        <div id="propContent" class="hidden">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Text Content</label>
+                            <textarea id="propTextInput" rows="3" class="w-full p-2 border border-gray-300 rounded-md text-sm" oninput="updateElementContent()"></textarea>
+                        </div>
+
+                        <!-- Link URL -->
+                        <div id="propLink" class="hidden">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Link URL</label>
+                            <input type="text" id="propLinkInput" placeholder="https://..." class="w-full p-2 border border-gray-300 rounded-md text-sm">
+                            <button onclick="updateElementLink()" class="mt-2 w-full py-1.5 bg-indigo-50 text-indigo-600 text-xs font-medium rounded hover:bg-indigo-100">Update Link</button>
+                        </div>
+
+                        <!-- Typography -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Font Size (px)</label>
+                            <input type="number" id="propFontSize" class="w-full p-2 border border-gray-300 rounded-md text-sm" oninput="updateStyle('fontSize', this.value + 'px')">
+                        </div>
+
+                        <!-- Colors -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Text Color</label>
+                                <input type="color" id="propColor" class="w-full h-9 border border-gray-300 rounded-md cursor-pointer" oninput="updateStyle('color', this.value)">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Bg Color</label>
+                                <input type="color" id="propBgColor" class="w-full h-9 border border-gray-300 rounded-md cursor-pointer" oninput="updateStyle('backgroundColor', this.value)">
+                            </div>
+                        </div>
+
+                        <!-- Dimensions -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Width (px/%)</label>
+                                <input type="text" id="propWidth" placeholder="auto" class="w-full p-2 border border-gray-300 rounded-md text-sm" oninput="updateStyle('width', this.value)">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Height (px)</label>
+                                <input type="text" id="propHeight" placeholder="auto" class="w-full p-2 border border-gray-300 rounded-md text-sm" oninput="updateStyle('height', this.value)">
+                            </div>
+                        </div>
+
+                        <!-- Spacing -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Padding (px)</label>
+                            <input type="number" id="propPadding" class="w-full p-2 border border-gray-300 rounded-md text-sm" oninput="updateStyle('padding', this.value + 'px')">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Border Radius (px)</label>
+                            <input type="number" id="propRadius" class="w-full p-2 border border-gray-300 rounded-md text-sm" oninput="updateStyle('borderRadius', this.value + 'px')">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State for Properties -->
+                <div id="noSelection" class="flex-1 flex items-center justify-center p-8 text-center text-gray-400">
+                    <div>
+                        <i class="fas fa-mouse-pointer text-3xl mb-2 opacity-50"></i>
+                        <p class="text-sm">Select an element on the canvas to edit its properties.</p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- ================= PROJECTS SECTION ================= -->
+    <div id="projectsSection" class="hidden fixed inset-0 bg-gray-50 z-30 overflow-y-auto">
+        <div class="max-w-6xl mx-auto p-6">
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">My Projects</h1>
+                <button onclick="showSection('editor')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Back to Editor</button>
+            </div>
+            
+            <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Projects injected here -->
+            </div>
+            
+            <div id="noProjectsMsg" class="hidden text-center py-20">
+                <div class="inline-block p-4 bg-white rounded-full shadow-sm mb-4 text-gray-400">
+                    <i class="fas fa-folder-open text-4xl"></i>
+                </div>
+                <h3 class="text-xl font-medium text-gray-600">No saved projects yet</h3>
+                <p class="text-gray-500 mt-2">Create a design in the editor and save it!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= PREVIEW MODAL ================= -->
+    <div id="previewModal" class="preview-overlay" onclick="if(event.target === this) togglePreview()">
+        <div id="previewPopup" class="bg-white shadow-2xl rounded-lg relative max-w-md w-[90%] transform transition-all duration-300">
+            <!-- Content injected via JS -->
+            <button id="previewCloseBtn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600 z-10" style="font-size: 20px;">&times;</button>
+            <div id="previewContent" class="p-6"></div>
+        </div>
+    </div>
+
+    <!-- ================= SAVE MODAL ================= -->
+    <div id="saveModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
+            <h3 class="text-lg font-bold mb-4">Save Project</h3>
+            <input type="text" id="projectNameInput" placeholder="Project Name (e.g., Summer Sale)" class="w-full p-2 border border-gray-300 rounded mb-4">
+            <div class="flex justify-end gap-2">
+                <button onclick="document.getElementById('saveModal').classList.remove('active')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="confirmSaveProject()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Save Design</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= CODE MODAL ================= -->
+    <div id="codeModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 flex flex-col max-h-[80vh]">
+            <h3 class="text-lg font-bold mb-2">Your Pop-up Code</h3>
+            <p class="text-xs text-gray-500 mb-4">Copy this code and paste it before the closing &lt;/body&gt; tag of your website.</p>
+            <pre id="codeOutput" class="flex-1 bg-gray-900 text-green-400 p-4 rounded text-xs overflow-auto font-mono"></pre>
+            <div class="flex justify-end gap-2 mt-4">
+                <button onclick="document.getElementById('codeModal').classList.remove('active')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Close</button>
+                <button onclick="copyCode()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= DATA & STATE MANAGEMENT =================
+        let currentUser = null;
+        let selectedElement = null;
+        let currentDesignData = null; // Holds the HTML structure of current work
+        
+        // Initialize Data
+        function initDB() {
+            if (!localStorage.getItem('poptin_users')) {
+                // Create Admin
+                const users = [{
+                    id: 'admin',
+                    name: 'System Admin',
+                    company: 'Pop-up Maker Inc.',
+                    email: 'admin@poptin.com',
+                    password: 'admin123',
+                    role: 'admin',
+                    designs: []
+                }];
+                localStorage.setItem('poptin_users', JSON.stringify(users));
+            }
+        }
+
+        function getUsers() { return JSON.parse(localStorage.getItem('poptin_users') || '[]'); }
+        function saveUsers(users) { localStorage.setItem('poptin_users', JSON.stringify(users)); }
+
+        // ================= AUTH LOGIC =================
+        function toggleAuth(view) {
+            document.getElementById('loginForm').classList.toggle('hidden', view !== 'login');
+            document.getElementById('signupForm').classList.toggle('hidden', view !== 'signup');
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPass').value;
+            const users = getUsers();
+            const user = users.find(u => u.email === email && u.password === pass);
+
+            if (user) {
+                currentUser = user;
+                document.getElementById('authScreen').classList.add('hidden');
+                if (user.role === 'admin') {
+                    loadAdminDashboard();
+                } else {
+                    loadEditor();
+                }
+            } else {
+                alert('Invalid credentials. Try admin@poptin.com / admin123 or create an account.');
+            }
+        }
+
+        function handleSignup() {
+            const name = document.getElementById('regName').value;
+            const company = document.getElementById('regCompany').value;
+            const email = document.getElementById('regEmail').value;
+            const pass = document.getElementById('regPass').value;
+
+            if (!name || !email || !pass) return alert('Please fill all fields');
+            if (pass.length < 6) return alert('Password must be at least 6 characters');
+
+            const users = getUsers();
+            if (users.find(u => u.email === email)) return alert('Email already exists');
+
+            const newUser = {
+                id: Date.now().toString(),
+                name, company, email, password: pass,
+                role: 'user',
+                designs: []
+            };
+
+            users.push(newUser);
+            saveUsers(users);
+            alert('Account created! Please sign in.');
+            toggleAuth('login');
+        }
+
+        function logout() {
+            currentUser = null;
+            location.reload();
+        }
+
+        // ================= ADMIN DASHBOARD =================
+        function loadAdminDashboard() {
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            const users = getUsers();
+            
+            // Stats
+            document.getElementById('statUsers').innerText = users.filter(u => u.role !== 'admin').length;
+            const totalDesigns = users.reduce((acc, u) => acc + (u.designs ? u.designs.length : 0), 0);
+            document.getElementById('statDesigns').innerText = totalDesigns;
+
+            // Table
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '';
+            
+            users.filter(u => u.role !== 'admin').forEach(u => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-gray-900">${u.name}</td>
+                    <td class="px-6 py-4 text-gray-500">${u.company || '-'}</td>
+                    <td class="px-6 py-4 text-gray-500">${u.email}</td>
+                    <td class="px-6 py-4 text-gray-500">${u.designs ? u.designs.length : 0}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="deleteUser('${u.id}')" class="text-red-600 hover:text-red-900 text-sm font-medium">Delete Account</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteUser(id) {
+            if(!confirm('Are you sure? This will delete the user and all their designs.')) return;
+            let users = getUsers();
+            users = users.filter(u => u.id !== id);
+            saveUsers(users);
+            loadAdminDashboard();
+        }
+
+        // ================= EDITOR LOGIC =================
+        function loadEditor() {
+            document.getElementById('appInterface').classList.remove('hidden');
+            document.getElementById('userDisplay').innerText = `${currentUser.name} (${currentUser.company})`;
+            
+            // Reset Canvas to default if no current session data
+            const canvas = document.getElementById('canvas');
+            if (!currentDesignData) {
+                canvas.innerHTML = `
+                    <div class="p-8 text-center space-y-4">
+                        <h2 class="text-2xl font-bold text-gray-800" style="font-size: 24px;">Welcome!</h2>
+                        <p class="text-gray-600" style="font-size: 16px;">Subscribe to get special offers.</p>
+                        <button class="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition" style="font-size: 16px; padding: 12px 24px;">Subscribe</button>
+                    </div>
+                    <div id="defaultCloseBtn" class="canvas-element absolute top-2 right-2 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600" 
+                         style="width: 32px; height: 32px; font-size: 20px; color: #9ca3af;"
+                         onclick="selectElement(this)">
+                        <i class="fas fa-times"></i>
+                        <div class="resize-handle rh-tl"></div><div class="resize-handle rh-tr"></div>
+                        <div class="resize-handle rh-bl"></div><div class="resize-handle rh-br"></div>
+                        <div class="delete-btn" onclick="deleteElement(event)"><i class="fas fa-trash"></i></div>
+                    </div>
+                `;
+                makeElementsDraggableInside();
+            } else {
+                canvas.innerHTML = currentDesignData;
+                makeElementsDraggableInside();
+            }
+            deselectAll();
+        }
+
+        function showSection(section) {
+            document.getElementById('appInterface').classList.add('hidden');
+            document.getElementById('projectsSection').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.add('hidden');
+
+            if (section === 'editor') {
+                document.getElementById('appInterface').classList.remove('hidden');
+                loadEditor();
+            } else if (section === 'projects') {
+                document.getElementById('projectsSection').classList.remove('hidden');
+                loadProjectsList();
+            } else if (section === 'admin') {
+                document.getElementById('adminDashboard').classList.remove('hidden');
+            }
+        }
+
+        // ================= DRAG AND DROP (Sidebar to Canvas) =================
+        function allowDrop(ev) { ev.preventDefault(); }
+        
+        function drag(ev) {
+            ev.dataTransfer.setData("type", ev.target.dataset.type);
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const type = ev.dataTransfer.getData("type");
+            if (!type) return;
+
+            const canvas = document.getElementById('canvas');
+            let element;
+
+            // Create Element based on type
+            if (type === 'headline') {
+                element = createEditableElement('h2', 'New Headline', 'text-2xl font-bold text-gray-800', '24px');
+            } else if (type === 'text') {
+                element = createEditableElement('p', 'Add your description here.', 'text-gray-600 mt-2', '16px');
+            } else if (type === 'button') {
+                element = document.createElement('button');
+                element.className = 'canvas-element px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition mt-4';
+                element.innerText = 'Click Me';
+                element.style.fontSize = '16px';
+                element.style.padding = '12px 24px';
+                setupElement(element);
+            } else if (type === 'image') {
+                element = document.createElement('div');
+                element.className = 'canvas-element mt-4 h-32 bg-gray-200 rounded flex items-center justify-center text-gray-400';
+                element.innerHTML = '<i class="fas fa-image text-3xl"></i>';
+                element.style.width = '100%';
+                setupElement(element);
+            } else if (type === 'input') {
+                element = document.createElement('input');
+                element.type = 'email';
+                element.placeholder = 'Enter your email';
+                element.className = 'canvas-element w-full p-3 border border-gray-300 rounded mt-4';
+                element.style.fontSize = '16px';
+                setupElement(element);
+            }
+
+            if (element) {
+                // Insert before the close button (last child)
+                const closeBtn = canvas.querySelector('#defaultCloseBtn') || canvas.lastElementChild;
+                canvas.insertBefore(element, closeBtn);
+                makeElementsDraggableInside();
+            }
+        }
+
+        function createEditableElement(tag, text, baseClass, fontSize) {
+            const el = document.createElement(tag);
+            el.className = `canvas-element ${baseClass}`;
+            el.innerText = text;
+            el.style.fontSize = fontSize;
+            el.contentEditable = "true"; // Allow direct text editing
+            el.onblur = function() { /* Save logic could go here */ };
+            setupElement(el);
+            return el;
+        }
+
+        function setupElement(el) {
+            el.onclick = (e) => {
+                e.stopPropagation();
+                selectElement(el);
+            };
+            // Add resize handles and delete btn
+            el.innerHTML += `
+                <div class="resize-handle rh-tl"></div><div class="resize-handle rh-tr"></div>
+                <div class="resize-handle rh-bl"></div><div class="resize-handle rh-br"></div>
+                <div class="delete-btn" onclick="deleteElement(event)"><i class="fas fa-trash"></i></div>
+            `;
+        }
+
+        // ================= DRAG INSIDE CANVAS (Repositioning) =================
+        function makeElementsDraggableInside() {
+            const items = document.querySelectorAll('.canvas-element');
+            let draggedItem = null;
+            let startX, startY, initialLeft, initialTop;
+
+            items.forEach(item => {
+                // Only allow dragging if not resizing (simple check)
+                item.onmousedown = function(e) {
+                    if (e.target.closest('.resize-handle') || e.target.closest('.delete-btn')) return;
+                    
+                    draggedItem = this;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    
+                    // Get current computed style for left/top
+                    const style = window.getComputedStyle(draggedItem);
+                    initialLeft = parseInt(style.left) || 0;
+                    initialTop = parseInt(style.top) || 0;
+                    
+                    // If it's static (default flow), we need to make it absolute to drag freely
+                    if (style.position === 'static') {
+                        draggedItem.style.position = 'absolute';
+                        // Approximate position based on offset
+                        draggedItem.style.left = draggedItem.offsetLeft + 'px';
+                        draggedItem.style.top = draggedItem.offsetTop + 'px';
+                        initialLeft = draggedItem.offsetLeft;
+                        initialTop = draggedItem.offsetTop;
+                    }
+                    
+                    document.body.style.cursor = 'grabbing';
+                    selectElement(draggedItem);
+                };
+            });
+
+            document.onmousemove = function(e) {
+                if (!draggedItem) return;
+                e.preventDefault();
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                draggedItem.style.left = `${initialLeft + dx}px`;
+                draggedItem.style.top = `${initialTop + dy}px`;
+            };
+
+            document.onmouseup = function() {
+                draggedItem = null;
+                document.body.style.cursor = 'default';
+            };
+        }
+
+        // ================= RESIZE LOGIC =================
+        // Simple implementation: Listen to mouse events on handles
+        // For brevity in single file, we'll rely on CSS inputs for precise sizing, 
+        // but visual handles are present. Implementing full JS resize logic for all corners 
+        // is complex, so we map the handles to update the input fields or simple scaling.
+        // *Improvement*: Let's just use the Property Panel for Width/Height as requested for precision.
+
+        // ================= SELECTION & PROPERTIES =================
+        function selectElement(el) {
+            deselectAll();
+            selectedElement = el;
+            el.classList.add('selected');
+            
+            document.getElementById('noSelection').classList.add('hidden');
+            document.getElementById('propertiesPanel').classList.remove('hidden');
+
+            // Populate Inputs
+            const style = window.getComputedStyle(el);
+            
+            // Content
+            if (el.tagName === 'INPUT') {
+                document.getElementById('propContent').classList.add('hidden');
+                document.getElementById('propLink').classList.add('hidden');
+            } else if (el.tagName === 'BUTTON' || el.tagName === 'A') {
+                document.getElementById('propContent').classList.remove('hidden');
+                document.getElementById('propTextInput').value = el.innerText;
+                
+                document.getElementById('propLink').classList.remove('hidden');
+                document.getElementById('propLinkInput').value = el.getAttribute('href') || '';
+            } else {
+                document.getElementById('propContent').classList.remove('hidden');
+                document.getElementById('propTextInput').value = el.innerText;
+                document.getElementById('propLink').classList.add('hidden');
+            }
+
+            // Styles
+            document.getElementById('propFontSize').value = parseInt(style.fontSize);
+            document.getElementById('propColor').value = rgbToHex(style.color);
+            document.getElementById('propBgColor').value = rgbToHex(style.backgroundColor);
+            document.getElementById('propWidth').value = style.width === 'auto' ? '' : style.width;
+            document.getElementById('propHeight').value = style.height === 'auto' ? '' : style.height;
+            document.getElementById('propPadding').value = parseInt(style.padding);
+            document.getElementById('propRadius').value = parseInt(style.borderRadius);
+        }
+
+        function deselectAll() {
+            if (selectedElement) selectedElement.classList.remove('selected');
+            selectedElement = null;
+            document.getElementById('noSelection').classList.remove('hidden');
+            document.getElementById('propertiesPanel').classList.add('hidden');
+        }
+
+        function deleteElement(e) {
+            e.stopPropagation();
+            if (selectedElement) {
+                selectedElement.remove();
+                deselectAll();
+            }
+        }
+
+        // Update Functions
+        function updateElementContent() {
+            if (!selectedElement) return;
+            if (selectedElement.tagName === 'INPUT') return;
+            selectedElement.innerText = document.getElementById('propTextInput').value;
+        }
+
+        function updateElementLink() {
+            if (!selectedElement) return;
+            const url = document.getElementById('propLinkInput').value;
+            if (url) {
+                if (selectedElement.tagName !== 'A') {
+                    // Wrap button in link or convert? Let's just set onclick for simplicity or wrap
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.className = selectedElement.className;
+                    link.style.cssText = selectedElement.style.cssText;
+                    link.innerHTML = selectedElement.innerHTML;
+                    // Remove handles from old, add to new
+                    selectedElement.parentNode.replaceChild(link, selectedElement);
+                    selectedElement = link;
+                    setupElement(link);
+                    selectElement(link);
+                } else {
+                    selectedElement.href = url;
+                }
+            }
+        }
+
+        function updateStyle(prop, value) {
+            if (!selectedElement) return;
+            selectedElement.style[prop] = value;
+        }
+
+        function rgbToHex(rgb) {
+            if (!rgb || rgb === 'rgba(0, 0, 0, 0)') return '#ffffff';
+            if (rgb.startsWith('#')) return rgb;
+            const sep = rgb.indexOf(",") > -1 ? "," : " ";
+            rgb = rgb.substr(4).split(")")[0].split(sep);
+            let r = (+rgb[0]).toString(16), g = (+rgb[1]).toString(16), b = (+rgb[2]).toString(16);
+            if (r.length == 1) r = "0" + r;
+            if (g.length == 1) g = "0" + g;
+            if (b.length == 1) b = "0" + b;
+            return "#" + r + g + b;
+        }
+
+        // ================= TEMPLATES =================
+        function loadTemplate(type) {
+            const canvas = document.getElementById('canvas');
+            // Keep close button
+            const closeBtn = canvas.querySelector('#defaultCloseBtn');
+            canvas.innerHTML = '';
+            if(closeBtn) canvas.appendChild(closeBtn);
+
+            if (type === 'newsletter') {
+                canvas.innerHTML += `
+                    <div class="p-8 text-center">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 text-2xl"><i class="fas fa-envelope"></i></div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2" style="font-size:24px;">Join Our Newsletter</h2>
+                        <p class="text-gray-600 mb-6" style="font-size:16px;">Get the latest updates sent straight to your inbox.</p>
+                        <input type="email" placeholder="Enter your email" class="w-full p-3 border border-gray-300 rounded mb-3" style="font-size:16px;">
+                        <button class="w-full py-3 bg-blue-600 text-white rounded font-bold hover:bg-blue-700" style="font-size:16px;">Subscribe Now</button>
+                    </div>
+                `;
+            } else if (type === 'discount') {
+                canvas.innerHTML += `
+                    <div class="p-8 text-center bg-red-50 h-full rounded-b-lg">
+                        <h2 class="text-3xl font-extrabold text-red-600 my-4" style="font-size:32px;">FLASH SALE<br>50% OFF</h2>
+                        <p class="text-gray-700 mb-6 font-bold" style="font-size:18px;">Use code: SAVE50</p>
+                        <button class="px-8 py-3 bg-red-600 text-white font-bold rounded shadow-lg hover:bg-red-700" style="font-size:18px; padding:12px 24px;">Shop Now</button>
+                    </div>
+                `;
+            }
+            makeElementsDraggableInside();
+            // Re-setup elements for selection
+            document.querySelectorAll('.canvas-element').forEach(el => {
+                if(!el.querySelector('.resize-handle')) setupElement(el);
+            });
+        }
+
+        // ================= POSITIONING =================
+        function updatePositionSetting() {
+            // This only saves the preference. The editor canvas stays centered.
+            // The preview will use this.
+            console.log("Position updated to:", document.getElementById('positionSelect').value);
+        }
+
+        // ================= PREVIEW =================
+        function togglePreview() {
+            const modal = document.getElementById('previewModal');
+            const popup = document.getElementById('previewPopup');
+            const contentDiv = document.getElementById('previewContent');
+            const canvas = document.getElementById('canvas');
+            const position = document.getElementById('positionSelect').value;
+
+            if (modal.style.display === 'flex') {
+                modal.style.display = 'none';
+            } else {
+                // Clone content, remove editor specifics
+                let html = canvas.innerHTML;
+                // Remove resize handles and delete buttons
+                html = html.replace(/<div class="resize-handle.*?<\/div>/g, '');
+                html = html.replace(/<div class="delete-btn.*?<\/div>/g, '');
+                // Remove selection classes
+                html = html.replace(/canvas-element selected/g, 'canvas-element');
+                // Remove contenteditable
+                html = html.replace(/contenteditable="true"/g, '');
+                // Remove onclick handlers for selection
+                html = html.replace(/onclick="selectElement\(this\)"/g, '');
+
+                contentDiv.innerHTML = html;
+                
+                // Setup Close Button in Preview
+                const closeBtn = contentDiv.querySelector('#defaultCloseBtn') || contentDiv.querySelector('.fa-times')?.parentElement;
+                if (closeBtn) {
+                    closeBtn.style.position = 'absolute';
+                    closeBtn.style.top = '10px';
+                    closeBtn.style.right = '15px';
+                    closeBtn.style.cursor = 'pointer';
+                    closeBtn.style.zIndex = '20';
+                    closeBtn.onclick = togglePreview;
+                    // Ensure it's visible
+                    closeBtn.style.display = 'flex'; 
+                }
+
+                // Apply Positioning Logic for Preview
+                popup.style.position = 'fixed';
+                popup.style.transform = 'none'; // Reset transform
+                
+                // Reset classes
+                popup.className = 'bg-white shadow-2xl rounded-lg relative max-w-md w-[90%] z-50 anim-fade-in';
+
+                if (position === 'center') {
+                    popup.style.top = '50%';
+                    popup.style.left = '50%';
+                    popup.style.transform = 'translate(-50%, -50%)';
+                    popup.classList.add('anim-bounce-in');
+                } else if (position === 'top-left') {
+                    popup.style.top = '20px';
+                    popup.style.left = '20px';
+                    popup.classList.add('anim-slide-down');
+                } else if (position === 'top-right') {
+                    popup.style.top = '20px';
+                    popup.style.right = '20px';
+                    popup.style.left = 'auto';
+                    popup.classList.add('anim-slide-down');
+                } else if (position === 'bottom-left') {
+                    popup.style.bottom = '20px';
+                    popup.style.left = '20px';
+                    popup.style.top = 'auto';
+                    popup.classList.add('anim-slide-up');
+                } else if (position === 'bottom-right') {
+                    popup.style.bottom = '20px';
+                    popup.style.right = '20px';
+                    popup.style.left = 'auto';
+                    popup.style.top = 'auto';
+                    popup.classList.add('anim-slide-up');
+                } else if (position === 'bottom-center') {
+                    popup.style.bottom = '20px';
+                    popup.style.left = '50%';
+                    popup.style.transform = 'translateX(-50%)';
+                    popup.style.top = 'auto';
+                    popup.classList.add('anim-slide-up');
+                }
+
+                modal.style.display = 'flex';
+            }
+        }
+
+        // ================= SAVE & LOAD PROJECTS =================
+        function saveProject() {
+            const name = prompt("Enter project name:");
+            if (!name) return;
+            
+            const canvasHTML = document.getElementById('canvas').innerHTML;
+            const position = document.getElementById('positionSelect').value;
+            
+            const project = {
+                id: Date.now(),
+                name,
+                html: canvasHTML,
+                position,
+                date: new Date().toLocaleDateString()
+            };
+
+            // Update User Data
+            const users = getUsers();
+            const userIndex = users.findIndex(u => u.email === currentUser.email);
+            if (!users[userIndex].designs) users[userIndex].designs = [];
+            users[userIndex].designs.push(project);
+            saveUsers(users);
+            
+            // Update Session
+            currentUser = users[userIndex];
+            alert('Project saved successfully!');
+        }
+
+        function loadProjectsList() {
+            const grid = document.getElementById('projectsGrid');
+            const msg = document.getElementById('noProjectsMsg');
+            grid.innerHTML = '';
+            
+            const designs = currentUser.designs || [];
+            
+            if (designs.length === 0) {
+                msg.classList.remove('hidden');
+                return;
+            }
+            msg.classList.add('hidden');
+
+            designs.forEach((proj, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-white p-4 rounded-lg shadow border border-gray-200 hover:shadow-md transition';
+                card.innerHTML = `
+                    <div class="h-32 bg-gray-100 rounded mb-3 flex items-center justify-center text-gray-400 overflow-hidden relative">
+                        <div class="absolute inset-0 scale-50 origin-top-left pointer-events-none opacity-50">
+                            ${proj.html.replace(/<div class="resize-handle.*?<\/div>/g, '').replace(/<div class="delete-btn.*?<\/div>/g, '')}
+                        </div>
+                        <i class="fas fa-layer-group text-3xl"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800">${proj.name}</h3>
+                    <p class="text-xs text-gray-500 mb-3">${proj.date}</p>
+                    <div class="flex gap-2">
+                        <button onclick="loadDesign(${index})" class="flex-1 py-2 bg-indigo-50 text-indigo-600 text-sm font-medium rounded hover:bg-indigo-100">Load</button>
+                        <button onclick="deleteDesign(${index})" class="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function loadDesign(index) {
+            const design = currentUser.designs[index];
+            currentDesignData = design.html;
+            document.getElementById('positionSelect').value = design.position;
+            showSection('editor');
+        }
+
+        function deleteDesign(index) {
+            if(!confirm('Delete this design?')) return;
+            const users = getUsers();
+            const userIndex = users.findIndex(u => u.email === currentUser.email);
+            users[userIndex].designs.splice(index, 1);
+            saveUsers(users);
+            currentUser = users[userIndex];
+            loadProjectsList();
+        }
+
+        // Wrapper for the modal trigger
+        function confirmSaveProject() {
+            const name = document.getElementById('projectNameInput').value;
+            if(!name) return alert('Please enter a name');
+            
+            const canvasHTML = document.getElementById('canvas').innerHTML;
+            const position = document.getElementById('positionSelect').value;
+            
+            const project = { id: Date.now(), name, html: canvasHTML, position, date: new Date().toLocaleDateString() };
+            
+            const users = getUsers();
+            const uIdx = users.findIndex(u => u.email === currentUser.email);
+            if (!users[uIdx].designs) users[uIdx].designs = [];
+            users[uIdx].designs.push(project);
+            saveUsers(users);
+            currentUser = users[uIdx];
+            
+            document.getElementById('saveModal').classList.remove('active');
+            document.getElementById('projectNameInput').value = '';
+            alert('Saved!');
+        }
+
+        // ================= EXPORT CODE =================
+        function exportCode() {
+            const canvas = document.getElementById('canvas');
+            const position = document.getElementById('positionSelect').value;
+            let html = canvas.innerHTML;
+            
+            // Clean up
+            html = html.replace(/<div class="resize-handle.*?<\/div>/g, '');
+            html = html.replace(/<div class="delete-btn.*?<\/div>/g, '');
+            html = html.replace(/canvas-element selected/g, 'popup-content-item');
+            html = html.replace(/contenteditable="true"/g, '');
+            html = html.replace(/onclick="selectElement\(this\)"/g, '');
+
+            // Generate Position CSS
+            let posCSS = '';
+            if (position === 'center') posCSS = 'top:50%; left:50%; transform:translate(-50%, -50%);';
+            else if (position === 'top-left') posCSS = 'top:20px; left:20px;';
+            else if (position === 'top-right') posCSS = 'top:20px; right:20px;';
+            else if (position === 'bottom-left') posCSS = 'bottom:20px; left:20px;';
+            else if (position === 'bottom-right') posCSS = 'bottom:20px; right:20px;';
+            else if (position === 'bottom-center') posCSS = 'bottom:20px; left:50%; transform:translateX(-50%);';
+
+            const code = `
+<!-- Pop-up Maker Generated Code -->
+<div id="custom-popup-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
+    <div id="custom-popup-box" style="position:absolute; ${posCSS} background:white; padding:0; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.2); max-width:450px; width:90%; z-index:10000; animation:fadeIn 0.3s;">
+        ${html}
+    </div>
+</div>
+
+<script>
+    // Show Popup after 1 second
+    setTimeout(function() {
+        document.getElementById('custom-popup-overlay').style.display = 'block';
+    }, 1000);
+
+    // Close Functionality
+    var closeBtn = document.querySelector('#custom-popup-box .fa-times')?.parentElement;
+    if(closeBtn) {
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.onclick = function() {
+            document.getElementById('custom-popup-overlay').style.display = 'none';
+        };
+    }
+<\/script>
+
+<style>
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    /* Add your specific animations here if needed */
+</style>
+            `.trim();
+
+            document.getElementById('codeOutput').textContent = code;
+            document.getElementById('codeModal').classList.add('active');
+        }
+
+        function copyCode() {
+            const code = document.getElementById('codeOutput').textContent;
+            navigator.clipboard.writeText(code).then(() => alert('Copied to clipboard!'));
+        }
+
+        // Initialize
+        initDB();
+
+    </script>
+</body>
+</html>
