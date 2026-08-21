@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PopMaker Pro - SaaS Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+        /* Canvas Grid */
+        .canvas-bg {
+            background-color: #f3f4f6;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Element Selection */
+        .selected-element {
+            outline: 2px solid #4f46e5;
+            outline-offset: 2px;
+            position: relative;
+        }
+        .selected-element::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border: 1px dashed #4f46e5;
+            pointer-events: none;
+        }
+
+        /* Drag Handles */
+        .resize-handle {
+            display: none;
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #4f46e5;
+            border: 1px solid white;
+            z-index: 50;
+        }
+        .selected-element .resize-handle { display: block; }
+        .rh-tl { top: -5px; left: -5px; cursor: nw-resize; }
+        .rh-tr { top: -5px; right: -5px; cursor: ne-resize; }
+        .rh-bl { bottom: -5px; left: -5px; cursor: sw-resize; }
+        .rh-br { bottom: -5px; right: -5px; cursor: se-resize; }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .hidden-view { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 h-screen overflow-hidden flex flex-col">
+
+    <!-- ================= NOTIFICATION TOAST ================= -->
+    <div id="toast" class="fixed top-5 right-5 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-xl transform translate-y-20 transition-transform duration-300 z-50 flex items-center gap-3">
+        <i class="fas fa-check-circle text-green-400"></i>
+        <span id="toast-msg">Action successful</span>
+    </div>
+
+    <!-- ================= VIEW: LANDING PAGE ================= -->
+    <section id="view-landing" class="flex-1 overflow-y-auto">
+        <!-- Nav -->
+        <nav class="container mx-auto px-6 py-6 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xl font-bold">P</div>
+                <span class="text-2xl font-bold text-gray-900">PopMaker<span class="text-indigo-600">Pro</span></span>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="app.navigate('login')" class="px-6 py-2 text-gray-600 hover:text-indigo-600 font-medium">Log In</button>
+                <button onclick="app.navigate('signup')" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-lg shadow-indigo-200">Get Started</button>
+            </div>
+        </nav>
+
+        <!-- Hero -->
+        <div class="container mx-auto px-6 py-20 text-center max-w-4xl">
+            <h1 class="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+                Create Powerful Popups <br><span class="text-indigo-600">Without the Hassle</span>
+            </h1>
+            <p class="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+                Build, customize, and manage high-converting website popups, banners, and forms from one simple platform. No coding required.
+            </p>
+            <div class="flex justify-center gap-4">
+                <button onclick="app.navigate('signup')" class="px-8 py-4 bg-indigo-600 text-white rounded-xl text-lg font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-200 transition transform hover:-translate-y-1">Start Building Free</button>
+                <button onclick="app.demoLogin()" class="px-8 py-4 bg-white text-gray-700 border border-gray-200 rounded-xl text-lg font-bold hover:bg-gray-50 transition">View Demo</button>
+            </div>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="bg-white py-20">
+            <div class="container mx-auto px-6">
+                <div class="grid md:grid-cols-3 gap-10">
+                    <div class="p-8 rounded-2xl bg-gray-50 border border-gray-100">
+                        <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-2xl mb-6"><i class="fas fa-mouse-pointer"></i></div>
+                        <h3 class="text-xl font-bold mb-3">Drag & Drop Editor</h3>
+                        <p class="text-gray-600">Easily add headlines, buttons, images, and forms. Customize every pixel.</p>
+                    </div>
+                    <div class="p-8 rounded-2xl bg-gray-50 border border-gray-100">
+                        <div class="w-14 h-14 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl mb-6"><i class="fas fa-layer-group"></i></div>
+                        <h3 class="text-xl font-bold mb-3">Smart Templates</h3>
+                        <p class="text-gray-600">Start with pre-built designs for newsletters, discounts, and announcements.</p>
+                    </div>
+                    <div class="p-8 rounded-2xl bg-gray-50 border border-gray-100">
+                        <div class="w-14 h-14 bg-green-100 text-green-600 rounded-xl flex items-center justify-center text-2xl mb-6"><i class="fas fa-bullseye"></i></div>
+                        <h3 class="text-xl font-bold mb-3">Precise Targeting</h3>
+                        <p class="text-gray-600">Control exactly where and when your popups appear (Center, Corners, Banners).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= VIEW: AUTH (LOGIN/SIGNUP) ================= -->
+    <section id="view-auth" class="hidden-view fixed inset-0 bg-white z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xl font-bold mx-auto mb-4">P</div>
+                    <h2 id="auth-title" class="text-2xl font-bold text-gray-900">Welcome Back</h2>
+                    <p class="text-gray-500 mt-2">Enter your details to access your dashboard</p>
+                </div>
+
+                <form id="auth-form" onsubmit="app.handleAuth(event)" class="space-y-4">
+                    <input type="hidden" id="auth-mode" value="login">
+                    
+                    <div id="field-company" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                        <input type="text" id="inp-company" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="Acme Inc.">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <input type="email" id="inp-email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="you@example.com">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="inp-password" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="••••••••">
+                    </div>
+
+                    <button type="submit" id="btn-auth-submit" class="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">Log In</button>
+                </form>
+
+                <div class="mt-6 text-center text-sm text-gray-600">
+                    <span id="auth-switch-text">Don't have an account?</span>
+                    <button onclick="app.toggleAuthMode()" class="text-indigo-600 font-bold hover:underline ml-1" id="btn-auth-switch">Sign Up</button>
+                </div>
+                
+                <div class="mt-4 text-center">
+                     <button onclick="app.navigate('landing')" class="text-xs text-gray-400 hover:text-gray-600">← Back to Home</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= VIEW: USER DASHBOARD ================= -->
+    <section id="view-dashboard" class="hidden-view flex-1 flex flex-col h-screen bg-gray-50">
+        <!-- Dashboard Header -->
+        <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-8">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center text-white font-bold text-sm">P</div>
+                <span class="font-bold text-gray-800">Dashboard</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden md:block">
+                    <div id="dash-user-name" class="text-sm font-bold text-gray-900">User Name</div>
+                    <div id="dash-company-name" class="text-xs text-gray-500">Company</div>
+                </div>
+                <button onclick="app.logout()" class="text-sm text-red-600 hover:bg-red-50 px-3 py-1.5 rounded transition">Logout</button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8">
+            <div class="max-w-6xl mx-auto">
+                <!-- Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="text-gray-500 text-sm font-medium mb-1">Total Popups</div>
+                        <div id="stat-total" class="text-3xl font-bold text-gray-900">0</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="text-gray-500 text-sm font-medium mb-1">Active</div>
+                        <div id="stat-active" class="text-3xl font-bold text-green-600">0</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="text-gray-500 text-sm font-medium mb-1">Drafts</div>
+                        <div id="stat-draft" class="text-3xl font-bold text-orange-500">0</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center justify-center cursor-pointer hover:bg-indigo-50 transition border-dashed border-2 border-indigo-200" onclick="app.startCreateFlow()">
+                        <div class="text-center">
+                            <div class="text-indigo-600 text-2xl mb-1"><i class="fas fa-plus-circle"></i></div>
+                            <div class="text-sm font-bold text-indigo-600">Create New</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Website Info -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Your Website</h3>
+                    <div class="flex gap-4">
+                        <input type="url" id="dash-website-url" placeholder="https://yourwebsite.com" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <button onclick="app.saveWebsite()" class="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800">Save URL</button>
+                    </div>
+                </div>
+
+                <!-- Popups List -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900">Recent Popups</h3>
+                    </div>
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+                            <tr>
+                                <th class="px-6 py-3">Name</th>
+                                <th class="px-6 py-3">Type</th>
+                                <th class="px-6 py-3">Status</th>
+                                <th class="px-6 py-3">Last Updated</th>
+                                <th class="px-6 py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-popup-list" class="divide-y divide-gray-100 text-sm">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                    <div id="empty-state" class="hidden p-8 text-center text-gray-500">
+                        <i class="fas fa-inbox text-4xl mb-3 text-gray-300"></i>
+                        <p>No popups yet. Create your first one!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= VIEW: CREATE FLOW MODAL ================= -->
+    <div id="modal-create" class="hidden-view fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl fade-in">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold">Create New Popup</h3>
+                <button onclick="document.getElementById('modal-create').classList.add('hidden-view')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="p-8">
+                <!-- Step 1: Type -->
+                <div id="step-type">
+                    <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Step 1: Choose Type</h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div onclick="app.selectType('popup')" class="cursor-pointer border-2 border-indigo-600 bg-indigo-50 p-6 rounded-xl text-center hover:shadow-md transition">
+                            <i class="fas fa-window-maximize text-3xl text-indigo-600 mb-3"></i>
+                            <div class="font-bold text-gray-900">Regular Popup</div>
+                            <div class="text-xs text-gray-500 mt-1">Center, Corners, etc.</div>
+                        </div>
+                        <div onclick="app.selectType('banner')" class="cursor-pointer border-2 border-gray-200 p-6 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
+                            <i class="fas fa-bars text-3xl text-gray-400 mb-3"></i>
+                            <div class="font-bold text-gray-900">Banner</div>
+                            <div class="text-xs text-gray-500 mt-1">Top or Bottom Bar</div>
+                        </div>
+                        <div onclick="app.selectType('ghl')" class="cursor-pointer border-2 border-gray-200 p-6 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
+                            <i class="fas fa-fill-drip text-3xl text-gray-400 mb-3"></i>
+                            <div class="font-bold text-gray-900">GHL Form</div>
+                            <div class="text-xs text-gray-500 mt-1">GoHighLevel Embed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Template -->
+                <div id="step-template" class="hidden">
+                    <div class="flex items-center gap-2 mb-4">
+                        <button onclick="app.backToType()" class="text-sm text-gray-500 hover:text-indigo-600"><i class="fas fa-arrow-left"></i> Back</button>
+                        <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Step 2: Start From</h4>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div onclick="app.startEditor('blank')" class="cursor-pointer border-2 border-dashed border-gray-300 p-8 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
+                            <i class="fas fa-plus text-2xl text-gray-400 mb-2"></i>
+                            <div class="font-bold text-gray-900">Blank Canvas</div>
+                        </div>
+                        <div onclick="app.startEditor('template')" class="cursor-pointer border-2 border-gray-200 p-8 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
+                            <i class="fas fa-magic text-2xl text-indigo-500 mb-2"></i>
+                            <div class="font-bold text-gray-900">Use Template</div>
+                            <div class="text-xs text-gray-500 mt-1">Lead Gen, Discount, etc.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= VIEW: EDITOR ================= -->
+    <section id="view-editor" class="hidden-view fixed inset-0 bg-gray-900 z-40 flex flex-col">
+        <!-- Editor Toolbar -->
+        <div class="h-14 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-4 text-white">
+            <div class="flex items-center gap-4">
+                <button onclick="app.savePopup()" class="text-green-400 hover:text-green-300 font-medium text-sm"><i class="fas fa-save mr-1"></i> Save</button>
+                <button onclick="app.previewPopup()" class="text-blue-400 hover:text-blue-300 font-medium text-sm"><i class="fas fa-eye mr-1"></i> Preview</button>
+                <span class="text-gray-500">|</span>
+                <span id="editor-popup-name" class="font-bold text-sm">Untitled Popup</span>
+            </div>
+            <button onclick="app.closeEditor()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i> Close Editor</button>
+        </div>
+
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Left Sidebar: Elements -->
+            <div class="w-64 bg-white border-r border-gray-200 flex flex-col z-10">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase">Elements</h3>
+                </div>
+                <div class="p-4 space-y-2 overflow-y-auto flex-1">
+                    <div draggable="true" ondragstart="editor.drag(event, 'heading')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                        <i class="fas fa-heading text-gray-400"></i> <span class="text-sm">Heading</span>
+                    </div>
+                    <div draggable="true" ondragstart="editor.drag(event, 'text')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                        <i class="fas fa-paragraph text-gray-400"></i> <span class="text-sm">Text Block</span>
+                    </div>
+                    <div draggable="true" ondragstart="editor.drag(event, 'button')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                        <i class="fas fa-square text-gray-400"></i> <span class="text-sm">Button</span>
+                    </div>
+                    <div draggable="true" ondragstart="editor.drag(event, 'image')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                        <i class="fas fa-image text-gray-400"></i> <span class="text-sm">Image</span>
+                    </div>
+                    <div draggable="true" ondragstart="editor.drag(event, 'video')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                        <i class="fas fa-video text-gray-400"></i> <span class="text-sm">Video</span>
+                    </div>
+                    <div draggable="true" ondragstart="editor.drag(event, 'divider')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                        <i class="fas fa-minus text-gray-400"></i> <span class="text-sm">Divider</span>
+                    </div>
+                    <div draggable="true" ondragstart="editor.drag(event, 'social')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3">
+                        <i class="fas fa-share-alt text-gray-400"></i> <span class="text-sm">Social Icons</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Canvas -->
+            <div class="flex-1 canvas-bg relative overflow-auto flex items-center justify-center p-10" id="canvas-container" ondrop="editor.drop(event)" ondragover="editor.allowDrop(event)">
+                
+                <!-- The Popup Being Edited -->
+                <div id="editor-canvas" class="bg-white shadow-2xl relative transition-all duration-300" style="width: 400px; height: 500px;">
+                    <!-- Content injected here -->
+                    <div class="absolute inset-0 flex items-center justify-center text-gray-300 pointer-events-none">
+                        <span class="text-sm">Drag elements here</span>
+                    </div>
+                    
+                    <!-- Close Button (Visual Only in Editor) -->
+                    <div class="absolute top-2 right-2 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 text-xs cursor-default">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right: Properties -->
+            <div class="w-72 bg-white border-l border-gray-200 flex flex-col z-10 overflow-y-auto">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase">Properties</h3>
+                </div>
+                
+                <div id="props-panel" class="p-4 space-y-6">
+                    <!-- Canvas Settings -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-2">Popup Dimensions</label>
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <div>
+                                <span class="text-[10px] text-gray-500">Width (px)</span>
+                                <input type="number" id="prop-width" onchange="editor.updateCanvasSize()" class="w-full text-sm border border-gray-300 rounded px-2 py-1" value="400">
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-gray-500">Height (px)</span>
+                                <input type="number" id="prop-height" onchange="editor.updateCanvasSize()" class="w-full text-sm border border-gray-300 rounded px-2 py-1" value="500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-2">Position (Preview Only)</label>
+                        <select id="prop-position" onchange="editor.updatePosition()" class="w-full text-sm border border-gray-300 rounded px-2 py-1">
+                            <option value="center">Center Screen</option>
+                            <option value="top-left">Top Left</option>
+                            <option value="top-right">Top Right</option>
+                            <option value="bottom-left">Bottom Left</option>
+                            <option value="bottom-right">Bottom Right</option>
+                            <option value="top-bar">Top Banner</option>
+                            <option value="bottom-bar">Bottom Banner</option>
+                        </select>
+                    </div>
+
+                    <hr class="border-gray-100">
+
+                    <!-- Element Settings (Dynamic) -->
+                    <div id="element-props" class="hidden">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-indigo-600">Selected Element</span>
+                            <button onclick="editor.deleteSelected()" class="text-xs text-red-500 hover:underline">Delete</button>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[10px] text-gray-500">Content / Text</label>
+                                <textarea id="ep-content" oninput="editor.updateElement()" class="w-full text-sm border border-gray-300 rounded px-2 py-1 h-20"></textarea>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-500">Font Size (px)</label>
+                                <input type="number" id="ep-fontsize" oninput="editor.updateElement()" class="w-full text-sm border border-gray-300 rounded px-2 py-1">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-500">Color</label>
+                                <input type="color" id="ep-color" oninput="editor.updateElement()" class="w-full h-8 border border-gray-300 rounded">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-500">Background</label>
+                                <input type="color" id="ep-bg" oninput="editor.updateElement()" class="w-full h-8 border border-gray-300 rounded">
+                            </div>
+                             <div>
+                                <label class="text-[10px] text-gray-500">Link URL</label>
+                                <input type="text" id="ep-link" oninput="editor.updateElement()" class="w-full text-sm border border-gray-300 rounded px-2 py-1" placeholder="https://...">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="no-selection" class="text-center py-4 text-xs text-gray-400">
+                        Click an element on the canvas to edit its properties.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= VIEW: ADMIN DASHBOARD ================= -->
+    <section id="view-admin" class="hidden-view fixed inset-0 bg-gray-900 z-50 flex flex-col">
+        <header class="bg-gray-800 border-b border-gray-700 h-16 flex items-center justify-between px-8 text-white">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-shield-alt text-xl text-red-400"></i>
+                <span class="font-bold text-lg">Admin Dashboard</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="admin-impersonate-badge" class="hidden bg-red-600 text-xs px-2 py-1 rounded">Viewing as User</span>
+                <button onclick="app.adminExit()" class="text-sm text-gray-300 hover:text-white">Exit Admin</button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 bg-gray-900">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-2xl font-bold text-white mb-6">User Management</h2>
+                
+                <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                    <table class="w-full text-left text-gray-300">
+                        <thead class="bg-gray-700 text-xs uppercase">
+                            <tr>
+                                <th class="px-6 py-3">Company</th>
+                                <th class="px-6 py-3">User Email</th>
+                                <th class="px-6 py-3">Website</th>
+                                <th class="px-6 py-3">Popups</th>
+                                <th class="px-6 py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-user-list" class="divide-y divide-gray-700 text-sm">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= PREVIEW MODAL ================= -->
+    <div id="preview-modal" class="hidden-view fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4" onclick="if(event.target===this) editor.closePreview()">
+        <div id="preview-container" class="relative bg-white shadow-2xl transition-all duration-300">
+            <!-- Content Cloned Here -->
+            <button onclick="editor.closePreview()" class="absolute top-2 right-2 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 z-10"><i class="fas fa-times"></i></button>
+            <div id="preview-content"></div>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        // --- DATA STORE (Simulating Database) ---
+        const db = {
+            getUsers: () => JSON.parse(localStorage.getItem('pm_users') || '[]'),
+            saveUser: (user) => {
+                const users = db.getUsers();
+                const idx = users.findIndex(u => u.email === user.email);
+                if(idx >= 0) users[idx] = user; else users.push(user);
+                localStorage.setItem('pm_users', JSON.stringify(users));
+            },
+            getPopups: (userId) => {
+                const all = JSON.parse(localStorage.getItem('pm_popups') || '[]');
+                return all.filter(p => p.userId === userId);
+            },
+            savePopup: (popup) => {
+                const all = JSON.parse(localStorage.getItem('pm_popups') || '[]');
+                const idx = all.findIndex(p => p.id === popup.id);
+                popup.updatedAt = new Date().toISOString();
+                if(idx >= 0) all[idx] = popup; else all.push(popup);
+                localStorage.setItem('pm_popups', JSON.stringify(all));
+            },
+            deletePopup: (id) => {
+                let all = JSON.parse(localStorage.getItem('pm_popups') || '[]');
+                all = all.filter(p => p.id !== id);
+                localStorage.setItem('pm_popups', JSON.stringify(all));
+            }
+        };
+
+        // --- APP CONTROLLER ---
+        const app = {
+            currentUser: null,
+            impersonating: null,
+
+            init: () => {
+                const session = sessionStorage.getItem('pm_session');
+                if(session) {
+                    const user = JSON.parse(session);
+                    if(user.role === 'admin') app.navigate('admin');
+                    else app.loadDashboard(user);
+                } else {
+                    app.navigate('landing');
+                }
+            },
+
+            navigate: (viewId) => {
+                document.querySelectorAll('section').forEach(el => el.classList.add('hidden-view'));
+                document.getElementById(`view-${viewId}`).classList.remove('hidden-view');
+                
+                // Reset Auth Form
+                if(viewId === 'login' || viewId === 'signup') {
+                    document.getElementById('view-auth').classList.remove('hidden-view');
+                    document.getElementById('view-landing').classList.add('hidden-view');
+                    app.toggleAuthMode(viewId === 'signup' ? 'signup' : 'login');
+                }
+            },
+
+            toggleAuthMode: (mode) => {
+                const isSignup = mode === 'signup';
+                document.getElementById('auth-mode').value = isSignup ? 'signup' : 'login';
+                document.getElementById('auth-title').innerText = isSignup ? 'Create Account' : 'Welcome Back';
+                document.getElementById('field-company').classList.toggle('hidden', !isSignup);
+                document.getElementById('btn-auth-submit').innerText = isSignup ? 'Sign Up' : 'Log In';
+                document.getElementById('auth-switch-text').innerText = isSignup ? 'Already have an account?' : "Don't have an account?";
+                document.getElementById('btn-auth-switch').innerText = isSignup ? 'Log In' : 'Sign Up';
+                document.getElementById('btn-auth-switch').onclick = () => app.toggleAuthMode(isSignup ? 'login' : 'signup');
+            },
+
+            handleAuth: (e) => {
+                e.preventDefault();
+                const mode = document.getElementById('auth-mode').value;
+                const email = document.getElementById('inp-email').value;
+                const pass = document.getElementById('inp-password').value;
+                const company = document.getElementById('inp-company').value;
+
+                // Hardcoded Admin Check
+                if(email === 'admin@poptin.com' && pass === 'admin123') {
+                    sessionStorage.setItem('pm_session', JSON.stringify({ email, role: 'admin' }));
+                    app.loadAdmin();
+                    return;
+                }
+
+                if(mode === 'signup') {
+                    if(!company) return alert('Company name required');
+                    const newUser = {
+                        id: 'u_' + Date.now(),
+                        email, pass, company, website: '', role: 'user'
+                    };
+                    db.saveUser(newUser);
+                    app.showToast('Account created! Logging in...');
+                    setTimeout(() => app.loadDashboard(newUser), 1000);
+                } else {
+                    const users = db.getUsers();
+                    const user = users.find(u => u.email === email && u.pass === pass);
+                    if(user) {
+                        sessionStorage.setItem('pm_session', JSON.stringify(user));
+                        app.loadDashboard(user);
+                    } else {
+                        alert('Invalid credentials');
+                    }
+                }
+            },
+
+            demoLogin: () => {
+                const demoUser = { id: 'demo', email: 'demo@site.com', company: 'Demo Corp', website: 'https://demo.com', role: 'user' };
+                // Ensure demo user exists
+                if(!db.getUsers().find(u => u.email === 'demo@site.com')) db.saveUser(demoUser);
+                sessionStorage.setItem('pm_session', JSON.stringify(demoUser));
+                app.loadDashboard(demoUser);
+            },
+
+            loadDashboard: (user) => {
+                app.currentUser = user;
+                app.impersonating = null;
+                document.getElementById('dash-user-name').innerText = user.email.split('@')[0];
+                document.getElementById('dash-company-name').innerText = user.company;
+                document.getElementById('dash-website-url').value = user.website || '';
+                
+                app.renderPopupList();
+                app.navigate('dashboard');
+            },
+
+            renderPopupList: () => {
+                const userId = app.impersonating ? app.impersonating.id : app.currentUser.id;
+                const popups = db.getPopups(userId);
+                const tbody = document.getElementById('dash-popup-list');
+                tbody.innerHTML = '';
+                
+                let total = popups.length;
+                let active = popups.filter(p => p.status === 'active').length;
+                let draft = total - active;
+
+                document.getElementById('stat-total').innerText = total;
+                document.getElementById('stat-active').innerText = active;
+                document.getElementById('stat-draft').innerText = draft;
+
+                if(total === 0) {
+                    document.getElementById('empty-state').classList.remove('hidden');
+                    return;
+                }
+                document.getElementById('empty-state').classList.add('hidden');
+
+                popups.sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt)).forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-50 transition';
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-medium text-gray-900">${p.name}</td>
+                        <td class="px-6 py-4 capitalize"><span class="px-2 py-1 bg-gray-100 rounded text-xs">${p.type}</span></td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 ${p.status==='active'?'bg-green-100 text-green-700':'bg-orange-100 text-orange-700'} rounded text-xs">${p.status}</span></td>
+                        <td class="px-6 py-4 text-gray-500">${new Date(p.updatedAt).toLocaleDateString()}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="app.editPopup('${p.id}')" class="text-indigo-600 hover:text-indigo-900 font-medium text-sm">Edit</button>
+                            <button onclick="app.deletePopup('${p.id}')" class="text-red-500 hover:text-red-700 font-medium text-sm ml-3">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            },
+
+            saveWebsite: () => {
+                const url = document.getElementById('dash-website-url').value;
+                const user = app.impersonating || app.currentUser;
+                user.website = url;
+                db.saveUser(user);
+                if(!app.impersonating) app.currentUser = user;
+                app.showToast('Website URL saved');
+            },
+
+            startCreateFlow: () => {
+                document.getElementById('modal-create').classList.remove('hidden-view');
+                document.getElementById('step-type').classList.remove('hidden');
+                document.getElementById('step-template').classList.add('hidden');
+            },
+
+            selectType: (type) => {
+                app.newPopupType = type;
+                document.getElementById('step-type').classList.add('hidden');
+                document.getElementById('step-template').classList.remove('hidden');
+            },
+
+            backToType: () => {
+                document.getElementById('step-type').classList.remove('hidden');
+                document.getElementById('step-template').classList.add('hidden');
+            },
+
+            startEditor: (source) => {
+                document.getElementById('modal-create').classList.add('hidden-view');
+                const newPopup = {
+                    id: 'p_' + Date.now(),
+                    userId: app.impersonating ? app.impersonating.id : app.currentUser.id,
+                    name: 'New ' + app.newPopupType,
+                    type: app.newPopupType,
+                    status: 'draft',
+                    width: 400,
+                    height: 500,
+                    position: 'center',
+                    elements: source === 'template' ? editor.getTemplate() : [],
+                    updatedAt: new Date().toISOString()
+                };
+                db.savePopup(newPopup);
+                editor.open(newPopup);
+            },
+
+            editPopup: (id) => {
+                const popups = db.getPopups(app.impersonating ? app.impersonating.id : app.currentUser.id);
+                const p = popups.find(x => x.id === id);
+                if(p) editor.open(p);
+            },
+
+            deletePopup: (id) => {
+                if(confirm('Are you sure?')) {
+                    db.deletePopup(id);
+                    app.renderPopupList();
+                    app.showToast('Popup deleted');
+                }
+            },
+
+            logout: () => {
+                sessionStorage.removeItem('pm_session');
+                location.reload();
+            },
+
+            // Admin Functions
+            loadAdmin: () => {
+                app.navigate('admin');
+                const users = db.getUsers().filter(u => u.role !== 'admin');
+                const tbody = document.getElementById('admin-user-list');
+                tbody.innerHTML = '';
+                
+                users.forEach(u => {
+                    const pCount = db.getPopups(u.id).length;
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-700 transition cursor-pointer';
+                    tr.onclick = (e) => {
+                        if(e.target.tagName !== 'BUTTON') app.impersonateUser(u);
+                    };
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-bold text-white">${u.company}</td>
+                        <td class="px-6 py-4">${u.email}</td>
+                        <td class="px-6 py-4 text-gray-400">${u.website || '-'}</td>
+                        <td class="px-6 py-4"><span class="bg-gray-600 px-2 py-1 rounded text-xs">${pCount}</span></td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="app.impersonateUser(${JSON.stringify(u).replace(/"/g, '&quot;')})" class="text-indigo-400 hover:text-white text-xs border border-indigo-500 px-3 py-1 rounded">View Account</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            },
+
+            impersonateUser: (userObj) => {
+                // Handle stringified object from onclick if needed, but passing object directly is safer in modern browsers if serialized correctly
+                // Re-fetch fresh to be safe
+                const freshUser = db.getUsers().find(u => u.id === userObj.id);
+                app.impersonating = freshUser;
+                document.getElementById('admin-impersonate-badge').classList.remove('hidden');
+                app.loadDashboard(freshUser);
+            },
+
+            adminExit: () => {
+                app.impersonating = null;
+                document.getElementById('admin-impersonate-badge').classList.add('hidden');
+                app.loadAdmin();
+            },
+
+            showToast: (msg) => {
+                const t = document.getElementById('toast');
+                document.getElementById('toast-msg').innerText = msg;
+                t.classList.remove('translate-y-20');
+                setTimeout(() => t.classList.add('translate-y-20'), 3000);
+            }
+        };
+
+        // --- EDITOR ENGINE ---
+        const editor = {
+            currentPopup: null,
+            selectedEl: null,
+
+            open: (popup) => {
+                editor.currentPopup = popup;
+                document.getElementById('editor-popup-name').innerText = popup.name;
+                document.getElementById('prop-width').value = popup.width;
+                document.getElementById('prop-height').value = popup.height;
+                document.getElementById('prop-position').value = popup.position;
+                
+                const canvas = document.getElementById('editor-canvas');
+                canvas.style.width = popup.width + 'px';
+                canvas.style.height = popup.height + 'px';
+                canvas.innerHTML = '<div class="absolute top-2 right-2 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 text-xs"><i class="fas fa-times"></i></div>';
+                
+                popup.elements.forEach(el => editor.renderElement(el));
+                
+                document.getElementById('view-editor').classList.remove('hidden-view');
+                editor.selectedEl = null;
+                document.getElementById('element-props').classList.add('hidden');
+                document.getElementById('no-selection').classList.remove('hidden');
+            },
+
+            drag: (ev, type) => {
+                ev.dataTransfer.setData("type", type);
+            },
+            allowDrop: (ev) => ev.preventDefault(),
+            
+            drop: (ev) => {
+                ev.preventDefault();
+                const type = ev.dataTransfer.getData("type");
+                const id = 'el_' + Date.now();
+                const newEl = { id, type, content: '', styles: {} };
+                
+                if(type === 'heading') newEl.content = 'New Headline';
+                if(type === 'text') newEl.content = 'Lorem ipsum dolor sit amet.';
+                if(type === 'button') { newEl.content = 'Click Me'; newEl.styles.bg = '#4f46e5'; newEl.styles.color = '#ffffff'; }
+                if(type === 'image') newEl.content = 'https://via.placeholder.com/300x150';
+                if(type === 'video') newEl.content = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+                
+                editor.currentPopup.elements.push(newEl);
+                editor.renderElement(newEl);
+                db.savePopup(editor.currentPopup);
+            },
+
+            renderElement: (el) => {
+                const canvas = document.getElementById('editor-canvas');
+                // Remove placeholder if exists
+                const ph = canvas.querySelector('.pointer-events-none');
+                if(ph) ph.remove();
+
+                const div = document.createElement('div');
+                div.id = el.id;
+                div.className = 'p-2 mb-2 hover:bg-blue-50 cursor-pointer relative group';
+                div.onclick = (e) => { e.stopPropagation(); editor.selectElement(el, div); };
+                
+                let html = '';
+                if(el.type === 'heading') html = `<h2 style="font-size:${el.styles.fs||24}px; color:${el.styles.color||'#111'}">${el.content}</h2>`;
+                if(el.type === 'text') html = `<p style="font-size:${el.styles.fs||14}px; color:${el.styles.color||'#444'}">${el.content}</p>`;
+                if(el.type === 'button') html = `<button style="background:${el.styles.bg||'#4f46e5'}; color:${el.styles.color||'#fff'}; padding:10px 20px; border:none; border-radius:4px; width:100%">${el.content}</button>`;
+                if(el.type === 'image') html = `<img src="${el.content}" class="w-full h-auto rounded">`;
+                if(el.type === 'video') html = `<iframe src="${el.content}" class="w-full h-32 rounded"></iframe>`;
+                if(el.type === 'divider') html = `<hr class="border-gray-300">`;
+                if(el.type === 'social') html = `<div class="flex gap-2 text-2xl text-gray-600"><i class="fab fa-facebook"></i><i class="fab fa-instagram"></i><i class="fab fa-twitter"></i></div>`;
+
+                div.innerHTML = html;
+                
+                // Resize Handles
+                div.innerHTML += `<div class="resize-handle rh-tl"></div><div class="resize-handle rh-tr"></div><div class="resize-handle rh-bl"></div><div class="resize-handle rh-br"></div>`;
+                
+                canvas.appendChild(div);
+            },
+
+            selectElement: (el, domEl) => {
+                if(editor.selectedEl) editor.selectedEl.dom.classList.remove('selected-element');
+                editor.selectedEl = { data: el, dom: domEl };
+                domEl.classList.add('selected-element');
+                
+                document.getElementById('no-selection').classList.add('hidden');
+                document.getElementById('element-props').classList.remove('hidden');
+                
+                document.getElementById('ep-content').value = el.content;
+                document.getElementById('ep-fontsize').value = el.styles.fs || '';
+                document.getElementById('ep-color').value = el.styles.color || '#000000';
+                document.getElementById('ep-bg').value = el.styles.bg || '#ffffff';
+                document.getElementById('ep-link').value = el.link || '';
+            },
+
+            updateElement: () => {
+                if(!editor.selectedEl) return;
+                const el = editor.selectedEl.data;
+                const dom = editor.selectedEl.dom;
+                
+                el.content = document.getElementById('ep-content').value;
+                el.styles.fs = document.getElementById('ep-fontsize').value;
+                el.styles.color = document.getElementById('ep-color').value;
+                el.styles.bg = document.getElementById('ep-bg').value;
+                el.link = document.getElementById('ep-link').value;
+
+                // Re-render just this element
+                dom.outerHTML = ''; 
+                editor.renderElement(el);
+                // Re-select because DOM changed
+                const newDom = document.getElementById(el.id);
+                editor.selectElement(el, newDom);
+                
+                db.savePopup(editor.currentPopup);
+            },
+
+            deleteSelected: () => {
+                if(!editor.selectedEl) return;
+                editor.selectedEl.dom.remove();
+                editor.currentPopup.elements = editor.currentPopup.elements.filter(e => e.id !== editor.selectedEl.data.id);
+                editor.selectedEl = null;
+                document.getElementById('element-props').classList.add('hidden');
+                document.getElementById('no-selection').classList.remove('hidden');
+                db.savePopup(editor.currentPopup);
+            },
+
+            updateCanvasSize: () => {
+                const w = document.getElementById('prop-width').value;
+                const h = document.getElementById('prop-height').value;
+                const canvas = document.getElementById('editor-canvas');
+                canvas.style.width = w + 'px';
+                canvas.style.height = h + 'px';
+                editor.currentPopup.width = w;
+                editor.currentPopup.height = h;
+                db.savePopup(editor.currentPopup);
+            },
+
+            updatePosition: () => {
+                // Only affects preview, editor stays centered
+                editor.currentPopup.position = document.getElementById('prop-position').value;
+                db.savePopup(editor.currentPopup);
+            },
+
+            getTemplate: () => {
+                return [
+                    { id: 't1', type: 'heading', content: 'Special Offer!', styles: { fs: 24, color: '#dc2626' } },
+                    { id: 't2', type: 'text', content: 'Subscribe now and get 20% off your first order.', styles: { fs: 14, color: '#4b5563' } },
+                    { id: 't3', type: 'button', content: 'Claim Discount', styles: { bg: '#2563eb', color: '#fff' } }
+                ];
+            },
+
+            savePopup: () => {
+                db.savePopup(editor.currentPopup);
+                app.showToast('Popup Saved Successfully');
+            },
+
+            closeEditor: () => {
+                document.getElementById('view-editor').classList.add('hidden-view');
+                app.renderPopupList();
+            },
+
+            previewPopup: () => {
+                const modal = document.getElementById('preview-modal');
+                const container = document.getElementById('preview-container');
+                const content = document.getElementById('preview-content');
+                
+                // Clone canvas content
+                const canvas = document.getElementById('editor-canvas').cloneNode(true);
+                // Remove resize handles and selection styles
+                canvas.querySelectorAll('.resize-handle').forEach(e => e.remove());
+                canvas.querySelectorAll('.selected-element').forEach(e => e.classList.remove('selected-element'));
+                canvas.onclick = null;
+                
+                content.innerHTML = '';
+                content.appendChild(canvas);
+
+                // Apply Position Logic for Preview
+                container.style.position = 'relative';
+                container.style.transform = 'none';
+                container.style.top = 'auto';
+                container.style.left = 'auto';
+                
+                const pos = editor.currentPopup.position;
+                if(pos === 'center') { /* Default flex center */ }
+                else if(pos === 'top-left') { modal.style.alignItems = 'flex-start'; modal.style.justifyContent = 'flex-start'; container.style.margin = '20px'; }
+                else if(pos === 'top-right') { modal.style.alignItems = 'flex-start'; modal.style.justifyContent = 'flex-end'; container.style.margin = '20px'; }
+                else if(pos === 'bottom-left') { modal.style.alignItems = 'flex-end'; modal.style.justifyContent = 'flex-start'; container.style.margin = '20px'; }
+                else if(pos === 'bottom-right') { modal.style.alignItems = 'flex-end'; modal.style.justifyContent = 'flex-end'; container.style.margin = '20px'; }
+                else if(pos === 'top-bar') { container.style.width = '100%'; container.style.height = 'auto'; container.style.borderRadius = '0'; }
+                else if(pos === 'bottom-bar') { container.style.width = '100%'; container.style.height = 'auto'; container.style.borderRadius = '0'; modal.style.alignItems = 'flex-end'; }
+
+                modal.classList.remove('hidden-view');
+            },
+
+            closePreview: () => {
+                document.getElementById('preview-modal').classList.add('hidden-view');
+                // Reset modal alignment
+                const m = document.getElementById('preview-modal');
+                m.style.alignItems = 'center';
+                m.style.justifyContent = 'center';
+            }
+        };
+
+        // Initialize App
+        app.init();
+    </script>
+</body>
+</html>
