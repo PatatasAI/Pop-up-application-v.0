@@ -1,5 +1,5 @@
 import { useDrop } from 'react-dnd';
-import { X, Type, Image, Mail, Button as ButtonIcon } from 'lucide-react';
+import { X, Type, Image, Mail, Square } from 'lucide-react';
 
 const DropZone = ({ elements, onAddElement, onRemoveElement, onUpdateElement }) => {
   const [{ isOver }, drop] = useDrop(() => ({
@@ -41,7 +41,7 @@ const DropZone = ({ elements, onAddElement, onRemoveElement, onUpdateElement }) 
       text: Type,
       image: Image,
       email: Mail,
-      button: ButtonIcon,
+      button: Square,
     };
     const Icon = iconMap[element.type];
 
