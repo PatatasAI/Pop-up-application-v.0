@@ -8,1289 +8,1008 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
         body { font-family: 'Inter', sans-serif; }
         
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        /* Smooth Scrolling */
+        html { scroll-behavior: smooth; }
 
-        /* Editor Specifics */
+        /* Custom Animations */
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        .slide-up { animation: slideUp 0.6s ease-out; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Editor Specific Styles */
         .canvas-area { background-image: radial-gradient(#e5e7eb 1px, transparent 1px); background-size: 24px 24px; }
-        .draggable-item { cursor: grab; touch-action: none; }
+        .draggable-item { cursor: grab; user-select: none; }
         .draggable-item:active { cursor: grabbing; }
         
         /* Element Selection */
-        .selected-element { outline: 2px solid #4f46e5; outline-offset: 2px; position: relative; }
+        .selected-element { outline: 2px solid #4f46e5; position: relative; }
         .selected-element::after {
-            content: ''; position: absolute; bottom: -4px; right: -4px; width: 8px; height: 8px;
-            background: #4f46e5; border: 1px solid white; cursor: nwse-resize;
+            content: ''; position: absolute; inset: -4px; border: 1px dashed #4f46e5; pointer-events: none;
         }
-        
+        .resize-handle {
+            width: 10px; height: 10px; background: white; border: 2px solid #4f46e5;
+            position: absolute; z-index: 10; display: none;
+        }
+        .selected-element .resize-handle { display: block; }
+        .rh-tl { top: -5px; left: -5px; cursor: nw-resize; }
+        .rh-tr { top: -5px; right: -5px; cursor: ne-resize; }
+        .rh-bl { bottom: -5px; left: -5px; cursor: sw-resize; }
+        .rh-br { bottom: -5px; right: -5px; cursor: se-resize; }
+
         /* Popup Container Selection */
-        .popup-container-selected { outline: 2px dashed #4f46e5; outline-offset: -2px; }
+        .popup-container-selected { outline: 2px solid #10b981; outline-offset: 2px; }
 
         /* Preview Overlay */
-        .preview-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 99999; }
-        .preview-bar { position: absolute; top: 0; left: 0; width: 100%; height: 50px; background: #1f2937; color: white; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100000; }
-        
-        /* Animations */
-        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .animate-slide { animation: slideDown 0.4s ease-out; }
-        .animate-fade { animation: fadeIn 0.3s ease-in; }
+        .preview-overlay { 
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); 
+            z-index: 9999; justify-content: center; align-items: center; 
+            backdrop-filter: blur(2px);
+        }
+        .preview-bar {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #1f2937; color: white; padding: 8px 16px; border-radius: 20px;
+            display: flex; gap: 12px; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 10001; font-size: 14px;
+        }
 
-        /* Device Frames */
-        .device-frame { transition: all 0.3s ease; margin: 0 auto; background: white; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
-        .device-desktop { width: 100%; max-width: 100%; }
-        .device-tablet { width: 768px; border: 12px solid #333; border-radius: 20px; }
-        .device-mobile { width: 375px; border: 12px solid #333; border-radius: 20px; }
-
-        /* Landing Page Video Demo */
-        .demo-screen { background: #1e293b; border-radius: 8px; overflow: hidden; position: relative; height: 400px; border: 1px solid #334155; }
-        .demo-ui-step { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
-        .demo-ui-step.active { opacity: 1; pointer-events: auto; }
+        /* Template Cards */
+        .template-card { transition: all 0.3s ease; }
+        .template-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
         
-        /* Hide elements utility */
-        .hidden { display: none !important; }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+
+        /* Loader */
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #4f46e5; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased overflow-x-hidden">
 
-    <!-- ================= NAVIGATION ================= -->
-    <nav id="navbar" class="fixed w-full bg-white/90 backdrop-blur-md border-b border-gray-100 z-50 transition-all">
+    <!-- Navigation -->
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md border-b border-gray-100 z-50 transition-all duration-300" id="navbar">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <div class="flex items-center gap-2 cursor-pointer" onclick="app.navigate('home')">
-                    <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-200">P</div>
-                    <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">PopMaker Pro</span>
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer" onclick="app.nav.home()">
+                    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-200">P</div>
+                    <span class="font-bold text-xl tracking-tight text-gray-900">PopMaker<span class="text-indigo-600">Pro</span></span>
                 </div>
-                <div class="hidden md:flex items-center gap-8">
+                
+                <!-- Public Nav -->
+                <div class="hidden md:flex items-center space-x-8" id="public-nav">
                     <a href="#features" class="text-gray-600 hover:text-indigo-600 font-medium transition">Features</a>
                     <a href="#templates" class="text-gray-600 hover:text-indigo-600 font-medium transition">Templates</a>
                     <a href="#how-it-works" class="text-gray-600 hover:text-indigo-600 font-medium transition">How It Works</a>
-                    <a href="#pricing" class="text-gray-600 hover:text-indigo-600 font-medium transition">Pricing</a>
+                    <button onclick="app.auth.showLogin()" class="text-gray-600 hover:text-indigo-600 font-medium transition">Log In</button>
+                    <button onclick="app.auth.showSignup()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-full font-medium hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 transform hover:-translate-y-0.5">Get Started</button>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button onclick="app.navigate('login')" class="text-gray-600 hover:text-indigo-600 font-medium transition">Log In</button>
-                    <button onclick="app.navigate('signup')" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition shadow-lg shadow-indigo-200">Get Started</button>
+
+                <!-- Logged In Nav -->
+                <div class="hidden items-center space-x-4" id="user-nav">
+                    <div class="flex items-center gap-3 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200">
+                        <div class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs font-bold" id="nav-avatar">U</div>
+                        <span class="text-sm font-medium text-gray-700" id="nav-username">User</span>
+                    </div>
+                    <button onclick="app.router.navigate('settings')" class="text-gray-500 hover:text-indigo-600"><i class="fas fa-cog"></i></button>
+                    <button onclick="app.auth.logout()" class="text-gray-500 hover:text-red-600 font-medium text-sm">Logout</button>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- ================= LANDING PAGE ================= -->
-    <div id="view-home" class="view-section pt-20">
-        <!-- Hero -->
-        <section class="relative overflow-hidden py-20 lg:py-32">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 text-indigo-700 text-sm font-semibold mb-8 border border-indigo-100 animate-fade">
-                    <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
-                    v2.0 Now Live: Banners & GHL Forms
-                </div>
-                <h1 class="text-5xl md:text-7xl font-extrabold text-gray-900 tracking-tight mb-8 leading-tight">
-                    Create Powerful Popups <br>
-                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Without the Hassle</span>
-                </h1>
-                <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-10">
-                    Build, customize, and manage high-converting website popups, banners, and forms from one simple platform. No coding required.
-                </p>
-                <div class="flex flex-col sm:flex-row justify-center gap-4">
-                    <button onclick="app.startDemo()" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold rounded-xl transition shadow-xl shadow-indigo-200 transform hover:-translate-y-1">
-                        Start Creating Free
-                    </button>
-                    <button onclick="app.navigate('login')" class="px-8 py-4 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-lg font-bold rounded-xl transition shadow-sm">
-                        View Demo
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Animated Demo UI -->
-            <div class="mt-16 max-w-5xl mx-auto px-4">
-                <div class="demo-screen shadow-2xl relative">
-                    <!-- Step 1: Dashboard -->
-                    <div class="demo-ui-step active p-6" id="demo-step-1">
-                        <div class="flex items-center gap-4 mb-6 border-b border-gray-700 pb-4">
-                            <div class="w-8 h-8 bg-indigo-500 rounded-full"></div>
-                            <div class="h-4 w-32 bg-gray-600 rounded"></div>
-                        </div>
-                        <div class="grid grid-cols-3 gap-4">
-                            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
-                                <div class="h-24 bg-gray-700 rounded mb-2"></div>
-                                <div class="h-4 w-20 bg-gray-600 rounded"></div>
+    <!-- Main Content Area -->
+    <main id="app-container" class="pt-16 min-h-screen">
+        <!-- Views injected here by JS -->
+    </main>
+
+    <!-- Templates & Data (Hidden) -->
+    <script>
+        // --- DATA & CONFIG ---
+        const DB_KEYS = { USERS: 'pm_users', POPUPS: 'pm_popups', SESSION: 'pm_session' };
+        
+        const TEMPLATES = [
+            { id: 't1', name: 'Newsletter', type: 'popup', category: 'Lead Gen', color: 'bg-blue-50', preview: '<div class="p-6 text-center"><div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600"><i class="fas fa-envelope"></i></div><h3 class="text-xl font-bold mb-2">Join Our Newsletter</h3><p class="text-sm text-gray-500 mb-4">Get latest updates.</p><div class="h-8 bg-blue-600 rounded w-full"></div></div>' },
+            { id: 't2', name: 'Discount', type: 'popup', category: 'Sales', color: 'bg-red-50', preview: '<div class="p-6 text-center"><h3 class="text-2xl font-extrabold text-red-600 mb-1">50% OFF</h3><p class="text-xs text-gray-500 uppercase tracking-wide mb-4">Flash Sale</p><div class="h-10 bg-red-600 rounded w-full text-white text-xs flex items-center justify-center">Shop Now</div></div>' },
+            { id: 't3', name: 'Welcome', type: 'popup', category: 'General', color: 'bg-green-50', preview: '<div class="p-6 text-center"><h3 class="text-xl font-bold text-green-800 mb-2">Welcome!</h3><p class="text-sm text-gray-600 mb-4">Thanks for visiting our store.</p><div class="h-8 bg-green-600 rounded w-full"></div></div>' },
+            { id: 't4', name: 'Contact Us', type: 'popup', category: 'Contact', color: 'bg-gray-50', preview: '<div class="p-6"><h3 class="text-lg font-bold mb-4">Contact Us</h3><div class="space-y-2"><div class="h-8 bg-gray-200 rounded"></div><div class="h-8 bg-gray-200 rounded"></div><div class="h-8 bg-indigo-600 rounded mt-2"></div></div></div>' },
+            { id: 't5', name: 'Event', type: 'popup', category: 'Event', color: 'bg-purple-50', preview: '<div class="p-6 text-center"><h3 class="text-xl font-bold text-purple-800">Webinar Invite</h3><p class="text-xs text-purple-600 mb-4">Oct 24 • 2PM EST</p><div class="h-8 bg-purple-600 rounded w-full text-white text-xs flex items-center justify-center">Register</div></div>' },
+            { id: 't6', name: 'Exit Intent', type: 'popup', category: 'Retention', color: 'bg-orange-50', preview: '<div class="p-6 text-center"><h3 class="text-lg font-bold">Wait!</h3><p class="text-sm text-gray-600 mb-4">Don\'t leave empty handed.</p><div class="h-8 bg-orange-500 rounded w-full text-white text-xs flex items-center justify-center">Grab Offer</div></div>' },
+            { id: 't7', name: 'Top Banner', type: 'banner', category: 'Banner', color: 'bg-gray-900', preview: '<div class="h-12 flex items-center justify-between px-6 text-white"><span class="text-sm font-medium">Free Shipping on Orders $50+</span><button class="text-xs underline">Dismiss</button></div>' },
+            { id: 't8', name: 'Bottom Bar', type: 'banner', category: 'Banner', color: 'bg-indigo-600', preview: '<div class="h-14 flex items-center justify-between px-6 text-white"><div class="flex items-center gap-3"><i class="fas fa-star text-yellow-400"></i><span class="text-sm font-medium">Rated 4.9/5 by Customers</span></div><button class="bg-white text-indigo-600 px-3 py-1 rounded text-xs font-bold">Learn More</button></div>' },
+            { id: 't9', name: 'Coupon', type: 'popup', category: 'Sales', color: 'bg-pink-50', preview: '<div class="p-6 text-center border-2 border-dashed border-pink-300 rounded-lg"><h3 class="text-xl font-bold text-pink-600">YOUR CODE</h3><div class="text-2xl font-mono font-bold my-2 bg-white py-1 px-3 rounded inline-block">SAVE20</div><p class="text-xs text-gray-500">At checkout</p></div>' },
+            { id: 't10', name: 'Video Promo', type: 'popup', category: 'Media', color: 'bg-gray-800', preview: '<div class="p-1"><div class="aspect-video bg-black rounded flex items-center justify-center text-white"><i class="fas fa-play-circle text-4xl"></i></div><div class="p-4 text-center"><h4 class="font-bold">Watch Demo</h4></div></div>' },
+            { id: 't11', name: 'Survey', type: 'popup', category: 'Feedback', color: 'bg-teal-50', preview: '<div class="p-6"><h3 class="font-bold mb-3">Quick Question</h3><div class="space-y-2"><div class="h-4 bg-white border rounded w-full"></div><div class="h-4 bg-white border rounded w-full"></div><button class="w-full bg-teal-600 h-8 rounded text-white text-xs mt-2">Submit</button></div></div>' },
+            { id: 't12', name: 'Social', type: 'popup', category: 'Social', color: 'bg-blue-50', preview: '<div class="p-6 text-center"><h3 class="font-bold mb-4">Follow Us</h3><div class="flex justify-center gap-3"><div class="w-8 h-8 bg-blue-600 rounded-full"></div><div class="w-8 h-8 bg-pink-500 rounded-full"></div><div class="w-8 h-8 bg-sky-400 rounded-full"></div></div></div>' },
+            { id: 't13', name: 'App Download', type: 'popup', category: 'Mobile', color: 'bg-gray-900', preview: '<div class="p-6 flex items-center gap-4 text-white"><div class="w-12 h-12 bg-gray-700 rounded-lg"></div><div><h4 class="font-bold text-sm">Get the App</h4><p class="text-xs text-gray-400">iOS & Android</p></div></div>' },
+            { id: 't14', name: 'Black Friday', type: 'popup', category: 'Sales', color: 'bg-black', preview: '<div class="p-8 text-center text-white"><h2 class="text-3xl font-black italic mb-2">BLACK FRIDAY</h2><p class="text-red-500 font-bold mb-4">UP TO 80% OFF</p><button class="bg-white text-black px-6 py-2 font-bold uppercase">Shop Sale</button></div>' },
+            { id: 't15', name: 'Quiz', type: 'popup', category: 'Engagement', color: 'bg-yellow-50', preview: '<div class="p-6 text-center"><h3 class="font-bold text-lg">Find Your Match</h3><p class="text-sm text-gray-600 mb-4">Take our 30s quiz</p><button class="bg-yellow-400 text-white px-6 py-2 rounded-full font-bold shadow-lg">Start Quiz</button></div>' },
+            { id: 't16', name: 'Booking', type: 'popup', category: 'Service', color: 'bg-indigo-50', preview: '<div class="p-6"><h3 class="font-bold mb-2">Book Consultation</h3><p class="text-xs text-gray-500 mb-4">Free 15-min call</p><div class="h-8 bg-indigo-600 rounded text-white text-xs flex items-center justify-center">Select Time</div></div>' },
+            { id: 't17', name: 'Announcement', type: 'popup', category: 'General', color: 'bg-white', preview: '<div class="p-6 border-l-4 border-indigo-500"><h3 class="font-bold">System Maintenance</h3><p class="text-sm text-gray-600 mt-1">Scheduled for Sunday 2AM.</p></div>' },
+            { id: 't18', name: 'Free Gift', type: 'popup', category: 'Sales', color: 'bg-red-50', preview: '<div class="p-6 text-center"><div class="text-4xl mb-2">🎁</div><h3 class="font-bold text-red-600">Free Gift Inside</h3><p class="text-xs text-gray-500">With every order today</p></div>' },
+            { id: 't19', name: 'Spin Wheel', type: 'popup', category: 'Gamification', color: 'bg-purple-50', preview: '<div class="p-6 text-center"><div class="w-24 h-24 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full mx-auto mb-3 flex items-center justify-center text-white font-bold">SPIN</div><p class="text-sm font-bold">Win up to 50% Off</p></div>' },
+            { id: 't20', name: 'Minimalist', type: 'popup', category: 'Design', color: 'bg-gray-50', preview: '<div class="p-8 text-center"><h3 class="text-lg font-light tracking-widest uppercase mb-6">Subscribe</h3><div class="border-b border-gray-300 pb-2 text-sm">email@example.com</div></div>' }
+        ];
+
+        // --- STATE MANAGEMENT ---
+        const state = {
+            view: 'landing',
+            user: null,
+            currentPopup: null,
+            selectedElementId: null,
+            isDemo: false,
+            demoData: null
+        };
+
+        // --- CORE APPLICATION LOGIC ---
+        const app = {
+            init: () => {
+                app.auth.checkSession();
+                app.router.navigate('landing');
+            },
+
+            // --- AUTHENTICATION ---
+            auth: {
+                checkSession: () => {
+                    const session = localStorage.getItem(DB_KEYS.SESSION);
+                    if (session) {
+                        state.user = JSON.parse(session);
+                        state.isDemo = state.user.email === 'demo@popmaker.local';
+                        app.ui.updateNav();
+                        if(state.view === 'landing') app.router.navigate('dashboard');
+                    }
+                },
+                login: (email, password) => {
+                    const users = JSON.parse(localStorage.getItem(DB_KEYS.USERS) || '[]');
+                    // Admin Check
+                    if (email === 'admin@poptin.com' && password === 'admin123') {
+                        state.user = { name: 'Admin', email: 'admin@poptin.com', role: 'admin', company: 'PopMaker HQ' };
+                        localStorage.setItem(DB_KEYS.SESSION, JSON.stringify(state.user));
+                        app.ui.updateNav();
+                        app.router.navigate('admin-dashboard');
+                        return true;
+                    }
+                    // User Check
+                    const user = users.find(u => u.email === email && u.password === password);
+                    if (user) {
+                        state.user = user;
+                        state.isDemo = false;
+                        localStorage.setItem(DB_KEYS.SESSION, JSON.stringify(user));
+                        app.ui.updateNav();
+                        app.router.navigate('dashboard');
+                        return true;
+                    }
+                    alert('Invalid credentials. Please try again.');
+                    return false;
+                },
+                signup: (name, company, email, password, website) => {
+                    const users = JSON.parse(localStorage.getItem(DB_KEYS.USERS) || '[]');
+                    if (users.find(u => u.email === email)) {
+                        alert('Email already registered.');
+                        return false;
+                    }
+                    const newUser = { id: Date.now().toString(), name, company, email, password, website, role: 'user', joined: new Date().toISOString() };
+                    users.push(newUser);
+                    localStorage.setItem(DB_KEYS.USERS, JSON.stringify(users));
+                    
+                    // Transfer Demo Data if applicable
+                    if (state.isDemo && state.demoData) {
+                        const popups = JSON.parse(localStorage.getItem(DB_KEYS.POPUPS) || '[]');
+                        state.demoData.forEach(p => {
+                            p.userId = newUser.id;
+                            p.id = Date.now().toString() + Math.random();
+                            popups.push(p);
+                        });
+                        localStorage.setItem(DB_KEYS.POPUPS, JSON.stringify(popups));
+                        state.demoData = null;
+                    }
+
+                    state.user = newUser;
+                    state.isDemo = false;
+                    localStorage.setItem(DB_KEYS.SESSION, JSON.stringify(newUser));
+                    app.ui.updateNav();
+                    app.router.navigate('dashboard');
+                    return true;
+                },
+                logout: () => {
+                    localStorage.removeItem(DB_KEYS.SESSION);
+                    state.user = null;
+                    state.isDemo = false;
+                    state.demoData = null;
+                    app.ui.updateNav();
+                    app.router.navigate('landing');
+                },
+                showLogin: () => app.ui.renderModal('login'),
+                showSignup: () => app.ui.renderModal('signup')
+            },
+
+            // --- ROUTING & VIEWS ---
+            router: {
+                navigate: (viewName, params = null) => {
+                    state.view = viewName;
+                    const container = document.getElementById('app-container');
+                    window.scrollTo(0,0);
+                    
+                    switch(viewName) {
+                        case 'landing': app.views.landing(container); break;
+                        case 'dashboard': app.views.dashboard(container); break;
+                        case 'editor': app.views.editor(container, params); break;
+                        case 'admin-dashboard': app.views.adminDashboard(container); break;
+                        case 'settings': app.views.settings(container); break;
+                        default: app.views.landing(container);
+                    }
+                }
+            },
+
+            // --- UI RENDERERS ---
+            ui: {
+                updateNav: () => {
+                    const publicNav = document.getElementById('public-nav');
+                    const userNav = document.getElementById('user-nav');
+                    if (state.user) {
+                        publicNav.classList.add('hidden');
+                        userNav.classList.remove('hidden');
+                        userNav.classList.add('flex');
+                        document.getElementById('nav-username').textContent = state.user.name || 'User';
+                        document.getElementById('nav-avatar').textContent = (state.user.name || 'U')[0].toUpperCase();
+                    } else {
+                        publicNav.classList.remove('hidden');
+                        userNav.classList.add('hidden');
+                        userNav.classList.remove('flex');
+                    }
+                },
+                renderModal: (type) => {
+                    const modal = document.createElement('div');
+                    modal.className = 'fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 fade-in';
+                    modal.id = 'auth-modal';
+                    
+                    if (type === 'login') {
+                        modal.innerHTML = `
+                            <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl relative">
+                                <button onclick="document.getElementById('auth-modal').remove()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                                <h2 class="text-2xl font-bold mb-2">Welcome Back</h2>
+                                <p class="text-gray-500 mb-6">Enter your details to access your account.</p>
+                                <form onsubmit="event.preventDefault(); app.auth.login(this.email.value, this.password.value)" class="space-y-4">
+                                    <input type="email" name="email" placeholder="Email" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                                    <input type="password" name="password" placeholder="Password" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                                    <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition">Log In</button>
+                                </form>
+                                <p class="mt-4 text-center text-sm text-gray-500">Don't have an account? <button onclick="document.getElementById('auth-modal').remove(); app.auth.showSignup()" class="text-indigo-600 font-bold hover:underline">Sign Up</button></p>
+                            </div>`;
+                    } else if (type === 'signup') {
+                        modal.innerHTML = `
+                            <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+                                <button onclick="document.getElementById('auth-modal').remove()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                                <h2 class="text-2xl font-bold mb-2">Create Account</h2>
+                                <p class="text-gray-500 mb-6">Start building popups today.</p>
+                                <form onsubmit="event.preventDefault(); app.auth.signup(this.name.value, this.company.value, this.email.value, this.password.value, this.website.value)" class="space-y-3">
+                                    <input type="text" name="name" placeholder="Full Name" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                                    <input type="text" name="company" placeholder="Company Name" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                                    <input type="email" name="email" placeholder="Email Address" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                                    <input type="text" name="website" placeholder="Website URL (optional)" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <input type="password" name="password" placeholder="Password" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                                    <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition mt-2">Create Account</button>
+                                </form>
+                                <p class="mt-4 text-center text-sm text-gray-500">Already have an account? <button onclick="document.getElementById('auth-modal').remove(); app.auth.showLogin()" class="text-indigo-600 font-bold hover:underline">Log In</button></p>
+                            </div>`;
+                    }
+                    document.body.appendChild(modal);
+                }
+            },
+
+            // --- VIEWS ---
+            views: {
+                landing: (container) => {
+                    container.innerHTML = `
+                        <!-- Hero -->
+                        <section class="relative pt-20 pb-32 overflow-hidden">
+                            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+                                <span class="inline-block py-1 px-3 rounded-full bg-indigo-50 text-indigo-600 text-sm font-semibold mb-6 animate-bounce">v2.0 Stable Release</span>
+                                <h1 class="text-5xl md:text-7xl font-extrabold text-gray-900 tracking-tight mb-8 slide-up">
+                                    Create Powerful Popups <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Without The Hassle</span>
+                                </h1>
+                                <p class="text-xl text-gray-500 max-w-2xl mx-auto mb-10 slide-up" style="animation-delay: 0.1s">
+                                    Build, customize, and manage high-converting website popups from one simple platform. No coding required.
+                                </p>
+                                <div class="flex justify-center gap-4 slide-up" style="animation-delay: 0.2s">
+                                    <button onclick="app.auth.showSignup()" class="bg-indigo-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-indigo-700 transition shadow-xl shadow-indigo-200 transform hover:-translate-y-1">Get Started Free</button>
+                                    <button onclick="app.auth.login('demo@popmaker.local', 'demo')" class="bg-white text-gray-700 border border-gray-200 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-50 transition shadow-lg">View Demo</button>
+                                </div>
                             </div>
-                            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 relative overflow-hidden">
-                                <div class="absolute inset-0 bg-indigo-500/20 animate-pulse"></div>
-                                <div class="h-24 bg-gray-700 rounded mb-2"></div>
-                                <div class="h-4 w-20 bg-gray-600 rounded"></div>
-                            </div>
-                            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700"></div>
-                        </div>
-                    </div>
-                    <!-- Step 2: Editor -->
-                    <div class="demo-ui-step p-0" id="demo-step-2">
-                        <div class="flex h-full">
-                            <div class="w-48 bg-gray-800 border-r border-gray-700 p-4 space-y-3">
-                                <div class="h-8 bg-gray-700 rounded"></div>
-                                <div class="h-8 bg-gray-700 rounded"></div>
-                                <div class="h-8 bg-indigo-600 rounded"></div>
-                            </div>
-                            <div class="flex-1 bg-gray-900 flex items-center justify-center relative">
-                                <div class="w-64 h-80 bg-white rounded shadow-lg relative animate-slide">
-                                    <div class="absolute top-2 right-2 w-4 h-4 bg-gray-300 rounded-full"></div>
-                                    <div class="p-4 text-center">
-                                        <div class="h-4 w-32 bg-gray-200 rounded mx-auto mb-2"></div>
-                                        <div class="h-20 w-full bg-gray-100 rounded mb-2"></div>
-                                        <div class="h-8 w-24 bg-indigo-600 rounded mx-auto"></div>
+                            
+                            <!-- Dashboard Animation Preview -->
+                            <div class="mt-20 max-w-5xl mx-auto px-4 relative">
+                                <div class="bg-gray-900 rounded-xl shadow-2xl overflow-hidden border border-gray-800 slide-up" style="animation-delay: 0.3s">
+                                    <div class="flex items-center gap-2 px-4 py-3 bg-gray-800 border-b border-gray-700">
+                                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                                    </div>
+                                    <div class="p-8 bg-gray-900/50 aspect-video relative flex items-center justify-center">
+                                        <!-- Simulated UI Animation -->
+                                        <div class="absolute inset-0 flex">
+                                            <div class="w-64 bg-gray-800 border-r border-gray-700 p-4 space-y-3 hidden md:block">
+                                                <div class="h-8 bg-gray-700 rounded w-full animate-pulse"></div>
+                                                <div class="h-8 bg-gray-700 rounded w-3/4 animate-pulse" style="animation-delay: 0.1s"></div>
+                                                <div class="h-8 bg-gray-700 rounded w-5/6 animate-pulse" style="animation-delay: 0.2s"></div>
+                                            </div>
+                                            <div class="flex-1 flex items-center justify-center relative">
+                                                <div class="w-80 h-96 bg-white rounded-lg shadow-2xl transform transition-all duration-500 hover:scale-105" id="anim-popup">
+                                                    <div class="absolute top-4 right-4 text-gray-300"><i class="fas fa-times"></i></div>
+                                                    <div class="p-6 text-center">
+                                                        <div class="w-12 h-12 bg-indigo-100 rounded-full mx-auto mb-4 flex items-center justify-center text-indigo-600"><i class="fas fa-mouse-pointer"></i></div>
+                                                        <h3 class="text-xl font-bold text-gray-800">Drag & Drop</h3>
+                                                        <p class="text-gray-500 text-sm mt-2">Easy Editor</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="w-64 bg-gray-800 border-l border-gray-700 p-4">
-                                <div class="h-4 w-24 bg-gray-600 rounded mb-4"></div>
-                                <div class="space-y-3">
-                                    <div class="h-8 bg-gray-700 rounded"></div>
-                                    <div class="h-8 bg-gray-700 rounded"></div>
-                                    <div class="h-8 bg-gray-700 rounded"></div>
+                        </section>
+
+                        <!-- Features -->
+                        <section id="features" class="py-20 bg-white">
+                            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div class="text-center mb-16">
+                                    <h2 class="text-3xl font-bold text-gray-900">Everything You Need</h2>
+                                    <p class="text-gray-500 mt-2">Powerful features wrapped in a simple interface.</p>
+                                </div>
+                                <div class="grid md:grid-cols-3 gap-8">
+                                    ${[
+                                        { icon: 'fa-layer-group', title: 'Drag & Drop Editor', desc: 'Intuitive builder with real-time preview.' },
+                                        { icon: 'fa-mobile-alt', title: 'Responsive Design', desc: 'Automatically adapts to Desktop, Tablet, and Mobile.' },
+                                        { icon: 'fa-bolt', title: 'Instant Integration', desc: 'Copy one line of code and paste it anywhere.' },
+                                        { icon: 'fa-palette', title: '20+ Templates', desc: 'Pre-designed professional templates ready to use.' },
+                                        { icon: 'fa-bullseye', title: 'Targeting Rules', desc: 'Show popups based on time, scroll, or exit intent.' },
+                                        { icon: 'fa-chart-line', title: 'Analytics Ready', desc: 'Track views and conversions easily.' }
+                                    ].map(f => `
+                                        <div class="p-6 rounded-2xl bg-gray-50 hover:bg-indigo-50 transition duration-300 group">
+                                            <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-indigo-600 text-xl mb-4 group-hover:scale-110 transition"><i class="fas ${f.icon}"></i></div>
+                                            <h3 class="text-xl font-bold text-gray-900 mb-2">${f.title}</h3>
+                                            <p class="text-gray-500">${f.desc}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Templates Preview -->
+                        <section id="templates" class="py-20 bg-gray-50">
+                            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div class="text-center mb-16">
+                                    <h2 class="text-3xl font-bold text-gray-900">Beautiful Templates</h2>
+                                    <p class="text-gray-500 mt-2">Start with a pro design, then make it yours.</p>
+                                </div>
+                                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                    ${TEMPLATES.slice(0, 10).map(t => `
+                                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition cursor-pointer group" onclick="app.auth.showSignup()">
+                                            <div class="h-40 ${t.color} flex items-center justify-center p-4 group-hover:scale-105 transition duration-500">
+                                                <div class="w-full transform scale-75 origin-center">${t.preview}</div>
+                                            </div>
+                                            <div class="p-4">
+                                                <h4 class="font-bold text-gray-800">${t.name}</h4>
+                                                <p class="text-xs text-gray-500 uppercase mt-1">${t.category}</p>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div class="text-center mt-12">
+                                    <button onclick="app.auth.showSignup()" class="text-indigo-600 font-bold hover:underline">View All 20+ Templates &rarr;</button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- How It Works -->
+                        <section id="how-it-works" class="py-20 bg-white">
+                            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div class="text-center mb-16">
+                                    <h2 class="text-3xl font-bold text-gray-900">How It Works</h2>
+                                </div>
+                                <div class="grid md:grid-cols-4 gap-8 text-center relative">
+                                    <div class="relative z-10">
+                                        <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg shadow-indigo-200">1</div>
+                                        <h3 class="font-bold text-lg mb-2">Sign Up</h3>
+                                        <p class="text-gray-500 text-sm">Create your free account in seconds.</p>
+                                    </div>
+                                    <div class="relative z-10">
+                                        <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg shadow-indigo-200">2</div>
+                                        <h3 class="font-bold text-lg mb-2">Choose Template</h3>
+                                        <p class="text-gray-500 text-sm">Pick from 20+ pre-made designs.</p>
+                                    </div>
+                                    <div class="relative z-10">
+                                        <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg shadow-indigo-200">3</div>
+                                        <h3 class="font-bold text-lg mb-2">Customize</h3>
+                                        <p class="text-gray-500 text-sm">Drag, drop, and edit easily.</p>
+                                    </div>
+                                    <div class="relative z-10">
+                                        <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg shadow-indigo-200">4</div>
+                                        <h3 class="font-bold text-lg mb-2">Publish</h3>
+                                        <p class="text-gray-500 text-sm">Copy code and paste on your site.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Footer -->
+                        <footer class="bg-gray-900 text-white py-12 border-t border-gray-800">
+                            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
+                                <div class="mb-4 md:mb-0">
+                                    <span class="font-bold text-xl">PopMaker<span class="text-indigo-400">Pro</span></span>
+                                    <p class="text-gray-400 text-sm mt-2">© 2026 PopMaker Pro. All Rights Reserved.</p>
+                                </div>
+                                <div class="flex space-x-6 text-sm text-gray-400">
+                                    <a href="#" class="hover:text-white">Privacy</a>
+                                    <a href="#" class="hover:text-white">Terms</a>
+                                    <a href="#" class="hover:text-white">Support</a>
+                                </div>
+                            </div>
+                        </footer>
+                    `;
+                },
+
+                dashboard: (container) => {
+                    if (!state.user || state.user.role === 'admin') { app.router.navigate('landing'); return; }
+                    const popups = JSON.parse(localStorage.getItem(DB_KEYS.POPUPS) || '[]').filter(p => p.userId === state.user.id);
+                    const activeCount = popups.filter(p => p.status === 'active').length;
+                    
+                    container.innerHTML = `
+                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                            <div class="flex justify-between items-center mb-8">
+                                <div>
+                                    <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+                                    <p class="text-gray-500">Welcome back, ${state.user.name}</p>
+                                </div>
+                                <button onclick="app.router.navigate('create-type')" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 flex items-center gap-2">
+                                    <i class="fas fa-plus"></i> Create New Popup
+                                </button>
+                            </div>
+
+                            <!-- Stats -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <p class="text-gray-500 text-sm font-medium">Total Popups</p>
+                                    <p class="text-3xl font-bold text-gray-900">${popups.length}</p>
+                                </div>
+                                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <p class="text-gray-500 text-sm font-medium">Active</p>
+                                    <p class="text-3xl font-bold text-green-600">${activeCount}</p>
+                                </div>
+                                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <p class="text-gray-500 text-sm font-medium">Company</p>
+                                    <p class="text-xl font-bold text-gray-900 truncate">${state.user.company}</p>
+                                </div>
+                            </div>
+
+                            <!-- Popups List -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                                    <h3 class="font-bold text-gray-700">Your Popups</h3>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left">
+                                        <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+                                            <tr>
+                                                <th class="px-6 py-3">Name</th>
+                                                <th class="px-6 py-3">Type</th>
+                                                <th class="px-6 py-3">Status</th>
+                                                <th class="px-6 py-3">Last Updated</th>
+                                                <th class="px-6 py-3 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                            ${popups.length === 0 ? '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No popups yet. Create your first one!</td></tr>' : 
+                                            popups.map(p => `
+                                                <tr class="hover:bg-gray-50 transition">
+                                                    <td class="px-6 py-4 font-medium text-gray-900">${p.name}</td>
+                                                    <td class="px-6 py-4"><span class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-bold uppercase">${p.type}</span></td>
+                                                    <td class="px-6 py-4"><span class="px-2 py-1 ${p.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'} rounded text-xs font-bold uppercase">${p.status}</span></td>
+                                                    <td class="px-6 py-4 text-gray-500 text-sm">${new Date(p.updated).toLocaleDateString()}</td>
+                                                    <td class="px-6 py-4 text-right space-x-2">
+                                                        <button onclick="app.router.navigate('editor', '${p.id}')" class="text-indigo-600 hover:text-indigo-900 font-medium text-sm">Edit</button>
+                                                        <button onclick="app.data.deletePopup('${p.id}')" class="text-red-400 hover:text-red-600 font-medium text-sm">Delete</button>
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                <p class="text-center text-gray-500 mt-4 text-sm">Interactive Preview: Dashboard → Editor → Publish</p>
-            </div>
-        </section>
-
-        <!-- Features -->
-        <section id="features" class="py-20 bg-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center mb-16">
-                    <h2 class="text-3xl font-bold text-gray-900">Everything You Need to Convert</h2>
-                    <p class="mt-4 text-lg text-gray-600">Powerful features wrapped in a simple interface.</p>
-                </div>
-                <div class="grid md:grid-cols-3 gap-8">
-                    <div class="p-8 bg-gray-50 rounded-2xl hover:shadow-lg transition">
-                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-2xl mb-4"><i class="fas fa-mouse-pointer"></i></div>
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">Drag & Drop Editor</h3>
-                        <p class="text-gray-600">Intuitive editor with real-time preview. Move, resize, and style elements effortlessly.</p>
-                    </div>
-                    <div class="p-8 bg-gray-50 rounded-2xl hover:shadow-lg transition">
-                        <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl mb-4"><i class="fas fa-layer-group"></i></div>
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">20+ Pro Templates</h3>
-                        <p class="text-gray-600">Start fast with professionally designed templates for newsletters, sales, and more.</p>
-                    </div>
-                    <div class="p-8 bg-gray-50 rounded-2xl hover:shadow-lg transition">
-                        <div class="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center text-2xl mb-4"><i class="fas fa-mobile-alt"></i></div>
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">Fully Responsive</h3>
-                        <p class="text-gray-600">Preview and optimize your popups for Desktop, Tablet, and Mobile devices.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Templates Preview -->
-        <section id="templates" class="py-20 bg-gray-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center mb-16">
-                    <h2 class="text-3xl font-bold text-gray-900">Beautiful Templates</h2>
-                    <p class="mt-4 text-lg text-gray-600">Choose from our library of high-converting designs.</p>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                    <!-- Generated by JS -->
-                </div>
-            </div>
-        </section>
-
-        <!-- How It Works -->
-        <section id="how-it-works" class="py-20 bg-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center mb-16">
-                    <h2 class="text-3xl font-bold text-gray-900">How It Works</h2>
-                </div>
-                <div class="grid md:grid-cols-4 gap-8 text-center">
-                    <div class="relative">
-                        <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">1</div>
-                        <h3 class="font-bold text-lg">Sign Up</h3>
-                        <p class="text-gray-600 mt-2">Create a free account in seconds.</p>
-                    </div>
-                    <div class="relative">
-                        <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">2</div>
-                        <h3 class="font-bold text-lg">Choose Template</h3>
-                        <p class="text-gray-600 mt-2">Pick a design or start from scratch.</p>
-                    </div>
-                    <div class="relative">
-                        <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">3</div>
-                        <h3 class="font-bold text-lg">Customize</h3>
-                        <p class="text-gray-600 mt-2">Edit text, colors, and settings.</p>
-                    </div>
-                    <div class="relative">
-                        <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">4</div>
-                        <h3 class="font-bold text-lg">Publish</h3>
-                        <p class="text-gray-600 mt-2">Copy code and paste on your site.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Pricing -->
-        <section id="pricing" class="py-20 bg-gray-900 text-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                <h2 class="text-3xl font-bold mb-12">Simple Pricing</h2>
-                <div class="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                    <div class="bg-gray-800 p-8 rounded-2xl border border-gray-700">
-                        <h3 class="text-xl font-bold mb-2">Free</h3>
-                        <div class="text-4xl font-bold mb-6">$0</div>
-                        <ul class="text-gray-400 space-y-3 mb-8 text-left">
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> 1 Website</li>
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> 1,000 Views/mo</li>
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> Basic Templates</li>
-                        </ul>
-                        <button onclick="app.navigate('signup')" class="w-full py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-bold transition">Get Started</button>
-                    </div>
-                    <div class="bg-indigo-600 p-8 rounded-2xl border border-indigo-500 transform scale-105 shadow-2xl">
-                        <div class="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">POPULAR</div>
-                        <h3 class="text-xl font-bold mb-2">Pro</h3>
-                        <div class="text-4xl font-bold mb-6">$29</div>
-                        <ul class="text-indigo-100 space-y-3 mb-8 text-left">
-                            <li><i class="fas fa-check text-white mr-2"></i> Unlimited Websites</li>
-                            <li><i class="fas fa-check text-white mr-2"></i> 50,000 Views/mo</li>
-                            <li><i class="fas fa-check text-white mr-2"></i> All Templates</li>
-                            <li><i class="fas fa-check text-white mr-2"></i> A/B Testing</li>
-                        </ul>
-                        <button onclick="app.navigate('signup')" class="w-full py-3 bg-white text-indigo-600 hover:bg-gray-100 rounded-lg font-bold transition">Start Free Trial</button>
-                    </div>
-                    <div class="bg-gray-800 p-8 rounded-2xl border border-gray-700">
-                        <h3 class="text-xl font-bold mb-2">Agency</h3>
-                        <div class="text-4xl font-bold mb-6">$99</div>
-                        <ul class="text-gray-400 space-y-3 mb-8 text-left">
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> Everything in Pro</li>
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> Unlimited Views</li>
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> White Label</li>
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> Priority Support</li>
-                        </ul>
-                        <button onclick="app.navigate('signup')" class="w-full py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-bold transition">Contact Sales</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Footer -->
-        <footer class="bg-gray-50 border-t border-gray-200 py-12">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="grid md:grid-cols-4 gap-8 mb-8">
-                    <div>
-                        <div class="flex items-center gap-2 mb-4">
-                            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">P</div>
-                            <span class="font-bold text-gray-900">PopMaker Pro</span>
-                        </div>
-                        <p class="text-gray-500 text-sm">The easiest way to create high-converting popups for your website.</p>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-gray-900 mb-4">Product</h4>
-                        <ul class="space-y-2 text-sm text-gray-600">
-                            <li><a href="#features" class="hover:text-indigo-600">Features</a></li>
-                            <li><a href="#templates" class="hover:text-indigo-600">Templates</a></li>
-                            <li><a href="#pricing" class="hover:text-indigo-600">Pricing</a></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-gray-900 mb-4">Company</h4>
-                        <ul class="space-y-2 text-sm text-gray-600">
-                            <li><a href="#" class="hover:text-indigo-600">About</a></li>
-                            <li><a href="#" class="hover:text-indigo-600">Blog</a></li>
-                            <li><a href="#" class="hover:text-indigo-600">Contact</a></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-gray-900 mb-4">Legal</h4>
-                        <ul class="space-y-2 text-sm text-gray-600">
-                            <li><a href="#" class="hover:text-indigo-600">Privacy</a></li>
-                            <li><a href="#" class="hover:text-indigo-600">Terms</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="border-t border-gray-200 pt-8 text-center text-sm text-gray-500">
-                    &copy; 2026 PopMaker Pro. All Rights Reserved.
-                </div>
-            </div>
-        </footer>
-    </div>
-
-    <!-- ================= AUTH VIEWS ================= -->
-    <div id="view-login" class="view-section hidden min-h-screen flex items-center justify-center bg-gray-50 pt-20">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
-            <div class="text-center mb-8">
-                <h2 class="text-2xl font-bold text-gray-900">Welcome Back</h2>
-                <p class="text-gray-600 mt-2">Sign in to access your dashboard</p>
-            </div>
-            <form onsubmit="app.handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <input type="email" id="login-email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="you@example.com">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input type="password" id="login-password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="••••••••">
-                </div>
-                <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition shadow-lg shadow-indigo-200">Sign In</button>
-            </form>
-            <div class="mt-6 text-center text-sm text-gray-600">
-                Don't have an account? <button onclick="app.navigate('signup')" class="text-indigo-600 font-bold hover:underline">Sign Up</button>
-            </div>
-            <div class="mt-4 text-center text-xs text-gray-400">
-                Demo: Use any email to try. <br>Admin: admin@poptin.com / admin123
-            </div>
-        </div>
-    </div>
-
-    <div id="view-signup" class="view-section hidden min-h-screen flex items-center justify-center bg-gray-50 pt-20">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
-            <div class="text-center mb-8">
-                <h2 class="text-2xl font-bold text-gray-900">Create Account</h2>
-                <p class="text-gray-600 mt-2">Start building popups today</p>
-            </div>
-            <form onsubmit="app.handleSignup(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input type="text" id="signup-name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="John Doe">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                    <input type="text" id="signup-company" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="Acme Inc">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <input type="email" id="signup-email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="you@example.com">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input type="password" id="signup-password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="••••••••">
-                </div>
-                <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition shadow-lg shadow-indigo-200">Create Account</button>
-            </form>
-            <div class="mt-6 text-center text-sm text-gray-600">
-                Already have an account? <button onclick="app.navigate('login')" class="text-indigo-600 font-bold hover:underline">Log In</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= DASHBOARD ================= -->
-    <div id="view-dashboard" class="view-section hidden min-h-screen bg-gray-50 pt-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex justify-between items-center mb-8">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-                    <p class="text-gray-600">Welcome back, <span id="dash-user-name">User</span></p>
-                </div>
-                <div class="flex gap-3">
-                    <button onclick="app.logout()" class="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition">Logout</button>
-                    <button onclick="app.openCreateModal()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition shadow-lg shadow-indigo-200">
-                        <i class="fas fa-plus mr-2"></i>Create New
-                    </button>
-                </div>
-            </div>
-
-            <!-- Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <div class="text-gray-500 text-sm font-medium mb-1">Total Popups</div>
-                    <div class="text-3xl font-bold text-gray-900" id="stat-total">0</div>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <div class="text-gray-500 text-sm font-medium mb-1">Active</div>
-                    <div class="text-3xl font-bold text-green-600" id="stat-active">0</div>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <div class="text-gray-500 text-sm font-medium mb-1">Drafts</div>
-                    <div class="text-3xl font-bold text-orange-500" id="stat-draft">0</div>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <div class="text-gray-500 text-sm font-medium mb-1">Views (Mock)</div>
-                    <div class="text-3xl font-bold text-indigo-600">0</div>
-                </div>
-            </div>
-
-            <!-- Projects List -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900">Your Popups</h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-gray-600">
-                        <thead class="bg-gray-50 text-gray-900 font-medium">
-                            <tr>
-                                <th class="px-6 py-3">Name</th>
-                                <th class="px-6 py-3">Type</th>
-                                <th class="px-6 py-3">Status</th>
-                                <th class="px-6 py-3">Last Updated</th>
-                                <th class="px-6 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="projects-table-body" class="divide-y divide-gray-100">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
-                </div>
-                <div id="empty-state" class="p-12 text-center hidden">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400 text-2xl"><i class="fas fa-folder-open"></i></div>
-                    <h3 class="text-lg font-bold text-gray-900 mb-2">No popups yet</h3>
-                    <p class="text-gray-600 mb-6">Create your first popup to get started.</p>
-                    <button onclick="app.openCreateModal()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition">Create Popup</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= ADMIN DASHBOARD ================= -->
-    <div id="view-admin" class="view-section hidden min-h-screen bg-gray-900 text-white pt-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex justify-between items-center mb-8">
-                <div>
-                    <h1 class="text-2xl font-bold">Admin Dashboard</h1>
-                    <p class="text-gray-400">Manage users and system</p>
-                </div>
-                <div class="flex gap-3">
-                    <button onclick="app.logout()" class="px-4 py-2 text-gray-300 hover:bg-gray-800 rounded-lg transition">Logout</button>
-                    <button onclick="app.navigate('home')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition">Exit Admin</button>
-                </div>
-            </div>
-
-            <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-                <table class="w-full text-left text-sm text-gray-300">
-                    <thead class="bg-gray-900 text-gray-100 font-medium">
-                        <tr>
-                            <th class="px-6 py-3">Company</th>
-                            <th class="px-6 py-3">User</th>
-                            <th class="px-6 py-3">Email</th>
-                            <th class="px-6 py-3">Popups</th>
-                            <th class="px-6 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-users-table" class="divide-y divide-gray-700">
-                        <!-- Populated by JS -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= EDITOR ================= -->
-    <div id="view-editor" class="view-section hidden h-screen flex flex-col bg-gray-100">
-        <!-- Editor Header -->
-        <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 z-20">
-            <div class="flex items-center gap-4">
-                <button onclick="app.navigate('dashboard')" class="text-gray-500 hover:text-gray-800"><i class="fas fa-arrow-left"></i></button>
-                <div>
-                    <h2 class="font-bold text-gray-900" id="editor-project-name">Untitled Popup</h2>
-                    <div class="text-xs text-gray-500 flex gap-2">
-                        <span id="editor-device-indicator" class="bg-gray-100 px-2 py-0.5 rounded">Desktop</span>
-                        <span id="editor-status-indicator" class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">Draft</span>
-                    </div>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <button onclick="editor.togglePreview()" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition"><i class="fas fa-eye mr-2"></i>Preview</button>
-                <button onclick="editor.saveProject()" class="px-4 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition shadow-md">Save</button>
-                <button onclick="editor.getCode()" class="px-4 py-2 text-white bg-gray-900 hover:bg-black rounded-lg font-medium transition shadow-md"><i class="fas fa-code mr-2"></i>Get Code</button>
-            </div>
-        </header>
-
-        <div class="flex flex-1 overflow-hidden">
-            <!-- Sidebar: Elements & Templates -->
-            <aside class="w-72 bg-white border-r border-gray-200 flex flex-col z-10">
-                <div class="p-4 border-b border-gray-100">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Elements</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div draggable="true" ondragstart="editor.drag(event, 'heading')" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-center cursor-grab">
-                            <i class="fas fa-heading text-gray-400 mb-1 block"></i><span class="text-xs font-medium">Heading</span>
-                        </div>
-                        <div draggable="true" ondragstart="editor.drag(event, 'text')" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-center cursor-grab">
-                            <i class="fas fa-paragraph text-gray-400 mb-1 block"></i><span class="text-xs font-medium">Text</span>
-                        </div>
-                        <div draggable="true" ondragstart="editor.drag(event, 'button')" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-center cursor-grab">
-                            <i class="fas fa-square text-gray-400 mb-1 block"></i><span class="text-xs font-medium">Button</span>
-                        </div>
-                        <div draggable="true" ondragstart="editor.drag(event, 'image')" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-center cursor-grab">
-                            <i class="fas fa-image text-gray-400 mb-1 block"></i><span class="text-xs font-medium">Image</span>
-                        </div>
-                        <div draggable="true" ondragstart="editor.drag(event, 'video')" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-center cursor-grab">
-                            <i class="fas fa-video text-gray-400 mb-1 block"></i><span class="text-xs font-medium">Video</span>
-                        </div>
-                        <div draggable="true" ondragstart="editor.drag(event, 'form')" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-center cursor-grab">
-                            <i class="fas fa-envelope text-gray-400 mb-1 block"></i><span class="text-xs font-medium">Form</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex-1 overflow-y-auto p-4">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Templates</h3>
-                    <div class="grid grid-cols-2 gap-3" id="editor-templates-grid">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-            </aside>
-
-            <!-- Canvas Area -->
-            <main class="flex-1 canvas-area relative overflow-auto flex items-center justify-center p-8" id="canvas-wrapper" onclick="editor.selectPopup(event)">
-                <div id="canvas" class="bg-white shadow-xl relative transition-all duration-300" style="width: 400px; height: 500px;" ondrop="editor.drop(event)" ondragover="editor.allowDrop(event)">
-                    <!-- Content injected here -->
-                    <div class="absolute top-2 right-2 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 cursor-pointer hover:bg-red-500 hover:text-white transition" onclick="event.stopPropagation(); editor.toggleCloseBtn()">×</div>
-                </div>
-            </main>
-
-            <!-- Properties Panel -->
-            <aside class="w-80 bg-white border-l border-gray-200 p-4 overflow-y-auto z-10">
-                <div id="no-selection" class="text-center text-gray-400 mt-10">
-                    <i class="fas fa-mouse-pointer text-3xl mb-3"></i>
-                    <p class="text-sm">Select an element or click outside to edit popup settings.</p>
-                </div>
-
-                <!-- Element Properties -->
-                <div id="element-properties" class="hidden space-y-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-bold text-gray-900">Element Settings</h3>
-                        <button onclick="editor.deleteElement()" class="text-red-500 hover:text-red-700 text-sm"><i class="fas fa-trash"></i> Delete</button>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Content</label>
-                        <textarea id="prop-content" oninput="editor.updateElement('content', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Width</label>
-                            <input type="text" id="prop-width" oninput="editor.updateElement('width', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Height</label>
-                            <input type="text" id="prop-height" oninput="editor.updateElement('height', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Text Color</label>
-                        <input type="color" id="prop-color" oninput="editor.updateElement('color', this.value)" class="w-full h-8 border border-gray-300 rounded cursor-pointer">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Background</label>
-                        <input type="color" id="prop-bg" oninput="editor.updateElement('bg', this.value)" class="w-full h-8 border border-gray-300 rounded cursor-pointer">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Font Size (px)</label>
-                        <input type="number" id="prop-fontsize" oninput="editor.updateElement('fontsize', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Link URL</label>
-                        <input type="text" id="prop-link" oninput="editor.updateElement('link', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm" placeholder="https://...">
-                    </div>
-                </div>
-
-                <!-- Popup Properties -->
-                <div id="popup-properties" class="hidden space-y-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-bold text-gray-900">Popup Settings</h3>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Popup Name</label>
-                        <input type="text" id="pop-name" oninput="editor.updatePopup('name', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Width</label>
-                            <input type="text" id="pop-width" oninput="editor.updatePopup('width', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm" value="400px">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Height</label>
-                            <input type="text" id="pop-height" oninput="editor.updatePopup('height', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm" value="500px">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-2">Position</label>
-                        <div class="grid grid-cols-3 gap-2">
-                            <button onclick="editor.updatePopup('position', 'top-left')" class="p-2 border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-500 text-xs">Top Left</button>
-                            <button onclick="editor.updatePopup('position', 'top-center')" class="p-2 border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-500 text-xs">Top</button>
-                            <button onclick="editor.updatePopup('position', 'top-right')" class="p-2 border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-500 text-xs">Top Right</button>
-                            <button onclick="editor.updatePopup('position', 'center')" class="p-2 border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-500 text-xs">Center</button>
-                            <button onclick="editor.updatePopup('position', 'bottom-left')" class="p-2 border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-500 text-xs">Bot Left</button>
-                            <button onclick="editor.updatePopup('position', 'bottom-center')" class="p-2 border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-500 text-xs">Bottom</button>
-                            <button onclick="editor.updatePopup('position', 'bottom-right')" class="p-2 border border-gray-300 rounded hover:bg-indigo-50 hover:border-indigo-500 text-xs">Bot Right</button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
-                        <select id="pop-status" onchange="editor.updatePopup('status', this.value)" class="w-full border border-gray-300 rounded p-2 text-sm">
-                            <option value="draft">Draft</option>
-                            <option value="active">Active</option>
-                        </select>
-                    </div>
-
-                    <div class="pt-4 border-t border-gray-100">
-                        <label class="block text-xs font-medium text-gray-500 mb-2">Close Button Style</label>
-                        <div class="flex gap-2 mb-2">
-                            <button onclick="editor.updateCloseStyle('icon')" class="flex-1 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50">Icon (X)</button>
-                            <button onclick="editor.updateCloseStyle('text')" class="flex-1 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50">Text</button>
-                            <button onclick="editor.updateCloseStyle('none')" class="flex-1 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50">Hide</button>
-                        </div>
-                        <input type="text" id="close-text-val" oninput="editor.updateCloseText(this.value)" class="w-full border border-gray-300 rounded p-1 text-xs mb-2" placeholder="Close Text (e.g. No Thanks)">
-                    </div>
-                </div>
-            </aside>
-        </div>
-    </div>
-
-    <!-- ================= MODALS ================= -->
-    
-    <!-- Create Modal -->
-    <div id="modal-create" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-900">Create New Popup</h3>
-                <button onclick="document.getElementById('modal-create').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="p-6">
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-3">1. Choose Type</label>
-                    <div class="grid grid-cols-3 gap-4">
-                        <button onclick="editor.setCreateType('popup')" class="create-type-btn p-4 border-2 border-indigo-600 bg-indigo-50 rounded-xl text-center hover:shadow-md transition">
-                            <i class="fas fa-window-maximize text-2xl text-indigo-600 mb-2"></i>
-                            <div class="font-bold text-gray-900">Regular Popup</div>
-                        </button>
-                        <button onclick="editor.setCreateType('banner')" class="create-type-btn p-4 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
-                            <i class="fas fa-arrows-alt-h text-2xl text-gray-400 mb-2"></i>
-                            <div class="font-bold text-gray-900">Banner</div>
-                        </button>
-                        <button onclick="editor.setCreateType('ghl')" class="create-type-btn p-4 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
-                            <i class="fas fa-form text-2xl text-gray-400 mb-2"></i>
-                            <div class="font-bold text-gray-900">GHL Form</div>
-                        </button>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-3">2. Start From</label>
-                    <div class="flex gap-4">
-                        <button onclick="editor.startFromBlank()" class="flex-1 p-4 border-2 border-gray-200 rounded-xl hover:border-indigo-600 hover:bg-indigo-50 transition text-center">
-                            <i class="fas fa-file text-2xl text-gray-400 mb-2"></i>
-                            <div class="font-bold text-gray-900">Blank Canvas</div>
-                        </button>
-                        <button onclick="document.getElementById('modal-create').classList.add('hidden'); document.getElementById('modal-templates').classList.remove('hidden');" class="flex-1 p-4 border-2 border-gray-200 rounded-xl hover:border-indigo-600 hover:bg-indigo-50 transition text-center">
-                            <i class="fas fa-layer-group text-2xl text-indigo-600 mb-2"></i>
-                            <div class="font-bold text-gray-900">Choose Template</div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Templates Modal -->
-    <div id="modal-templates" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-900">Select a Template</h3>
-                <button onclick="document.getElementById('modal-templates').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="p-6 overflow-y-auto flex-1">
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="template-selection-grid">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Preview Modal -->
-    <div id="preview-modal" class="preview-overlay" onclick="if(event.target === this) editor.togglePreview()">
-        <div class="preview-bar">
-            <div class="flex items-center gap-4">
-                <button onclick="editor.togglePreview()" class="flex items-center gap-2 text-sm font-medium hover:text-indigo-300 transition">
-                    <i class="fas fa-arrow-left"></i> Close Preview
-                </button>
-                <span class="text-xs bg-gray-700 px-2 py-1 rounded">Live Preview</span>
-            </div>
-            <div class="text-xs text-gray-400">This is how it will appear on your site</div>
-        </div>
-        <div id="preview-content" class="w-full h-full flex items-center justify-center"></div>
-    </div>
-
-    <!-- Get Code Modal -->
-    <div id="code-modal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[80vh]">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-900">Installation Code</h3>
-                <button onclick="document.getElementById('code-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="p-6 bg-gray-50 flex-1 overflow-auto">
-                <p class="text-sm text-gray-600 mb-4">Copy this code and paste it before the <code>&lt;/body&gt;</code> tag on your website.</p>
-                <pre id="code-output" class="bg-white p-4 rounded-lg border border-gray-200 text-xs text-gray-800 font-mono overflow-x-auto whitespace-pre-wrap"></pre>
-            </div>
-            <div class="p-6 border-t border-gray-100 flex justify-end gap-3">
-                <button onclick="document.getElementById('code-modal').classList.add('hidden')" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition">Close</button>
-                <button onclick="editor.copyCode()" class="px-4 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition">Copy Code</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Signup Prompt Modal (Demo) -->
-    <div id="modal-demo-prompt" class="hidden fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center transform transition-all scale-100">
-            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
-                <i class="fas fa-save"></i>
-            </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">Save Your Work?</h3>
-            <p class="text-gray-600 mb-6">You are currently using Demo Mode. Create a free account to save this popup and access it anytime from any device.</p>
-            <div class="space-y-3">
-                <button onclick="app.navigate('signup'); document.getElementById('modal-demo-prompt').classList.add('hidden')" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-lg">Create Free Account</button>
-                <button onclick="document.getElementById('modal-demo-prompt').classList.add('hidden')" class="w-full py-3 text-gray-600 hover:bg-gray-100 font-bold rounded-xl transition">Continue Editing</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // ================= DATA STORE (LocalStorage Simulation) =================
-        const db = {
-            getUsers: () => JSON.parse(localStorage.getItem('pm_users') || '[]'),
-            saveUser: (user) => {
-                const users = db.getUsers();
-                users.push(user);
-                localStorage.setItem('pm_users', JSON.stringify(users));
-            },
-            getPopups: (userId) => {
-                const all = JSON.parse(localStorage.getItem('pm_popups') || '[]');
-                return all.filter(p => p.userId === userId);
-            },
-            savePopup: (popup) => {
-                const all = JSON.parse(localStorage.getItem('pm_popups') || '[]');
-                const idx = all.findIndex(p => p.id === popup.id);
-                if (idx >= 0) all[idx] = popup; else all.push(popup);
-                localStorage.setItem('pm_popups', JSON.stringify(all));
-            },
-            deletePopup: (id) => {
-                let all = JSON.parse(localStorage.getItem('pm_popups') || '[]');
-                all = all.filter(p => p.id !== id);
-                localStorage.setItem('pm_popups', JSON.stringify(all));
-            }
-        };
-
-        // ================= TEMPLATES LIBRARY (20+) =================
-        const templates = [
-            { id: 't1', name: 'Newsletter', type: 'popup', cat: 'Lead Gen' },
-            { id: 't2', name: 'Discount', type: 'popup', cat: 'Sales' },
-            { id: 't3', name: 'Welcome', type: 'popup', cat: 'General' },
-            { id: 't4', name: 'Lead Magnet', type: 'popup', cat: 'Lead Gen' },
-            { id: 't5', name: 'Contact Us', type: 'popup', cat: 'Form' },
-            { id: 't6', name: 'Event Promo', type: 'popup', cat: 'Event' },
-            { id: 't7', name: 'Product Launch', type: 'popup', cat: 'Sales' },
-            { id: 't8', name: 'Limited Offer', type: 'popup', cat: 'Sales' },
-            { id: 't9', name: 'Consultation', type: 'popup', cat: 'Service' },
-            { id: 't10', name: 'Get Started', type: 'popup', cat: 'General' },
-            { id: 't11', name: 'Announcement', type: 'popup', cat: 'General' },
-            { id: 't12', name: 'New Product', type: 'popup', cat: 'Sales' },
-            { id: 't13', name: 'Holiday Sale', type: 'popup', cat: 'Sales' },
-            { id: 't14', name: 'Exit Intent', type: 'popup', cat: 'Retention' },
-            { id: 't15', name: 'Booking', type: 'popup', cat: 'Service' },
-            { id: 't16', name: 'Social Follow', type: 'popup', cat: 'Social' },
-            { id: 't17', name: 'Web Announce', type: 'popup', cat: 'General' },
-            { id: 't18', name: 'Email Signup', type: 'popup', cat: 'Lead Gen' },
-            { id: 't19', name: 'Special Offer', type: 'popup', cat: 'Sales' },
-            { id: 't20', name: 'Simple CTA', type: 'popup', cat: 'General' },
-            { id: 'b1', name: 'Top Bar Sale', type: 'banner', cat: 'Sales' },
-            { id: 'b2', name: 'Bottom Bar Info', type: 'banner', cat: 'General' },
-            { id: 'b3', name: 'Cookie Notice', type: 'banner', cat: 'Legal' }
-        ];
-
-        // ================= APP CONTROLLER =================
-        const app = {
-            currentUser: null,
-            isDemo: false,
-            currentProject: null,
-
-            init: () => {
-                // Initialize Landing Page Animation
-                let step = 1;
-                setInterval(() => {
-                    document.querySelectorAll('.demo-ui-step').forEach(el => el.classList.remove('active'));
-                    const next = document.getElementById(`demo-step-${step}`);
-                    if(next) next.classList.add('active');
-                    step = step % 2 + 1;
-                }, 2500);
-
-                // Render Template Previews on Landing Page
-                const grid = document.querySelector('#templates .grid');
-                if(grid) {
-                    grid.innerHTML = templates.slice(0, 10).map(t => `
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition cursor-pointer">
-                            <div class="aspect-video bg-gray-100 rounded mb-3 flex items-center justify-center text-gray-400">
-                                <i class="fas fa-${t.type === 'banner' ? 'arrows-alt-h' : 'window-maximize'}"></i>
-                            </div>
-                            <h4 class="font-bold text-gray-900 text-sm">${t.name}</h4>
-                            <p class="text-xs text-gray-500">${t.cat}</p>
-                        </div>
-                    `).join('');
-                }
-            },
-
-            navigate: (viewId) => {
-                document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-                const target = document.getElementById(`view-${viewId}`);
-                if(target) target.classList.remove('hidden');
-                
-                // Handle specific view logic
-                if(viewId === 'dashboard') app.loadDashboard();
-                if(viewId === 'admin') app.loadAdmin();
-                if(viewId === 'home') window.scrollTo(0,0);
-            },
-
-            startDemo: () => {
-                app.isDemo = true;
-                app.currentUser = { email: 'demo@temp.com', name: 'Demo User', company: 'Demo Co' };
-                app.currentProject = null; // Fresh session
-                app.openCreateModal();
-            },
-
-            handleLogin: (e) => {
-                e.preventDefault();
-                const email = document.getElementById('login-email').value;
-                const pass = document.getElementById('login-password').value;
-
-                if(email === 'admin@poptin.com' && pass === 'admin123') {
-                    app.currentUser = { role: 'admin', email };
-                    app.navigate('admin');
-                    return;
-                }
-
-                const users = db.getUsers();
-                const user = users.find(u => u.email === email); // Simplified auth
-                
-                if(user || true) { // Allow any login for demo purposes if not found, create temp
-                    app.currentUser = user || { email, name: 'User', company: 'My Company' };
-                    app.isDemo = false;
-                    app.navigate('dashboard');
-                }
-            },
-
-            handleSignup: (e) => {
-                e.preventDefault();
-                const name = document.getElementById('signup-name').value;
-                const company = document.getElementById('signup-company').value;
-                const email = document.getElementById('signup-email').value;
-                
-                const newUser = { id: Date.now(), name, company, email, created: new Date() };
-                db.saveUser(newUser);
-                
-                // Transfer demo work if exists
-                if(app.isDemo && app.currentProject) {
-                    app.currentProject.userId = newUser.id;
-                    db.savePopup(app.currentProject);
-                }
-
-                app.currentUser = newUser;
-                app.isDemo = false;
-                app.navigate('dashboard');
-            },
-
-            logout: () => {
-                app.currentUser = null;
-                app.isDemo = false;
-                app.currentProject = null;
-                app.navigate('home');
-            },
-
-            loadDashboard: () => {
-                if(!app.currentUser) return;
-                document.getElementById('dash-user-name').textContent = app.currentUser.name;
-                
-                const popups = db.getPopups(app.currentUser.id);
-                document.getElementById('stat-total').textContent = popups.length;
-                document.getElementById('stat-active').textContent = popups.filter(p => p.status === 'active').length;
-                document.getElementById('stat-draft').textContent = popups.filter(p => p.status === 'draft').length;
-
-                const tbody = document.getElementById('projects-table-body');
-                if(popups.length === 0) {
-                    document.getElementById('empty-state').classList.remove('hidden');
-                    tbody.innerHTML = '';
-                } else {
-                    document.getElementById('empty-state').classList.add('hidden');
-                    tbody.innerHTML = popups.map(p => `
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 font-medium text-gray-900">${p.name}</td>
-                            <td class="px-6 py-4 capitalize">${p.type}</td>
-                            <td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-full ${p.status==='active'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${p.status}</span></td>
-                            <td class="px-6 py-4 text-gray-500">${new Date(p.updated).toLocaleDateString()}</td>
-                            <td class="px-6 py-4 text-right">
-                                <button onclick="app.editProject('${p.id}')" class="text-indigo-600 hover:text-indigo-900 font-medium">Edit</button>
-                                <button onclick="app.deleteProject('${p.id}')" class="text-red-500 hover:text-red-700 font-medium ml-3">Delete</button>
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-            },
-
-            loadAdmin: () => {
-                if(!app.currentUser || app.currentUser.role !== 'admin') {
-                    app.navigate('login'); return;
-                }
-                const users = db.getUsers().filter(u => u.email !== 'admin@poptin.com'); // Exclude admin
-                const tbody = document.getElementById('admin-users-table');
-                tbody.innerHTML = users.map(u => {
-                    const count = db.getPopups(u.id).length;
-                    return `
-                        <tr class="hover:bg-gray-800 transition">
-                            <td class="px-6 py-3 font-bold text-white">${u.company}</td>
-                            <td class="px-6 py-3">${u.name}</td>
-                            <td class="px-6 py-3 text-gray-400">${u.email}</td>
-                            <td class="px-6 py-3">${count}</td>
-                            <td class="px-6 py-3 text-right">
-                                <button onclick="alert('Impersonation feature would load user dashboard here')" class="text-indigo-400 hover:text-white text-xs border border-indigo-500 px-2 py-1 rounded">View Account</button>
-                            </td>
-                        </tr>
                     `;
-                }).join('');
-            },
+                },
 
-            openCreateModal: () => {
-                if(app.isDemo) {
-                    // Just open modal for demo
+                adminDashboard: (container) => {
+                    if (!state.user || state.user.role !== 'admin') { app.router.navigate('landing'); return; }
+                    const users = JSON.parse(localStorage.getItem(DB_KEYS.USERS) || '[]').filter(u => u.role !== 'admin');
+                    const popups = JSON.parse(localStorage.getItem(DB_KEYS.POPUPS) || '[]');
+                    
+                    container.innerHTML = `
+                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                            <div class="flex justify-between items-center mb-8">
+                                <div>
+                                    <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+                                    <p class="text-gray-500">Manage users and system data.</p>
+                                </div>
+                                <button onclick="app.auth.logout()" class="text-red-600 font-bold hover:underline">Logout Admin</button>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+                                    <h3 class="font-bold text-gray-700">Registered Users</h3>
+                                </div>
+                                <table class="w-full text-left">
+                                    <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+                                        <tr>
+                                            <th class="px-6 py-3">Company</th>
+                                            <th class="px-6 py-3">User</th>
+                                            <th class="px-6 py-3">Email</th>
+                                            <th class="px-6 py-3">Website</th>
+                                            <th class="px-6 py-3">Popups</th>
+                                            <th class="px-6 py-3 text-right">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        ${users.length === 0 ? '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No users registered yet.</td></tr>' : 
+                                        users.map(u => {
+                                            const uPopups = popups.filter(p => p.userId === u.id).length;
+                                            return `
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-6 py-4 font-bold text-gray-900">${u.company}</td>
+                                                <td class="px-6 py-4 text-gray-600">${u.name}</td>
+                                                <td class="px-6 py-4 text-gray-500">${u.email}</td>
+                                                <td class="px-6 py-4 text-indigo-600 underline cursor-pointer" onclick="window.open('${u.website || '#'}', '_blank')">${u.website || '-'}</td>
+                                                <td class="px-6 py-4"><span class="font-bold text-gray-900">${uPopups}</span></td>
+                                                <td class="px-6 py-4 text-right">
+                                                    <button onclick="alert('Impersonation feature would go here for security reasons in production.')" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">Manage</button>
+                                                </td>
+                                            </tr>
+                                        `}).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                settings: (container) => {
+                    if(!state.user) return;
+                    container.innerHTML = `
+                        <div class="max-w-2xl mx-auto px-4 py-12">
+                            <h1 class="text-2xl font-bold mb-6">Account Settings</h1>
+                            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Name</label>
+                                        <input type="text" value="${state.user.name}" class="mt-1 w-full p-2 border rounded-md" disabled>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                                        <input type="email" value="${state.user.email}" class="mt-1 w-full p-2 border rounded-md" disabled>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Company</label>
+                                        <input type="text" value="${state.user.company}" class="mt-1 w-full p-2 border rounded-md" disabled>
+                                    </div>
+                                    <div class="pt-4 border-t border-gray-100">
+                                        <button onclick="app.auth.logout()" class="text-red-600 font-bold hover:underline">Log Out</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                'create-type': (container) => {
+                    container.innerHTML = `
+                        <div class="max-w-4xl mx-auto px-4 py-12 text-center">
+                            <button onclick="app.router.navigate('dashboard')" class="mb-8 text-gray-500 hover:text-gray-900"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
+                            <h1 class="text-3xl font-bold mb-8">Choose Popup Type</h1>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                <div onclick="app.router.navigate('create-template', 'popup')" class="bg-white p-8 rounded-2xl shadow-lg border-2 border-transparent hover:border-indigo-600 cursor-pointer transition transform hover:-translate-y-1">
+                                    <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="far fa-window-maximize"></i></div>
+                                    <h3 class="text-xl font-bold mb-2">Regular Popup</h3>
+                                    <p class="text-gray-500 text-sm">Standard modal popup for any position.</p>
+                                </div>
+                                <div onclick="app.router.navigate('create-template', 'banner')" class="bg-white p-8 rounded-2xl shadow-lg border-2 border-transparent hover:border-indigo-600 cursor-pointer transition transform hover:-translate-y-1">
+                                    <div class="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fas fa-bars"></i></div>
+                                    <h3 class="text-xl font-bold mb-2">Banner</h3>
+                                    <p class="text-gray-500 text-sm">Top or bottom horizontal bar.</p>
+                                </div>
+                                <div onclick="app.router.navigate('create-template', 'ghl')" class="bg-white p-8 rounded-2xl shadow-lg border-2 border-transparent hover:border-indigo-600 cursor-pointer transition transform hover:-translate-y-1">
+                                    <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fas fa-form"></i></div>
+                                    <h3 class="text-xl font-bold mb-2">GHL Form</h3>
+                                    <p class="text-gray-500 text-sm">Embed GoHighLevel forms directly.</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                'create-template': (container, type) => {
+                    container.innerHTML = `
+                        <div class="max-w-7xl mx-auto px-4 py-8">
+                            <button onclick="app.router.navigate('create-type')" class="mb-4 text-gray-500 hover:text-gray-900"><i class="fas fa-arrow-left"></i> Back</button>
+                            <h1 class="text-2xl font-bold mb-6">Choose a Template (${type})</h1>
+                            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                <div onclick="app.editor.startBlank('${type}')" class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center h-48 cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition">
+                                    <i class="fas fa-plus text-3xl text-gray-400 mb-2"></i>
+                                    <span class="font-medium text-gray-500">Start Blank</span>
+                                </div>
+                                ${TEMPLATES.filter(t => type === 'banner' ? t.type === 'banner' : t.type !== 'banner').map(t => `
+                                    <div onclick="app.editor.loadTemplate('${t.id}', '${type}')" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition cursor-pointer group">
+                                        <div class="h-32 ${t.color} flex items-center justify-center p-2">
+                                            <div class="transform scale-50 origin-center w-full">${t.preview}</div>
+                                        </div>
+                                        <div class="p-3">
+                                            <h4 class="font-bold text-sm text-gray-800">${t.name}</h4>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                },
+
+                editor: (container, popupId) => {
+                    // Editor Logic handled in app.editor namespace to keep view clean
+                    container.innerHTML = `
+                        <div class="h-screen flex flex-col bg-gray-100">
+                            <!-- Editor Header -->
+                            <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 shadow-sm z-20">
+                                <div class="flex items-center gap-4">
+                                    <button onclick="app.router.navigate('dashboard')" class="text-gray-500 hover:text-gray-900"><i class="fas fa-arrow-left"></i></button>
+                                    <div>
+                                        <h1 class="font-bold text-gray-800" id="editor-title">New Popup</h1>
+                                        <p class="text-xs text-gray-500">Auto-saving...</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-3">
+                                    <button onclick="app.editor.togglePreview()" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium text-sm flex items-center gap-2"><i class="fas fa-eye"></i> Preview</button>
+                                    <button onclick="app.editor.getCode()" class="px-4 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-md font-medium text-sm flex items-center gap-2"><i class="fas fa-code"></i> Get Code</button>
+                                    <button onclick="app.data.saveCurrent()" class="px-4 py-2 text-white bg-green-600 hover:bg-green-700 rounded-md font-medium text-sm flex items-center gap-2"><i class="fas fa-save"></i> Save</button>
+                                </div>
+                            </header>
+
+                            <div class="flex flex-1 overflow-hidden">
+                                <!-- Sidebar: Elements & Templates -->
+                                <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-10 overflow-y-auto">
+                                    <div class="p-4 border-b border-gray-100">
+                                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Elements</h3>
+                                        <div class="space-y-2">
+                                            ${['Heading', 'Text', 'Button', 'Image', 'Divider'].map(type => `
+                                                <div draggable="true" ondragstart="app.editor.drag(event, '${type}')" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3 cursor-grab">
+                                                    <i class="fas ${type === 'Heading' ? 'fa-heading' : type === 'Text' ? 'fa-paragraph' : type === 'Button' ? 'fa-square' : type === 'Image' ? 'fa-image' : 'fa-minus'} text-gray-400"></i>
+                                                    <span class="text-sm font-medium text-gray-700">${type}</span>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                    <div class="p-4">
+                                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Templates</h3>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            ${TEMPLATES.slice(0, 6).map(t => `
+                                                <div onclick="app.editor.injectTemplate('${t.id}')" class="cursor-pointer bg-gray-50 rounded border border-gray-200 p-2 hover:border-indigo-500 transition">
+                                                    <div class="h-12 mb-1 overflow-hidden rounded bg-white flex items-center justify-center scale-50 origin-top-left">${t.preview}</div>
+                                                    <p class="text-[10px] text-center font-medium truncate">${t.name}</p>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </aside>
+
+                                <!-- Canvas -->
+                                <main class="flex-1 canvas-area relative overflow-auto flex items-center justify-center p-8" id="canvas-container" onclick="app.editor.selectPopup(event)">
+                                    <div id="editor-canvas" class="bg-white shadow-xl relative transition-all duration-200" style="width: 400px; min-height: 400px;" ondrop="app.editor.drop(event)" ondragover="app.editor.allowDrop(event)">
+                                        <!-- Elements go here -->
+                                        <div class="absolute top-2 right-2 text-gray-300 hover:text-gray-600 cursor-pointer z-50" id="close-btn-preview"><i class="fas fa-times"></i></div>
+                                    </div>
+                                </main>
+
+                                <!-- Properties Panel -->
+                                <aside class="w-72 bg-white border-l border-gray-200 p-4 overflow-y-auto z-10" id="properties-panel">
+                                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Properties</h3>
+                                    <div id="props-content" class="text-sm text-gray-500 text-center py-10">
+                                        Select an element or click the background to edit properties.
+                                    </div>
+                                </aside>
+                            </div>
+                        </div>
+                        
+                        <!-- Preview Modal -->
+                        <div id="preview-modal" class="preview-overlay" onclick="if(event.target === this) app.editor.togglePreview()">
+                            <div class="preview-bar">
+                                <button onclick="app.editor.togglePreview()" class="hover:text-white"><i class="fas fa-arrow-left"></i> Close Preview</button>
+                                <div class="w-px h-4 bg-gray-600"></div>
+                                <span class="text-xs text-gray-400">Live Preview</span>
+                            </div>
+                            <div id="preview-content" class="relative"></div>
+                        </div>
+
+                        <!-- Code Modal -->
+                        <div id="code-modal" class="hidden fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4">
+                            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+                                <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                                    <h3 class="font-bold text-lg">Installation Code</h3>
+                                    <button onclick="document.getElementById('code-modal').classList.add('hidden')" class="text-gray-500"><i class="fas fa-times"></i></button>
+                                </div>
+                                <div class="p-4 bg-gray-50 flex-1 overflow-auto">
+                                    <pre id="code-output" class="text-xs text-gray-700 font-mono whitespace-pre-wrap"></pre>
+                                </div>
+                                <div class="p-4 border-t border-gray-200 flex justify-end gap-2">
+                                    <button onclick="navigator.clipboard.writeText(document.getElementById('code-output').innerText); alert('Copied!')" class="px-4 py-2 text-white bg-indigo-600 rounded hover:bg-indigo-700">Copy Code</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Initialize Editor State
+                    app.editor.init(popupId);
                 }
-                document.getElementById('modal-create').classList.remove('hidden');
-                // Reset selection
-                document.querySelectorAll('.create-type-btn').forEach(b => {
-                    b.className = "create-type-btn p-4 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition";
-                    b.querySelector('i').className = "text-2xl text-gray-400 mb-2 fas " + (b.innerText.includes('Regular') ? 'fa-window-maximize' : b.innerText.includes('Banner') ? 'fa-arrows-alt-h' : 'fa-form');
-                });
             },
 
-            editProject: (id) => {
-                const popups = db.getPopups(app.currentUser.id);
-                const project = popups.find(p => p.id == id);
-                if(project) {
-                    app.currentProject = project;
-                    editor.loadProject(project);
-                    app.navigate('editor');
-                }
-            },
-
-            deleteProject: (id) => {
-                if(confirm('Are you sure?')) {
-                    db.deletePopup(id);
-                    app.loadDashboard();
-                }
-            }
-        };
-
-        // ================= EDITOR LOGIC =================
-        const editor = {
-            currentType: 'popup',
-            selectedEl: null,
-            closeBtnVisible: true,
-            closeBtnStyle: 'icon', // icon, text, none
-            closeBtnText: 'Close',
-
-            setCreateType: (type) => {
-                editor.currentType = type;
-                document.querySelectorAll('.create-type-btn').forEach(b => {
-                    b.className = "create-type-btn p-4 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition";
-                    b.querySelector('i').className = `text-2xl text-gray-400 mb-2 fas fa-${b.innerText.includes('Regular') ? 'window-maximize' : b.innerText.includes('Banner') ? 'arrows-alt-h' : 'form'}`;
-                });
-                const btn = event.currentTarget;
-                btn.className = "create-type-btn p-4 border-2 border-indigo-600 bg-indigo-50 rounded-xl text-center hover:shadow-md transition";
-                btn.querySelector('i').className = `text-2xl text-indigo-600 mb-2 fas fa-${type === 'popup' ? 'window-maximize' : type === 'banner' ? 'arrows-alt-h' : 'form'}`;
-            },
-
-            startFromBlank: () => {
-                document.getElementById('modal-create').classList.add('hidden');
-                app.currentProject = {
-                    id: Date.now(),
-                    userId: app.isDemo ? 'demo' : app.currentUser.id,
-                    name: 'New ' + editor.currentType,
-                    type: editor.currentType,
-                    status: 'draft',
-                    width: editor.currentType === 'banner' ? '100%' : '400px',
-                    height: editor.currentType === 'banner' ? 'auto' : '500px',
-                    position: 'center',
-                    elements: [],
-                    updated: new Date()
-                };
-                editor.renderCanvas();
-                app.navigate('editor');
-            },
-
-            loadTemplate: (tplId) => {
-                document.getElementById('modal-templates').classList.add('hidden');
-                const tpl = templates.find(t => t.id === tplId);
-                app.currentProject = {
-                    id: Date.now(),
-                    userId: app.isDemo ? 'demo' : app.currentUser.id,
-                    name: tpl.name + ' Copy',
-                    type: tpl.type,
-                    status: 'draft',
-                    width: tpl.type === 'banner' ? '100%' : '400px',
-                    height: tpl.type === 'banner' ? 'auto' : '500px',
-                    position: tpl.type === 'banner' ? 'top-center' : 'center',
-                    elements: [
-                        { id: Date.now(), type: 'heading', content: tpl.name, style: 'text-center text-2xl font-bold mb-4' },
-                        { id: Date.now()+1, type: 'text', content: 'This is a pre-built template. Edit me!', style: 'text-gray-600 mb-6 text-center' },
-                        { id: Date.now()+2, type: 'button', content: 'Click Me', style: 'bg-indigo-600 text-white px-6 py-2 rounded mx-auto block w-max' }
-                    ],
-                    updated: new Date()
-                };
-                editor.renderCanvas();
-                app.navigate('editor');
-            },
-
-            renderCanvas: () => {
-                const p = app.currentProject;
-                const canvas = document.getElementById('canvas');
-                document.getElementById('editor-project-name').textContent = p.name;
+            // --- EDITOR LOGIC ---
+            editor: {
+                currentElements: [],
+                popupSettings: { width: '400px', height: 'auto', position: 'center', bg: '#ffffff' },
+                selectedId: null,
                 
-                // Reset Canvas Styles
-                canvas.style.width = p.width;
-                canvas.style.height = p.type === 'banner' ? 'auto' : p.height;
-                if(p.type === 'banner') canvas.classList.add('flex', 'items-center', 'justify-between', 'px-8');
-                else canvas.classList.remove('flex', 'items-center', 'justify-between', 'px-8');
+                init: (popupId) => {
+                    app.editor.currentElements = [];
+                    app.editor.selectedId = null;
+                    if (popupId && popupId !== 'null') {
+                        const popups = JSON.parse(localStorage.getItem(DB_KEYS.POPUPS) || '[]');
+                        const popup = popups.find(p => p.id === popupId);
+                        if (popup) {
+                            app.editor.currentElements = popup.elements || [];
+                            app.editor.popupSettings = popup.settings || app.editor.popupSettings;
+                            document.getElementById('editor-title').innerText = popup.name;
+                        }
+                    }
+                    app.editor.renderCanvas();
+                    app.editor.selectPopup(); // Default select popup
+                },
 
-                // Render Elements
-                let html = '';
-                if(p.elements) {
-                    p.elements.forEach(el => {
-                        html += `<div draggable="true" ondragstart="editor.dragEl(event, '${el.id}')" onclick="editor.selectElement('${el.id}', event)" class="p-2 hover:bg-indigo-50 rounded cursor-pointer group relative">
-                            ${el.type === 'heading' ? `<h2 class="${el.style}">${el.content}</h2>` : ''}
-                            ${el.type === 'text' ? `<p class="${el.style}">${el.content}</p>` : ''}
-                            ${el.type === 'button' ? `<button class="${el.style}">${el.content}</button>` : ''}
-                            ${el.type === 'image' ? `<div class="${el.style} bg-gray-200 h-32 flex items-center justify-center text-gray-400"><i class="fas fa-image"></i></div>` : ''}
-                        </div>`;
+                renderCanvas: () => {
+                    const canvas = document.getElementById('editor-canvas');
+                    // Keep close button, remove rest
+                    const closeBtn = document.getElementById('close-btn-preview').cloneNode(true);
+                    canvas.innerHTML = '';
+                    canvas.appendChild(closeBtn);
+                    canvas.style.width = app.editor.popupSettings.width;
+                    canvas.style.minHeight = app.editor.popupSettings.height === 'auto' ? '400px' : app.editor.popupSettings.height;
+                    canvas.style.backgroundColor = app.editor.popupSettings.bg;
+
+                    app.editor.currentElements.forEach(el => {
+                        const div = document.createElement('div');
+                        div.id = el.id;
+                        div.className = 'absolute p-2 hover:bg-blue-50/50 cursor-pointer group';
+                        div.style.left = el.x + 'px';
+                        div.style.top = el.y + 'px';
+                        div.style.width = el.w;
+                        div.style.height = el.h;
+                        div.innerHTML = el.content;
+                        div.onclick = (e) => { e.stopPropagation(); app.editor.selectElement(el.id); };
+                        
+                        // Resize Handles (Visual only for now)
+                        div.innerHTML += `<div class="resize-handle rh-br"></div>`;
+                        
+                        canvas.appendChild(div);
                     });
-                }
-                canvas.innerHTML = html;
-                
-                // Add Close Button
-                editor.updateCloseBtnUI();
-                
-                // Update Properties Panel to Popup defaults
-                document.getElementById('pop-name').value = p.name;
-                document.getElementById('pop-width').value = p.width;
-                document.getElementById('pop-height').value = p.height;
-                editor.showPopupProps();
-            },
-
-            drag: (ev, type) => {
-                ev.dataTransfer.setData("type", type);
-            },
-            
-            allowDrop: (ev) => ev.preventDefault(),
-
-            drop: (ev) => {
-                ev.preventDefault();
-                const type = ev.dataTransfer.getData("type");
-                if(!type) return;
-
-                const newEl = {
-                    id: Date.now(),
-                    type: type,
-                    content: type === 'heading' ? 'New Heading' : type === 'button' ? 'Click Me' : 'Lorem ipsum dolor sit amet.',
-                    style: 'mb-4'
-                };
-                
-                app.currentProject.elements.push(newEl);
-                editor.renderCanvas();
-                editor.selectElement(newEl.id, { stopPropagation: ()=>{} });
-            },
-
-            selectElement: (id, e) => {
-                e.stopPropagation();
-                editor.selectedEl = app.currentProject.elements.find(el => el.id == id);
-                
-                // UI Feedback
-                document.querySelectorAll('#canvas > div').forEach(d => d.classList.remove('selected-element'));
-                // Find DOM element roughly (simplified)
-                // In real app, map ID to DOM ref
-                
-                document.getElementById('no-selection').classList.add('hidden');
-                document.getElementById('popup-properties').classList.add('hidden');
-                document.getElementById('element-properties').classList.remove('hidden');
-
-                // Fill Props
-                document.getElementById('prop-content').value = editor.selectedEl.content;
-                document.getElementById('prop-width').value = '';
-                document.getElementById('prop-height').value = '';
-                document.getElementById('prop-color').value = '#000000';
-                document.getElementById('prop-bg').value = '#ffffff';
-            },
-
-            selectPopup: (e) => {
-                if(e.target.id !== 'canvas' && e.target.id !== 'canvas-wrapper') return;
-                editor.selectedEl = null;
-                document.getElementById('no-selection').classList.add('hidden');
-                document.getElementById('element-properties').classList.add('hidden');
-                document.getElementById('popup-properties').classList.remove('hidden');
-            },
-
-            showPopupProps: () => {
-                document.getElementById('no-selection').classList.add('hidden');
-                document.getElementById('element-properties').classList.add('hidden');
-                document.getElementById('popup-properties').classList.remove('hidden');
-            },
-
-            updateElement: (key, val) => {
-                if(!editor.selectedEl) return;
-                if(key === 'content') editor.selectedEl.content = val;
-                // Simplified style updates for demo
-                editor.renderCanvas();
-                editor.selectElement(editor.selectedEl.id, { stopPropagation: ()=>{} });
-            },
-
-            updatePopup: (key, val) => {
-                app.currentProject[key] = val;
-                if(key === 'name') document.getElementById('editor-project-name').textContent = val;
-                if(key === 'width' || key === 'height') {
-                    const c = document.getElementById('canvas');
-                    c.style[key] = val;
-                }
-                if(key === 'position') {
-                    // Visual feedback only in editor, real logic in preview
-                    console.log('Position set to:', val);
-                }
-            },
-
-            updateCloseBtnUI: () => {
-                const c = document.getElementById('canvas');
-                let btnHtml = '';
-                if(editor.closeBtnStyle !== 'none') {
-                    const txt = editor.closeBtnStyle === 'text' ? editor.closeBtnText : '×';
-                    const cls = editor.closeBtnStyle === 'text' ? 'text-xs px-2 py-1 bg-gray-200 rounded' : 'w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center';
-                    btnHtml = `<div class="absolute top-2 right-2 ${cls} cursor-pointer hover:bg-red-500 hover:text-white transition" onclick="event.stopPropagation();">${txt}</div>`;
-                }
-                // Append if not exists
-                if(!c.querySelector('.absolute.top-2.right-2')) c.insertAdjacentHTML('beforeend', btnHtml);
-                else if(editor.closeBtnStyle === 'none') {
-                    const old = c.querySelector('.absolute.top-2.right-2');
-                    if(old) old.remove();
-                } else {
-                    // Update existing
-                    const old = c.querySelector('.absolute.top-2.right-2');
-                    old.innerHTML = btnHtml.match(/>([^<]+)</)[1]; // Lazy update
-                }
-            },
-
-            updateCloseStyle: (style) => {
-                editor.closeBtnStyle = style;
-                editor.updateCloseBtnUI();
-            },
-            
-            updateCloseText: (txt) => {
-                editor.closeBtnText = txt;
-                if(editor.closeBtnStyle === 'text') editor.updateCloseBtnUI();
-            },
-
-            toggleCloseBtn: () => {
-                // Just visual toggle for editor
-            },
-
-            deleteElement: () => {
-                if(!editor.selectedEl) return;
-                app.currentProject.elements = app.currentProject.elements.filter(e => e.id !== editor.selectedEl.id);
-                editor.renderCanvas();
-                editor.showPopupProps();
-            },
-
-            saveProject: () => {
-                if(app.isDemo) {
-                    document.getElementById('modal-demo-prompt').classList.remove('hidden');
-                    return;
-                }
-                app.currentProject.updated = new Date();
-                db.savePopup(app.currentProject);
-                alert('Saved successfully!');
-            },
-
-            togglePreview: () => {
-                const modal = document.getElementById('preview-modal');
-                const content = document.getElementById('preview-content');
-                
-                if(modal.style.display === 'flex') {
-                    modal.style.display = 'none';
-                } else {
-                    modal.style.display = 'flex';
-                    const p = app.currentProject;
                     
-                    // Construct Preview HTML based on Position
-                    let posClass = '';
-                    let styleStr = '';
+                    // Re-bind close btn logic for editor
+                    const newClose = canvas.querySelector('#close-btn-preview'); // ID might be duplicated, careful
+                    // Actually, let's just rely on the click stopPropagation
+                },
+
+                drag: (ev, type) => {
+                    ev.dataTransfer.setData("type", type);
+                },
+                allowDrop: (ev) => { ev.preventDefault(); },
+                drop: (ev) => {
+                    ev.preventDefault();
+                    const type = ev.dataTransfer.getData("type");
+                    const rect = document.getElementById('editor-canvas').getBoundingClientRect();
+                    const x = ev.clientX - rect.left;
+                    const y = ev.clientY - rect.top;
                     
-                    // Map position to CSS
-                    const posMap = {
-                        'top-left': 'top-4 left-4', 'top-center': 'top-4 left-1/2 -translate-x-1/2', 'top-right': 'top-4 right-4',
-                        'center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-                        'bottom-left': 'bottom-4 left-4', 'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2', 'bottom-right': 'bottom-4 right-4'
+                    const newEl = {
+                        id: 'el-' + Date.now(),
+                        type, x, y, w: 'auto', h: 'auto',
+                        content: type === 'Heading' ? '<h2 class="text-2xl font-bold">Headline</h2>' :
+                                 type === 'Text' ? '<p class="text-gray-600">Edit this text.</p>' :
+                                 type === 'Button' ? '<button class="bg-indigo-600 text-white px-4 py-2 rounded">Click Me</button>' :
+                                 type === 'Image' ? '<div class="w-32 h-32 bg-gray-200 flex items-center justify-center"><i class="fas fa-image text-2xl text-gray-400"></i></div>' :
+                                 '<hr class="border-gray-300">'
                     };
-                    
-                    const twPos = posMap[p.position] || 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2';
-                    
-                    let innerHTML = `<div class="bg-white shadow-2xl rounded-lg relative animate-slide ${twPos}" style="width:${p.width}; ${p.type==='banner'?'height:auto;display:flex;align-items:center;':''}">`;
-                    
-                    // Add Close Button
-                    if(editor.closeBtnStyle !== 'none') {
-                         const txt = editor.closeBtnStyle === 'text' ? editor.closeBtnText : '×';
-                         innerHTML += `<div class="absolute top-2 right-2 cursor-pointer text-gray-400 hover:text-red-500">${txt}</div>`;
-                    }
+                    app.editor.currentElements.push(newEl);
+                    app.editor.renderCanvas();
+                    app.editor.selectElement(newEl.id);
+                },
 
-                    // Add Elements
-                    if(p.elements) {
-                        p.elements.forEach(el => {
-                            if(el.type === 'heading') innerHTML += `<h2 class="text-2xl font-bold mb-4 text-center">${el.content}</h2>`;
-                            if(el.type === 'text') innerHTML += `<p class="text-gray-600 mb-4 text-center">${el.content}</p>`;
-                            if(el.type === 'button') innerHTML += `<button class="bg-indigo-600 text-white px-6 py-2 rounded mx-auto block">${el.content}</button>`;
-                        });
+                selectElement: (id) => {
+                    app.editor.selectedId = id;
+                    // Remove selection styles
+                    document.querySelectorAll('.selected-element').forEach(el => el.classList.remove('selected-element'));
+                    const elDiv = document.getElementById(id);
+                    if(elDiv) {
+                        elDiv.classList.add('selected-element');
+                        const elData = app.editor.currentElements.find(e => e.id === id);
+                        app.editor.renderProps('element', elData);
                     }
-                    innerHTML += `</div>`;
-                    
-                    content.innerHTML = innerHTML;
+                },
+
+                selectPopup: (e) => {
+                    if (e && e.target.id !== 'editor-canvas' && e.target.id !== 'canvas-container') return;
+                    app.editor.selectedId = null;
+                    document.querySelectorAll('.selected-element').forEach(el => el.classList.remove('selected-element'));
+                    app.editor.renderProps('popup', app.editor.popupSettings);
+                },
+
+                renderProps: (type, data) => {
+                    const panel = document.getElementById('props-content');
+                    if (type === 'popup') {
+                        panel.innerHTML = `
+                            <div class="space-y-4">
+                                <div><label class="block text-xs font-bold text-gray-500">Width</label><input type="text" value="${data.width}" onchange="app.editor.updatePopup('width', this.value)" class="w-full border rounded p-2 text-sm"></div>
+                                <div><label class="block text-xs font-bold text-gray-500">Height</label><input type="text" value="${data.height}" onchange="app.editor.updatePopup('height', this.value)" class="w-full border rounded p-2 text-sm"></div>
+                                <div><label class="block text-xs font-bold text-gray-500">Position</label>
+                                    <select onchange="app.editor.updatePopup('position', this.value)" class="w-full border rounded p-2 text-sm">
+                                        <option value="center" ${data.position==='center'?'selected':''}>Center</option>
+                                        <option value="top-left" ${data.position==='top-left'?'selected':''}>Top Left</option>
+                                        <option value="top-right" ${data.position==='top-right'?'selected':''}>Top Right</option>
+                                        <option value="bottom-left" ${data.position==='bottom-left'?'selected':''}>Bottom Left</option>
+                                        <option value="bottom-right" ${data.position==='bottom-right'?'selected':''}>Bottom Right</option>
+                                    </select>
+                                </div>
+                                <div><label class="block text-xs font-bold text-gray-500">Background</label><input type="color" value="${data.bg}" onchange="app.editor.updatePopup('bg', this.value)" class="w-full h-8 rounded cursor-pointer"></div>
+                            </div>
+                        `;
+                    } else {
+                        panel.innerHTML = `
+                            <div class="space-y-3">
+                                <div><label class="block text-xs font-bold text-gray-500">Width</label><input type="text" value="${data.w}" onchange="app.editor.updateElement('w', this.value)" class="w-full border rounded p-2 text-sm"></div>
+                                <div><label class="block text-xs font-bold text-gray-500">Height</label><input type="text" value="${data.h}" onchange="app.editor.updateElement('h', this.value)" class="w-full border rounded p-2 text-sm"></div>
+                                <div><label class="block text-xs font-bold text-gray-500">Content (HTML)</label><textarea onchange="app.editor.updateElement('content', this.value)" class="w-full border rounded p-2 text-sm h-24">${data.content}</textarea></div>
+                                <button onclick="app.editor.deleteElement()" class="w-full bg-red-50 text-red-600 py-2 rounded text-sm font-bold hover:bg-red-100">Delete Element</button>
+                            </div>
+                        `;
+                    }
+                },
+
+                updatePopup: (key, val) => {
+                    app.editor.popupSettings[key] = val;
+                    app.editor.renderCanvas();
+                },
+                updateElement: (key, val) => {
+                    const el = app.editor.currentElements.find(e => e.id === app.editor.selectedId);
+                    if(el) { el[key] = val; app.editor.renderCanvas(); }
+                },
+                deleteElement: () => {
+                    app.editor.currentElements = app.editor.currentElements.filter(e => e.id !== app.editor.selectedId);
+                    app.editor.selectedId = null;
+                    app.editor.renderCanvas();
+                    app.editor.selectPopup();
+                },
+
+                startBlank: (type) => {
+                    app.editor.currentElements = [{ id: 'init', type: 'Heading', x: 20, y: 20, w: 'auto', h: 'auto', content: '<h2 class="text-2xl font-bold">New Popup</h2>' }];
+                    app.editor.popupSettings.type = type;
+                    app.editor.renderCanvas();
+                },
+                loadTemplate: (tid, type) => {
+                    const t = TEMPLATES.find(x => x.id === tid);
+                    // Simplified template loading for stability
+                    app.editor.currentElements = [{ id: 't-init', type: 'HTML', x: 0, y: 0, w: '100%', h: 'auto', content: t.preview }];
+                    app.editor.popupSettings.type = type;
+                    app.editor.renderCanvas();
+                },
+                injectTemplate: (tid) => {
+                     const t = TEMPLATES.find(x => x.id === tid);
+                     app.editor.currentElements.push({ id: 't-'+Date.now(), type: 'HTML', x: 20, y: 50, w: 'auto', h: 'auto', content: t.preview });
+                     app.editor.renderCanvas();
+                },
+
+                togglePreview: () => {
+                    const modal = document.getElementById('preview-modal');
+                    const content = document.getElementById('preview-content');
+                    if (modal.style.display === 'flex') {
+                        modal.style.display = 'none';
+                    } else {
+                        // Clone canvas content
+                        const canvas = document.getElementById('editor-canvas').cloneNode(true);
+                        canvas.querySelectorAll('.resize-handle, .selected-element').forEach(el => el.classList.remove('resize-handle', 'selected-element'));
+                        canvas.style.position = 'fixed';
+                        
+                        // Apply Position Logic
+                        const pos = app.editor.popupSettings.position;
+                        canvas.style.top = pos.includes('top') ? '20px' : pos.includes('bottom') ? 'auto' : '50%';
+                        canvas.style.bottom = pos.includes('bottom') ? '20px' : 'auto';
+                        canvas.style.left = pos.includes('left') ? '20px' : pos.includes('right') ? 'auto' : '50%';
+                        canvas.style.right = pos.includes('right') ? '20px' : 'auto';
+                        canvas.style.transform = (pos === 'center' || pos.includes('center')) ? 'translate(-50%, -50%)' : 'none';
+                        if(pos === 'top-center' || pos === 'bottom-center') canvas.style.transform = 'translateX(-50%)';
+                        if(pos === 'center-left' || pos === 'center-right') canvas.style.transform = 'translateY(-50%)';
+
+                        content.innerHTML = '';
+                        content.appendChild(canvas);
+                        modal.style.display = 'flex';
+                    }
+                },
+
+                getCode: () => {
+                    if (state.isDemo) {
+                        app.ui.renderModal('signup');
+                        document.querySelector('#auth-modal h2').innerText = "Save Your Work";
+                        document.querySelector('#auth-modal p').innerText = "Create a free account to save this popup and access it anytime.";
+                        return;
+                    }
+                    const code = `<!-- PopMaker Pro Code -->
+<div id="pm-popup" style="display:none; position:fixed; z-index:9999; inset:0; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
+  <div style="position:relative; background:${app.editor.popupSettings.bg}; width:${app.editor.popupSettings.width}; min-height:${app.editor.popupSettings.height}; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+     <span onclick="document.getElementById('pm-popup').style.display='none'" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:20px;">&times;</span>
+     ${app.editor.currentElements.map(e => e.content).join('')}
+  </div>
+</div>
+<script>setTimeout(()=>document.getElementById('pm-popup').style.display='flex', 1000);<\/script>`;
+                    document.getElementById('code-output').innerText = code;
+                    document.getElementById('code-modal').classList.remove('hidden');
                 }
             },
 
-            getCode: () => {
-                if(app.isDemo) {
-                    document.getElementById('modal-demo-prompt').classList.remove('hidden');
-                    return;
-                }
-                const p = app.currentProject;
-                const code = `<!-- PopMaker Pro Code -->\n<div id="pm-popup-${p.id}" style="display:none;position:fixed;z-index:9999;width:100%;height:100%;top:0;left:0;background:rgba(0,0,0,0.5);">\n  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:2rem;border-radius:8px;width:${p.width};">\n    <span onclick="document.getElementById('pm-popup-${p.id}').style.display=\'none\'" style="position:absolute;top:10px;right:15px;cursor:pointer;">&times;</span>\n    <!-- Content Here -->\n    ${p.elements.map(e => `<p>${e.content}</p>`).join('')}\n  </div>\n</div>\n<script>setTimeout(()=>document.getElementById('pm-popup-${p.id}').style.display='block',1000);<\/script>`;
-                
-                document.getElementById('code-output').textContent = code;
-                document.getElementById('code-modal').classList.remove('hidden');
-            },
+            // --- DATA MANAGEMENT ---
+            data: {
+                saveCurrent: () => {
+                    if (state.isDemo) {
+                        state.demoData = [{
+                            id: 'demo-1', name: 'Demo Popup', elements: app.editor.currentElements, settings: app.editor.popupSettings, status: 'draft', updated: new Date()
+                        }];
+                        app.ui.renderModal('signup');
+                        document.querySelector('#auth-modal h2').innerText = "Save Your Work";
+                        document.querySelector('#auth-modal p').innerText = "Create a free account to save this popup and access it anytime.";
+                        return;
+                    }
+                    
+                    let popups = JSON.parse(localStorage.getItem(DB_KEYS.POPUPS) || '[]');
+                    const existing = popups.findIndex(p => p.id === app.router.params); // Simplified ID check
+                    
+                    const popupData = {
+                        id: app.router.params || 'new-'+Date.now(),
+                        userId: state.user.id,
+                        name: document.getElementById('editor-title').innerText,
+                        type: app.editor.popupSettings.type || 'popup',
+                        elements: app.editor.currentElements,
+                        settings: app.editor.popupSettings,
+                        status: 'draft',
+                        updated: new Date().toISOString()
+                    };
 
-            copyCode: () => {
-                const code = document.getElementById('code-output').textContent;
-                navigator.clipboard.writeText(code).then(() => alert('Code copied!'));
+                    if (existing >= 0) popups[existing] = popupData;
+                    else popups.push(popupData);
+
+                    localStorage.setItem(DB_KEYS.POPUPS, JSON.stringify(popups));
+                    alert('Popup Saved Successfully!');
+                },
+                deletePopup: (id) => {
+                    if(!confirm('Are you sure?')) return;
+                    let popups = JSON.parse(localStorage.getItem(DB_KEYS.POPUPS) || '[]');
+                    popups = popups.filter(p => p.id !== id);
+                    localStorage.setItem(DB_KEYS.POPUPS, JSON.stringify(popups));
+                    app.router.navigate('dashboard');
+                }
             }
         };
 
-        // Init App
+        // Start App
         window.addEventListener('DOMContentLoaded', app.init);
-        
-        // Populate Template Grids
-        const fillGrid = (id, clickFn) => {
-            const grid = document.getElementById(id);
-            if(!grid) return;
-            grid.innerHTML = templates.map(t => `
-                <div onclick="${clickFn}('${t.id}')" class="cursor-pointer group relative aspect-video bg-gray-100 rounded border border-gray-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition">
-                    <div class="absolute inset-0 flex flex-col items-center justify-center p-2 text-center">
-                        <i class="fas fa-${t.type==='banner'?'arrows-alt-h':'window-maximize'} text-2xl text-gray-400 mb-2"></i>
-                        <span class="text-xs font-bold text-gray-700">${t.name}</span>
-                    </div>
-                </div>
-            `).join('');
-        };
-        fillGrid('editor-templates-grid', 'editor.loadTemplate');
-        fillGrid('template-selection-grid', 'editor.loadTemplate');
-
     </script>
 </body>
 </html>
