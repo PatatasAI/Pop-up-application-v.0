@@ -1,1 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PopMaker Pro - Create Powerful Popups</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .dragging { opacity: 0.5; cursor: grabbing; }
+        .canvas-area { background-image: radial-gradient(#e5e7eb 1px, transparent 1px); background-size: 20px 20px; }
+        
+        /* Editor Specifics */
+        .editor-element { position: absolute; cursor: move; border: 2px solid transparent; }
+        .editor-element.selected { border-color: #4f46e5; z-index: 10; }
+        .editor-element:hover:not(.selected) { border-color: #a5b4fc; }
+        
+        .resize-handle { width: 10px; height: 10px; background: #4f46e5; position: absolute; display: none; }
+        .editor-element.selected .resize-handle { display: block; }
+        .rh-tl { top: -5px; left: -5px; cursor: nw-resize; }
+        .rh-tr { top: -5px; right: -5px; cursor: ne-resize; }
+        .rh-bl { bottom: -5px; left: -5px; cursor: sw-resize; }
+        .rh-br { bottom: -5px; right: -5px; cursor: se-resize; }
 
+        /* Preview Overlay */
+        #previewOverlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
+        .preview-bar { position: absolute; top: 0; left: 0; width: 100%; height: 50px; background: #1f2937; color: white; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 10001; }
+        
+        /* Popup Positions in Preview */
+        .pos-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .pos-top-left { top: 20px; left: 20px; transform: none; }
+        .pos-top-center { top: 20px; left: 50%; transform: translateX(-50%); }
+        .pos-top-right { top: 20px; right: 20px; transform: none; }
+        .pos-bottom-left { bottom: 20px; left: 20px; transform: none; }
+        .pos-bottom-center { bottom: 20px; left: 50%; transform: translateX(-50%); }
+        .pos-bottom-right { bottom: 20px; right: 20px; transform: none; }
+
+        /* Banner Styles */
+        .banner-top { top: 0; left: 0; width: 100%; border-radius: 0; transform: none !important; }
+        .banner-bottom { bottom: 0; left: 0; width: 100%; border-radius: 0; transform: none !important; }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade { animation: fadeIn 0.3s ease-out; }
+        
+        /* Video Player Simulation */
+        .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); background: #000; }
+        .video-content { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color: white; flex-direction: column; }
+        .play-btn { width: 80px; height: 80px; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; border: 2px solid white; }
+        .play-btn:hover { transform: scale(1.1); background: white; color: #4f46e5; }
+        
+        /* Hide scrollbar for clean UI */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- ================= LANDING PAGE ================= -->
+    <div id="landingPage" class="min-h-screen flex flex-col">
+        <!-- Navbar -->
+        <nav class="bg-white border-b border-gray-100 sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">P</div>
+                        <span class="font-bold text-xl tracking-tight text-gray-900">PopMaker<span class="text-indigo-600">Pro</span></span>
+                    </div>
+                    <div class="hidden md:flex items-center space-x-8">
+                        <a href="#features" class="text-gray-600 hover:text-indigo-600 font-medium transition">Features</a>
+                        <a href="#templates" class="text-gray-600 hover:text-indigo-600 font-medium transition">Templates</a>
+                        <a href="#how-it-works" class="text-gray-600 hover:text-indigo-600 font-medium transition">How It Works</a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button onclick="app.navigate('login')" class="text-gray-600 hover:text-indigo-600 font-medium px-4 py-2">Log in</button>
+                        <button onclick="app.navigate('signup')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-full shadow-lg shadow-indigo-200 transition transform hover:-translate-y-0.5">Get Started</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <section class="relative pt-20 pb-32 overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+                <h1 class="text-5xl md:text-6xl font-extrabold text-gray-900 tracking-tight mb-6">
+                    Create Powerful Popups <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Without the Hassle</span>
+                </h1>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-10">
+                    Build, customize, and manage high-converting website popups, banners, and forms from one simple platform. No coding required.
+                </p>
+                <div class="flex justify-center gap-4">
+                    <button onclick="app.navigate('signup')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-semibold px-8 py-4 rounded-full shadow-xl shadow-indigo-200 transition transform hover:-translate-y-1">Start Creating Free</button>
+                    <button onclick="app.startDemo()" class="bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 text-lg font-semibold px-8 py-4 rounded-full shadow-md transition flex items-center gap-2">
+                        <i class="fas fa-play-circle text-indigo-600"></i> View Live Demo
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Decorative Background Elements -->
+            <div class="absolute top-0 left-1/2 w-full -translate-x-1/2 h-full z-0 pointer-events-none opacity-30">
+                <div class="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+                <div class="absolute top-20 right-10 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+                <div class="absolute -bottom-8 left-1/2 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
+            </div>
+        </section>
+
+        <!-- How It Works / Video Demo Section -->
+        <section id="how-it-works" class="py-20 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-base text-indigo-600 font-semibold tracking-wide uppercase">Workflow</h2>
+                    <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">See How It Works</p>
+                    <p class="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">From login to live popup in less than 2 minutes.</p>
+                </div>
+
+                <div class="max-w-4xl mx-auto">
+                    <div class="video-container group cursor-pointer" onclick="this.querySelector('.video-content').classList.add('hidden'); this.querySelector('iframe').classList.remove('hidden'); this.querySelector('iframe').src='https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1';">
+                        <div class="video-content">
+                            <div class="play-btn mb-4 shadow-2xl">
+                                <i class="fas fa-play text-3xl ml-1"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-2">PopMaker Pro Demo</h3>
+                            <p class="text-indigo-200">Watch the full workflow: Login → Dashboard → Create → Publish</p>
+                            
+                            <!-- Simulated UI Steps Animation -->
+                            <div class="mt-8 flex gap-4 text-sm font-medium text-indigo-100">
+                                <span class="bg-white/10 px-3 py-1 rounded-full">1. Login</span>
+                                <i class="fas fa-arrow-right self-center"></i>
+                                <span class="bg-white/10 px-3 py-1 rounded-full">2. Choose Template</span>
+                                <i class="fas fa-arrow-right self-center"></i>
+                                <span class="bg-white/10 px-3 py-1 rounded-full">3. Drag & Drop</span>
+                                <i class="fas fa-arrow-right self-center"></i>
+                                <span class="bg-white/10 px-3 py-1 rounded-full">4. Get Code</span>
+                            </div>
+                        </div>
+                        <iframe class="hidden w-full h-full" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Grid -->
+        <section id="features" class="py-20 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 mb-4"><i class="fas fa-mouse-pointer text-xl"></i></div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Drag & Drop Editor</h3>
+                        <p class="text-gray-600">Easily add headings, text, buttons, images, and videos. Resize and reposition anything instantly.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 mb-4"><i class="fas fa-mobile-alt text-xl"></i></div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Fully Responsive</h3>
+                        <p class="text-gray-600">Preview your popup on Desktop, Tablet, and Mobile. Ensure it looks perfect on every device.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                        <div class="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center text-pink-600 mb-4"><i class="fas fa-code text-xl"></i></div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">One-Click Install</h3>
+                        <p class="text-gray-600">Generate a single line of code. Paste it into your website, and your popup goes live instantly.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-gray-200 py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <span class="font-bold text-lg text-gray-900">PopMaker<span class="text-indigo-600">Pro</span></span>
+                    <p class="text-sm text-gray-500 mt-1">© 2026 PopMaker Pro. All Rights Reserved.</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-gray-500"><i class="fab fa-twitter text-xl"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-gray-500"><i class="fab fa-facebook text-xl"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-gray-500"><i class="fab fa-instagram text-xl"></i></a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ================= AUTH PAGES ================= -->
+    <div id="authPage" class="hidden min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+            <div class="text-center mb-8">
+                <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">P</div>
+                <h2 id="authTitle" class="text-2xl font-bold text-gray-900">Welcome Back</h2>
+                <p class="text-gray-500 mt-2">Enter your details to access your account</p>
+            </div>
+            
+            <form id="authForm" onsubmit="app.handleAuth(event)" class="space-y-6">
+                <input type="hidden" id="authMode" value="login">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                    <input type="text" id="companyName" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="My Company">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input type="email" id="email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="you@example.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="password" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow-lg transition transform hover:-translate-y-0.5">Sign In</button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <button onclick="app.toggleAuthMode()" id="authToggleBtn" class="text-sm text-indigo-600 hover:text-indigo-500 font-medium">Don't have an account? Sign up</button>
+            </div>
+            <div class="mt-4 text-center">
+                <button onclick="app.navigate('landing')" class="text-sm text-gray-500 hover:text-gray-700">← Back to Home</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= USER DASHBOARD ================= -->
+    <div id="dashboardPage" class="hidden min-h-screen bg-gray-50">
+        <nav class="bg-white border-b border-gray-200 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">P</div>
+                        <span class="font-bold text-lg text-gray-900">Dashboard</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span id="userGreeting" class="text-sm font-medium text-gray-600 hidden md:block">Hello, User</span>
+                        <button onclick="app.logout()" class="text-gray-500 hover:text-red-600 text-sm font-medium">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">My Popups</h1>
+                    <p class="text-gray-500 mt-1">Manage your campaigns and track performance</p>
+                </div>
+                <button onclick="app.navigateToCreate()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-lg shadow-md transition flex items-center gap-2">
+                    <i class="fas fa-plus"></i> Create New Popup
+                </button>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-sm font-medium text-gray-500">Total Popups</div>
+                    <div class="text-3xl font-bold text-gray-900 mt-2" id="statTotal">0</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-sm font-medium text-gray-500">Active Campaigns</div>
+                    <div class="text-3xl font-bold text-green-600 mt-2" id="statActive">0</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-sm font-medium text-gray-500">Total Views</div>
+                    <div class="text-3xl font-bold text-indigo-600 mt-2">0</div>
+                </div>
+            </div>
+
+            <!-- Popup List -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="popupListBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+                <div id="emptyState" class="hidden p-12 text-center">
+                    <div class="mx-auto h-12 w-12 text-gray-400 mb-4"><i class="fas fa-folder-open text-3xl"></i></div>
+                    <h3 class="text-lg font-medium text-gray-900">No popups yet</h3>
+                    <p class="mt-1 text-gray-500">Get started by creating a new popup.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= CREATE FLOW ================= -->
+    <div id="createPage" class="hidden min-h-screen bg-gray-50">
+        <div class="max-w-4xl mx-auto px-4 py-12">
+            <button onclick="app.navigate('dashboard')" class="mb-6 text-gray-500 hover:text-gray-800 flex items-center gap-2"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
+            
+            <h1 class="text-3xl font-bold text-gray-900 mb-8">Create New Popup</h1>
+            
+            <!-- Step 1: Type -->
+            <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-200 mb-8">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">1. Choose Popup Type</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div onclick="app.selectType('popup')" class="cursor-pointer border-2 border-indigo-600 bg-indigo-50 p-6 rounded-lg text-center hover:shadow-md transition type-card" data-type="popup">
+                        <i class="fas fa-square text-3xl text-indigo-600 mb-3"></i>
+                        <h3 class="font-bold text-gray-900">Regular Popup</h3>
+                        <p class="text-sm text-gray-500 mt-1">Centered or corner modal</p>
+                    </div>
+                    <div onclick="app.selectType('banner')" class="cursor-pointer border-2 border-gray-200 p-6 rounded-lg text-center hover:border-indigo-600 hover:shadow-md transition type-card" data-type="banner">
+                        <i class="fas fa-arrows-alt-h text-3xl text-gray-400 mb-3"></i>
+                        <h3 class="font-bold text-gray-900">Banner</h3>
+                        <p class="text-sm text-gray-500 mt-1">Top or Bottom strip</p>
+                    </div>
+                    <div onclick="app.selectType('ghl')" class="cursor-pointer border-2 border-gray-200 p-6 rounded-lg text-center hover:border-indigo-600 hover:shadow-md transition type-card" data-type="ghl">
+                        <i class="fas fa-form text-3xl text-gray-400 mb-3"></i>
+                        <h3 class="font-bold text-gray-900">GHL Form</h3>
+                        <p class="text-sm text-gray-500 mt-1">Embed GoHighLevel form</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Template -->
+            <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">2. Start From</h2>
+                <div class="flex gap-4 mb-6">
+                    <button onclick="app.selectTemplate('blank')" class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium">Blank Canvas</button>
+                    <button onclick="document.getElementById('templateGrid').classList.remove('hidden')" class="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">Choose Template</button>
+                </div>
+                
+                <div id="templateGrid" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Templates injected by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= EDITOR ================= -->
+    <div id="editorPage" class="hidden h-screen flex flex-col bg-gray-100">
+        <!-- Editor Header -->
+        <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 shadow-sm z-20">
+            <div class="flex items-center gap-4">
+                <button onclick="app.saveAndExit()" class="text-gray-500 hover:text-gray-800"><i class="fas fa-arrow-left"></i></button>
+                <div>
+                    <h1 class="font-bold text-gray-900" id="editorTitle">Untitled Popup</h1>
+                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded" id="editorTypeBadge">Regular Popup</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="app.togglePreview()" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium transition flex items-center gap-2">
+                    <i class="fas fa-eye"></i> Preview
+                </button>
+                <button onclick="app.showCodeModal()" class="px-4 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-md font-medium shadow-sm transition flex items-center gap-2">
+                    <i class="fas fa-code"></i> Get Code
+                </button>
+                <button onclick="app.savePopup()" class="px-4 py-2 text-white bg-green-600 hover:bg-green-700 rounded-md font-medium shadow-sm transition">
+                    Save
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Left Sidebar: Elements & Templates -->
+            <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-10 overflow-y-auto">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Elements</h3>
+                    <div class="space-y-2">
+                        <div draggable="true" ondragstart="app.drag(event, 'heading')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3"><i class="fas fa-heading text-gray-400"></i> <span class="text-sm">Heading</span></div>
+                        <div draggable="true" ondragstart="app.drag(event, 'text')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3"><i class="fas fa-paragraph text-gray-400"></i> <span class="text-sm">Text</span></div>
+                        <div draggable="true" ondragstart="app.drag(event, 'button')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3"><i class="fas fa-square text-gray-400"></i> <span class="text-sm">Button</span></div>
+                        <div draggable="true" ondragstart="app.drag(event, 'image')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3"><i class="fas fa-image text-gray-400"></i> <span class="text-sm">Image</span></div>
+                        <div draggable="true" ondragstart="app.drag(event, 'video')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3"><i class="fas fa-video text-gray-400"></i> <span class="text-sm">Video</span></div>
+                        <div draggable="true" ondragstart="app.drag(event, 'divider')" class="p-3 bg-gray-50 border border-gray-200 rounded cursor-grab hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center gap-3"><i class="fas fa-minus text-gray-400"></i> <span class="text-sm">Divider</span></div>
+                    </div>
+                </div>
+                
+                <div class="p-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Templates</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="app.loadTemplate('newsletter')" class="aspect-square bg-gray-100 rounded border border-gray-200 hover:border-indigo-500 transition flex flex-col items-center justify-center p-2 text-center"><i class="fas fa-envelope text-indigo-500 mb-1"></i><span class="text-[10px]">Newsletter</span></button>
+                        <button onclick="app.loadTemplate('discount')" class="aspect-square bg-gray-100 rounded border border-gray-200 hover:border-indigo-500 transition flex flex-col items-center justify-center p-2 text-center"><i class="fas fa-percent text-red-500 mb-1"></i><span class="text-[10px]">Discount</span></button>
+                        <button onclick="app.loadTemplate('welcome')" class="aspect-square bg-gray-100 rounded border border-gray-200 hover:border-indigo-500 transition flex flex-col items-center justify-center p-2 text-center"><i class="fas fa-hand-wave text-green-500 mb-1"></i><span class="text-[10px]">Welcome</span></button>
+                        <button onclick="app.loadTemplate('contact')" class="aspect-square bg-gray-100 rounded border border-gray-200 hover:border-indigo-500 transition flex flex-col items-center justify-center p-2 text-center"><i class="fas fa-comment text-blue-500 mb-1"></i><span class="text-[10px]">Contact</span></button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Canvas Area -->
+            <main class="flex-1 canvas-area relative overflow-auto flex items-center justify-center p-8" onclick="app.selectPopupContainer(event)">
+                <div id="canvas" class="bg-white shadow-2xl relative transition-all duration-200" style="width: 400px; height: 500px; position: relative;">
+                    <!-- Elements will be dropped here -->
+                    <div class="absolute top-2 right-2 text-gray-300 hover:text-gray-600 cursor-pointer z-50" id="closeBtnPreview"><i class="fas fa-times"></i></div>
+                </div>
+                <div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded shadow text-xs text-gray-500 pointer-events-none">
+                    Click outside elements to edit Popup settings
+                </div>
+            </main>
+
+            <!-- Right Sidebar: Properties -->
+            <aside class="w-72 bg-white border-l border-gray-200 p-4 overflow-y-auto z-10">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4" id="propTitle">Properties</h3>
+                
+                <!-- Dynamic Content -->
+                <div id="propertiesContent" class="space-y-4">
+                    <p class="text-sm text-gray-500 italic">Select an element or click the background to edit properties.</p>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- ================= PREVIEW MODAL ================= -->
+    <div id="previewOverlay">
+        <div class="preview-bar">
+            <span class="font-medium"><i class="fas fa-eye mr-2"></i> Preview Mode</span>
+            <button onclick="app.togglePreview()" class="bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded text-sm font-medium transition">← Close Preview</button>
+        </div>
+        <div id="previewContainer" class="w-full h-full relative"></div>
+    </div>
+
+    <!-- ================= CODE MODAL ================= -->
+    <div id="codeModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[80vh]">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-900">Install Code</h3>
+                <button onclick="document.getElementById('codeModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-auto bg-gray-50 flex-1">
+                <p class="text-sm text-gray-600 mb-3">Copy this code and paste it before the <code class="bg-gray-200 px-1 rounded">&lt;/body&gt;</code> tag on your website:</p>
+                <pre id="codeOutput" class="bg-gray-800 text-green-400 p-4 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap"></pre>
+            </div>
+            <div class="p-6 border-t border-gray-100 flex justify-end gap-3">
+                <button onclick="document.getElementById('codeModal').classList.add('hidden')" class="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg font-medium hover:bg-gray-50">Cancel</button>
+                <button onclick="app.copyCode()" class="px-5 py-2.5 text-white bg-indigo-600 rounded-lg font-medium hover:bg-indigo-700 shadow-lg shadow-indigo-200">Copy Code</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= SIGNUP PROMPT (DEMO) ================= -->
+    <div id="demoPrompt" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 text-center">
+            <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mx-auto mb-4"><i class="fas fa-lock text-2xl"></i></div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Save Your Work?</h3>
+            <p class="text-gray-600 mb-6">You are in Demo Mode. Create a free account to save this popup and access it anytime from any device.</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="app.navigate('signup')" class="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition">Create Free Account</button>
+                <button onclick="document.getElementById('demoPrompt').classList.add('hidden')" class="w-full py-3 text-gray-600 bg-gray-100 rounded-lg font-medium hover:bg-gray-200">Continue Editing</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= APP LOGIC =================
+        const app = {
+            state: {
+                currentUser: null,
+                isDemo: false,
+                currentView: 'landing',
+                editingPopup: null,
+                selectedElement: null,
+                dragType: null,
+                popups: []
+            },
+
+            init() {
+                // Check local storage for session
+                const savedUser = localStorage.getItem('popmaker_user');
+                if (savedUser) {
+                    this.state.currentUser = JSON.parse(savedUser);
+                    this.state.isDemo = this.state.currentUser.email === 'demo@popmaker.com';
+                    this.navigate('dashboard');
+                } else {
+                    this.navigate('landing');
+                }
+                this.renderTemplates();
+            },
+
+            navigate(view) {
+                document.querySelectorAll('#landingPage, #authPage, #dashboardPage, #createPage, #editorPage').forEach(el => el.classList.add('hidden'));
+                
+                if (view === 'landing') document.getElementById('landingPage').classList.remove('hidden');
+                else if (view === 'login' || view === 'signup') {
+                    document.getElementById('authPage').classList.remove('hidden');
+                    this.setupAuthForm(view);
+                }
+                else if (view === 'dashboard') {
+                    document.getElementById('dashboardPage').classList.remove('hidden');
+                    this.loadDashboard();
+                }
+                else if (view === 'create') document.getElementById('createPage').classList.remove('hidden');
+                else if (view === 'editor') document.getElementById('editorPage').classList.remove('hidden');
+                
+                window.scrollTo(0,0);
+                this.state.currentView = view;
+            },
+
+            startDemo() {
+                this.state.currentUser = { name: 'Demo User', company: 'Demo Company', email: 'demo@popmaker.com' };
+                this.state.isDemo = true;
+                this.navigate('dashboard');
+            },
+
+            setupAuthForm(mode) {
+                const title = document.getElementById('authTitle');
+                const btn = document.querySelector('#authForm button');
+                const toggle = document.getElementById('authToggleBtn');
+                const companyInput = document.getElementById('companyName');
+                
+                document.getElementById('authMode').value = mode;
+                
+                if (mode === 'login') {
+                    title.textContent = 'Welcome Back';
+                    btn.textContent = 'Sign In';
+                    toggle.textContent = "Don't have an account? Sign up";
+                    toggle.onclick = () => this.setupAuthForm('signup');
+                    companyInput.classList.add('hidden');
+                } else {
+                    title.textContent = 'Create Account';
+                    btn.textContent = 'Sign Up';
+                    toggle.textContent = "Already have an account? Log in";
+                    toggle.onclick = () => this.setupAuthForm('login');
+                    companyInput.classList.remove('hidden');
+                }
+            },
+
+            toggleAuthMode() {
+                const current = document.getElementById('authMode').value;
+                this.setupAuthForm(current === 'login' ? 'signup' : 'login');
+            },
+
+            handleAuth(e) {
+                e.preventDefault();
+                const mode = document.getElementById('authMode').value;
+                const email = document.getElementById('email').value;
+                const company = document.getElementById('companyName').value;
+                
+                // Simple mock auth
+                const user = {
+                    name: company.split(' ')[0] || email.split('@')[0],
+                    company: company || 'My Company',
+                    email: email,
+                    id: Date.now()
+                };
+                
+                localStorage.setItem('popmaker_user', JSON.stringify(user));
+                this.state.currentUser = user;
+                this.state.isDemo = false;
+                this.navigate('dashboard');
+            },
+
+            logout() {
+                localStorage.removeItem('popmaker_user');
+                this.state.currentUser = null;
+                this.state.isDemo = false;
+                this.navigate('landing');
+            },
+
+            loadDashboard() {
+                document.getElementById('userGreeting').textContent = `Hello, ${this.state.currentUser.name}`;
+                
+                // Mock Data
+                const myPopups = this.state.isDemo ? [] : JSON.parse(localStorage.getItem(`popups_${this.state.currentUser.id}`) || '[]');
+                this.state.popups = myPopups;
+                
+                document.getElementById('statTotal').textContent = myPopups.length;
+                document.getElementById('statActive').textContent = myPopups.filter(p => p.status === 'active').length;
+                
+                const tbody = document.getElementById('popupListBody');
+                tbody.innerHTML = '';
+                
+                if (myPopups.length === 0) {
+                    document.getElementById('emptyState').classList.remove('hidden');
+                } else {
+                    document.getElementById('emptyState').classList.add('hidden');
+                    myPopups.forEach(p => {
+                        const row = `
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${p.name}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">${p.type}</td>
+                                <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${p.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${p.status}</span></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(p.updated).toLocaleDateString()}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="app.editPopup(${p.id})" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                                    <button class="text-red-600 hover:text-red-900">Delete</button>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                }
+            },
+
+            navigateToCreate() {
+                if (this.state.isDemo) {
+                    alert("Demo Mode: You can create popups, but they won't be saved unless you sign up.");
+                }
+                this.navigate('create');
+                // Reset selection
+                document.querySelectorAll('.type-card').forEach(c => {
+                    c.classList.remove('border-indigo-600', 'bg-indigo-50');
+                    c.classList.add('border-gray-200');
+                    c.querySelector('i').classList.remove('text-indigo-600');
+                    c.querySelector('i').classList.add('text-gray-400');
+                });
+                document.getElementById('templateGrid').classList.add('hidden');
+            },
+
+            selectType(type) {
+                document.querySelectorAll('.type-card').forEach(c => {
+                    c.classList.remove('border-indigo-600', 'bg-indigo-50');
+                    c.classList.add('border-gray-200');
+                    c.querySelector('i').classList.remove('text-indigo-600');
+                    c.querySelector('i').classList.add('text-gray-400');
+                });
+                const card = document.querySelector(`.type-card[data-type="${type}"]`);
+                card.classList.remove('border-gray-200');
+                card.classList.add('border-indigo-600', 'bg-indigo-50');
+                card.querySelector('i').classList.remove('text-gray-400');
+                card.querySelector('i').classList.add('text-indigo-600');
+                
+                this.state.newPopupType = type;
+            },
+
+            selectTemplate(templateName) {
+                const name = prompt("Name your popup:", "New Popup");
+                if (!name) return;
+                
+                this.openEditor(name, templateName);
+            },
+
+            renderTemplates() {
+                const grid = document.getElementById('templateGrid');
+                const templates = [
+                    { id: 'newsletter', name: 'Newsletter', icon: 'envelope', color: 'text-blue-500' },
+                    { id: 'discount', name: '50% Off', icon: 'percent', color: 'text-red-500' },
+                    { id: 'welcome', name: 'Welcome', icon: 'hand-sparkles', color: 'text-green-500' },
+                    { id: 'contact', name: 'Contact Us', icon: 'comment-dots', color: 'text-indigo-500' },
+                    { id: 'event', name: 'Event', icon: 'calendar-alt', color: 'text-purple-500' },
+                    { id: 'product', name: 'Product', icon: 'box', color: 'text-orange-500' },
+                    { id: 'exit', name: 'Exit Intent', icon: 'sign-out-alt', color: 'text-gray-500' },
+                    { id: 'survey', name: 'Survey', icon: 'poll', color: 'text-yellow-500' }
+                ];
+                
+                let html = '';
+                templates.forEach(t => {
+                    html += `
+                        <button onclick="app.selectTemplate('${t.id}')" class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:border-indigo-500 hover:shadow-md transition flex flex-col items-center justify-center aspect-square">
+                            <i class="fas fa-${t.icon} text-3xl ${t.color} mb-2"></i>
+                            <span class="text-sm font-medium text-gray-700">${t.name}</span>
+                        </button>
+                    `;
+                });
+                grid.innerHTML = html;
+            },
+
+            openEditor(name, template) {
+                document.getElementById('editorTitle').textContent = name;
+                document.getElementById('editorTypeBadge').textContent = (this.state.newPopupType || 'popup').toUpperCase();
+                
+                // Reset Canvas
+                const canvas = document.getElementById('canvas');
+                canvas.innerHTML = '<div class="absolute top-2 right-2 text-gray-300 hover:text-gray-600 cursor-pointer z-50" id="closeBtnPreview"><i class="fas fa-times"></i></div>';
+                canvas.style.width = '400px';
+                canvas.style.height = '500px';
+                canvas.className = 'bg-white shadow-2xl relative transition-all duration-200';
+                
+                this.state.editingPopup = {
+                    id: Date.now(),
+                    name: name,
+                    type: this.state.newPopupType || 'popup',
+                    template: template,
+                    elements: [],
+                    settings: {
+                        width: 400,
+                        height: 500,
+                        position: 'center',
+                        bgColor: '#ffffff',
+                        closeBtn: true
+                    }
+                };
+
+                if (template && template !== 'blank') {
+                    this.loadTemplate(template);
+                }
+                
+                this.navigate('editor');
+                this.selectPopupContainer(); // Default to popup settings
+            },
+
+            drag(ev, type) {
+                ev.dataTransfer.setData("type", type);
+                this.state.dragType = type;
+            },
+
+            drop(ev) {
+                ev.preventDefault();
+                const type = ev.dataTransfer.getData("type");
+                if (!type) return;
+                
+                const canvas = document.getElementById('canvas');
+                const rect = canvas.getBoundingClientRect();
+                const x = ev.clientX - rect.left;
+                const y = ev.clientY - rect.top;
+                
+                this.addElement(type, x, y);
+            },
+
+            addElement(type, x, y, content = null) {
+                const id = 'el_' + Date.now();
+                const canvas = document.getElementById('canvas');
+                
+                const elData = {
+                    id: id,
+                    type: type,
+                    x: x || 50,
+                    y: y || 50,
+                    width: type === 'button' ? 120 : (type === 'heading' ? 200 : 300),
+                    height: type === 'button' ? 40 : (type === 'heading' ? 40 : 100),
+                    content: content || (type === 'heading' ? 'New Heading' : (type === 'button' ? 'Click Me' : (type === 'text' ? 'Lorem ipsum dolor sit amet.' : ''))),
+                    styles: {
+                        fontSize: type === 'heading' ? 24 : 16,
+                        color: '#000000',
+                        bgColor: 'transparent',
+                        align: 'left'
+                    }
+                };
+                
+                this.state.editingPopup.elements.push(elData);
+                this.renderElement(elData);
+                this.selectElement(id);
+            },
+
+            renderElement(data) {
+                const canvas = document.getElementById('canvas');
+                const el = document.createElement('div');
+                el.id = data.id;
+                el.className = 'editor-element group';
+                el.style.left = data.x + 'px';
+                el.style.top = data.y + 'px';
+                el.style.width = data.width + 'px';
+                el.style.height = data.height + 'px';
+                el.style.backgroundColor = data.styles.bgColor;
+                el.style.color = data.styles.color;
+                el.style.fontSize = data.styles.fontSize + 'px';
+                el.style.textAlign = data.styles.align;
+                el.style.padding = '10px';
+                el.style.boxSizing = 'border-box';
+                el.style.display = 'flex';
+                el.style.alignItems = 'center';
+                el.style.justifyContent = data.styles.align === 'center' ? 'center' : (data.styles.align === 'right' ? 'flex-end' : 'flex-start');
+                if(data.styles.align === 'center') el.style.flexDirection = 'column';
+
+                // Content
+                if (data.type === 'heading') {
+                    el.innerHTML = `<h2 class="w-full h-full outline-none" contenteditable="true" onblur="app.updateElementContent('${data.id}', this.innerText)">${data.content}</h2>`;
+                    el.style.fontWeight = 'bold';
+                } else if (data.type === 'text') {
+                    el.innerHTML = `<p class="w-full h-full outline-none" contenteditable="true" onblur="app.updateElementContent('${data.id}', this.innerText)">${data.content}</p>`;
+                } else if (data.type === 'button') {
+                    el.innerHTML = `<button class="w-full h-full bg-indigo-600 text-white rounded border-none outline-none cursor-pointer" contenteditable="true" onblur="app.updateElementContent('${data.id}', this.innerText)">${data.content}</button>`;
+                    el.style.backgroundColor = 'transparent'; // Button has its own bg
+                    el.style.justifyContent = 'center';
+                } else if (data.type === 'image') {
+                    el.innerHTML = `<div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400"><i class="fas fa-image text-2xl"></i></div>`;
+                } else if (data.type === 'video') {
+                    el.innerHTML = `<div class="w-full h-full bg-black flex items-center justify-center text-white"><i class="fas fa-play-circle text-3xl"></i></div>`;
+                } else if (data.type === 'divider') {
+                    el.innerHTML = `<hr class="w-full border-t-2 border-gray-300">`;
+                    el.style.backgroundColor = 'transparent';
+                    el.style.height = '10px';
+                }
+
+                // Resize Handles
+                el.innerHTML += `
+                    <div class="resize-handle rh-tl" onmousedown="app.resize(event, '${data.id}', 'tl')"></div>
+                    <div class="resize-handle rh-tr" onmousedown="app.resize(event, '${data.id}', 'tr')"></div>
+                    <div class="resize-handle rh-bl" onmousedown="app.resize(event, '${data.id}', 'bl')"></div>
+                    <div class="resize-handle rh-br" onmousedown="app.resize(event, '${data.id}', 'br')"></div>
+                `;
+
+                // Events
+                el.onmousedown = (e) => {
+                    if(e.target.classList.contains('resize-handle')) return;
+                    this.selectElement(data.id);
+                    this.startDrag(e, data.id);
+                };
+                el.ondblclick = (e) => {
+                    if(data.type === 'button' || data.type === 'heading' || data.type === 'text') {
+                        // Handled by contenteditable
+                    }
+                };
+
+                canvas.appendChild(el);
+            },
+
+            startDrag(e, id) {
+                e.stopPropagation();
+                const el = document.getElementById(id);
+                const shiftX = e.clientX - el.getBoundingClientRect().left;
+                const shiftY = e.clientY - el.getBoundingClientRect().top;
+
+                const moveAt = (pageX, pageY) => {
+                    const canvas = document.getElementById('canvas').getBoundingClientRect();
+                    let newLeft = pageX - shiftX - canvas.left;
+                    let newTop = pageY - shiftY - canvas.top;
+                    
+                    // Bounds check
+                    newLeft = Math.max(0, Math.min(newLeft, 400 - el.offsetWidth));
+                    newTop = Math.max(0, Math.min(newTop, 500 - el.offsetHeight));
+
+                    el.style.left = newLeft + 'px';
+                    el.style.top = newTop + 'px';
+                    
+                    // Update data
+                    const elData = this.state.editingPopup.elements.find(x => x.id === id);
+                    if(elData) { elData.x = newLeft; elData.y = newTop; }
+                };
+
+                const onMouseMove = (event) => moveAt(event.pageX, event.pageY);
+
+                document.addEventListener('mousemove', onMouseMove);
+                el.onmouseup = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    el.onmouseup = null;
+                };
+            },
+
+            resize(e, id, corner) {
+                e.stopPropagation();
+                e.preventDefault();
+                const el = document.getElementById(id);
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const startWidth = parseInt(document.defaultView.getComputedStyle(el).width, 10);
+                const startHeight = parseInt(document.defaultView.getComputedStyle(el).height, 10);
+                const startLeft = parseInt(document.defaultView.getComputedStyle(el).left, 10);
+                const startTop = parseInt(document.defaultView.getComputedStyle(el).top, 10);
+
+                const doDrag = (e) => {
+                    if (corner === 'br') {
+                        el.style.width = (startWidth + e.clientX - startX) + 'px';
+                        el.style.height = (startHeight + e.clientY - startY) + 'px';
+                    } else if (corner === 'bl') {
+                        el.style.width = (startWidth - e.clientX + startX) + 'px';
+                        el.style.left = (startLeft + e.clientX - startX) + 'px';
+                        el.style.height = (startHeight + e.clientY - startY) + 'px';
+                    }
+                    // Add other corners as needed
+                    
+                    // Update Data
+                    const elData = this.state.editingPopup.elements.find(x => x.id === id);
+                    if(elData) {
+                        elData.width = parseInt(el.style.width);
+                        elData.height = parseInt(el.style.height);
+                        elData.x = parseInt(el.style.left);
+                        elData.y = parseInt(el.style.top);
+                    }
+                };
+
+                const stopDrag = () => {
+                    document.documentElement.removeEventListener('mousemove', doDrag, false);
+                    document.documentElement.removeEventListener('mouseup', stopDrag, false);
+                };
+
+                document.documentElement.addEventListener('mousemove', doDrag, false);
+                document.documentElement.addEventListener('mouseup', stopDrag, false);
+            },
+
+            selectElement(id) {
+                document.querySelectorAll('.editor-element').forEach(el => el.classList.remove('selected'));
+                const el = document.getElementById(id);
+                if(el) el.classList.add('selected');
+                
+                this.state.selectedElement = this.state.editingPopup.elements.find(x => x.id === id);
+                this.renderProperties(this.state.selectedElement, 'element');
+            },
+
+            selectPopupContainer(e) {
+                if(e && e.target.id !== 'canvas') return; // Only if clicking canvas directly
+                
+                document.querySelectorAll('.editor-element').forEach(el => el.classList.remove('selected'));
+                this.state.selectedElement = null;
+                this.renderProperties(this.state.editingPopup.settings, 'popup');
+            },
+
+            renderProperties(obj, type) {
+                const container = document.getElementById('propertiesContent');
+                const title = document.getElementById('propTitle');
+                
+                if (type === 'element' && obj) {
+                    title.textContent = 'Element Properties';
+                    container.innerHTML = `
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Width (px)</label>
+                            <input type="number" value="${obj.width}" onchange="app.updateProp('width', this.value)" class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Height (px)</label>
+                            <input type="number" value="${obj.height}" onchange="app.updateProp('height', this.value)" class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Font Size (px)</label>
+                            <input type="number" value="${obj.styles.fontSize}" onchange="app.updateProp('fontSize', this.value)" class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Text Color</label>
+                            <input type="color" value="${obj.styles.color}" onchange="app.updateProp('color', this.value)" class="w-full h-8 border border-gray-300 rounded cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Background Color</label>
+                            <input type="color" value="${obj.styles.bgColor === 'transparent' ? '#ffffff' : obj.styles.bgColor}" onchange="app.updateProp('bgColor', this.value)" class="w-full h-8 border border-gray-300 rounded cursor-pointer">
+                            <button onclick="app.updateProp('bgColor', 'transparent')" class="text-xs text-indigo-600 mt-1 underline">Make Transparent</button>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Alignment</label>
+                            <select onchange="app.updateProp('align', this.value)" class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                                <option value="left" ${obj.styles.align === 'left' ? 'selected' : ''}>Left</option>
+                                <option value="center" ${obj.styles.align === 'center' ? 'selected' : ''}>Center</option>
+                                <option value="right" ${obj.styles.align === 'right' ? 'selected' : ''}>Right</option>
+                            </select>
+                        </div>
+                        <div class="pt-4 border-t border-gray-200 flex gap-2">
+                            <button onclick="app.duplicateElement()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs py-2 rounded">Duplicate</button>
+                            <button onclick="app.deleteElement()" class="flex-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs py-2 rounded">Delete</button>
+                        </div>
+                    `;
+                } else {
+                    title.textContent = 'Popup Settings';
+                    const s = obj;
+                    container.innerHTML = `
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Width (px)</label>
+                            <input type="number" value="${s.width}" onchange="app.updatePopupProp('width', this.value)" class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Height (px)</label>
+                            <input type="number" value="${s.height}" onchange="app.updatePopupProp('height', this.value)" class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Position</label>
+                            <select onchange="app.updatePopupProp('position', this.value)" class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                                <option value="center" ${s.position === 'center' ? 'selected' : ''}>Center</option>
+                                <option value="top-left" ${s.position === 'top-left' ? 'selected' : ''}>Top Left</option>
+                                <option value="top-center" ${s.position === 'top-center' ? 'selected' : ''}>Top Center</option>
+                                <option value="top-right" ${s.position === 'top-right' ? 'selected' : ''}>Top Right</option>
+                                <option value="bottom-left" ${s.position === 'bottom-left' ? 'selected' : ''}>Bottom Left</option>
+                                <option value="bottom-center" ${s.position === 'bottom-center' ? 'selected' : ''}>Bottom Center</option>
+                                <option value="bottom-right" ${s.position === 'bottom-right' ? 'selected' : ''}>Bottom Right</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Background Color</label>
+                            <input type="color" value="${s.bgColor}" onchange="app.updatePopupProp('bgColor', this.value)" class="w-full h-8 border border-gray-300 rounded cursor-pointer">
+                        </div>
+                        <div class="flex items-center gap-2 pt-2">
+                            <input type="checkbox" id="closeCheck" ${s.closeBtn ? 'checked' : ''} onchange="app.updatePopupProp('closeBtn', this.checked)" class="rounded text-indigo-600">
+                            <label for="closeCheck" class="text-sm text-gray-700">Show Close Button</label>
+                        </div>
+                    `;
+                }
+            },
+
+            updateProp(key, value) {
+                if(!this.state.selectedElement) return;
+                if(['width','height'].includes(key)) this.state.selectedElement[key] = parseInt(value);
+                else this.state.selectedElement.styles[key] = value;
+                
+                const el = document.getElementById(this.state.selectedElement.id);
+                if(el) {
+                    if(key === 'width') el.style.width = value + 'px';
+                    if(key === 'height') el.style.height = value + 'px';
+                    if(key === 'fontSize') el.style.fontSize = value + 'px';
+                    if(key === 'color') el.style.color = value;
+                    if(key === 'bgColor') el.style.backgroundColor = value;
+                    if(key === 'align') {
+                        el.style.textAlign = value;
+                        el.style.justifyContent = value === 'center' ? 'center' : (value === 'right' ? 'flex-end' : 'flex-start');
+                    }
+                }
+            },
+
+            updatePopupProp(key, value) {
+                const s = this.state.editingPopup.settings;
+                s[key] = (key === 'width' || key === 'height') ? parseInt(value) : value;
+                
+                const canvas = document.getElementById('canvas');
+                if(key === 'width') canvas.style.width = value + 'px';
+                if(key === 'height') canvas.style.height = value + 'px';
+                if(key === 'bgColor') canvas.style.backgroundColor = value;
+                if(key === 'closeBtn') {
+                    document.getElementById('closeBtnPreview').style.display = value ? 'block' : 'none';
+                }
+            },
+
+            updateElementContent(id, text) {
+                const el = this.state.editingPopup.elements.find(x => x.id === id);
+                if(el) el.content = text;
+            },
+
+            duplicateElement() {
+                if(!this.state.selectedElement) return;
+                const newEl = { ...this.state.selectedElement, id: 'el_'+Date.now(), x: this.state.selectedElement.x + 20, y: this.state.selectedElement.y + 20 };
+                this.state.editingPopup.elements.push(newEl);
+                this.renderElement(newEl);
+                this.selectElement(newEl.id);
+            },
+
+            deleteElement() {
+                if(!this.state.selectedElement) return;
+                const id = this.state.selectedElement.id;
+                document.getElementById(id).remove();
+                this.state.editingPopup.elements = this.state.editingPopup.elements.filter(x => x.id !== id);
+                this.selectPopupContainer();
+            },
+
+            loadTemplate(name) {
+                const canvas = document.getElementById('canvas');
+                canvas.innerHTML = '<div class="absolute top-2 right-2 text-gray-300 hover:text-gray-600 cursor-pointer z-50" id="closeBtnPreview"><i class="fas fa-times"></i></div>';
+                this.state.editingPopup.elements = [];
+                
+                if(name === 'newsletter') {
+                    this.addElement('heading', 50, 40, 'Join Our Newsletter');
+                    const h = this.state.editingPopup.elements[0]; h.styles.fontSize = 28; h.styles.align = 'center'; h.width = 300; h.x = 50;
+                    this.renderElement(h);
+                    
+                    this.addElement('text', 50, 100, 'Get the latest updates sent straight to your inbox.');
+                    const t = this.state.editingPopup.elements[1]; t.styles.align = 'center'; t.width = 300; t.x = 50;
+                    this.renderElement(t);
+                    
+                    this.addElement('button', 100, 180, 'Subscribe Now');
+                    const b = this.state.editingPopup.elements[2]; b.width = 200; b.x = 100;
+                    this.renderElement(b);
+                } else if (name === 'discount') {
+                     this.state.editingPopup.settings.bgColor = '#fef2f2';
+                     this.updatePopupProp('bgColor', '#fef2f2');
+                     
+                     this.addElement('heading', 50, 50, 'FLASH SALE');
+                     const h = this.state.editingPopup.elements[0]; h.styles.color = '#dc2626'; h.styles.fontSize = 32; h.styles.align = 'center'; h.width = 300; h.x = 50;
+                     this.renderElement(h);
+                     
+                     this.addElement('button', 100, 150, 'Get 50% Off');
+                     const b = this.state.editingPopup.elements[1]; b.width = 200; b.x = 100;
+                     this.renderElement(b);
+                }
+                // Add more templates logic here
+            },
+
+            togglePreview() {
+                const overlay = document.getElementById('previewOverlay');
+                const container = document.getElementById('previewContainer');
+                const canvas = document.getElementById('canvas');
+                
+                if (overlay.style.display === 'block') {
+                    overlay.style.display = 'none';
+                    container.innerHTML = '';
+                } else {
+                    overlay.style.display = 'block';
+                    // Clone canvas
+                    const clone = canvas.cloneNode(true);
+                    clone.id = 'previewCanvas';
+                    clone.classList.remove('shadow-2xl');
+                    clone.style.pointerEvents = 'none'; // Disable editing in preview
+                    
+                    // Remove resize handles and selection borders
+                    clone.querySelectorAll('.resize-handle, .selected').forEach(el => el.classList.remove('resize-handle', 'selected'));
+                    clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+                    
+                    // Apply Position Class
+                    const pos = this.state.editingPopup.settings.position;
+                    clone.className = `bg-white shadow-2xl absolute pos-${pos}`;
+                    if(this.state.editingPopup.type === 'banner') {
+                         clone.classList.remove('pos-' + pos);
+                         clone.classList.add(pos.includes('top') ? 'banner-top' : 'banner-bottom');
+                    }
+                    
+                    clone.style.width = this.state.editingPopup.settings.width + 'px';
+                    clone.style.height = this.state.editingPopup.settings.height + 'px';
+                    clone.style.backgroundColor = this.state.editingPopup.settings.bgColor;
+                    
+                    // Handle Close Button in Preview
+                    const closeBtn = clone.querySelector('#closeBtnPreview');
+                    if(closeBtn) {
+                        closeBtn.style.display = this.state.editingPopup.settings.closeBtn ? 'block' : 'none';
+                        closeBtn.onclick = () => overlay.style.display = 'none';
+                        closeBtn.style.zIndex = '10002';
+                        closeBtn.style.position = 'absolute';
+                    }
+                    
+                    container.appendChild(clone);
+                }
+            },
+
+            showCodeModal() {
+                if(this.state.isDemo) {
+                    document.getElementById('demoPrompt').classList.remove('hidden');
+                    return;
+                }
+                
+                const s = this.state.editingPopup.settings;
+                const posClass = `pos-${s.position}`;
+                const bannerClass = s.type === 'banner' ? (s.position.includes('top') ? 'banner-top' : 'banner-bottom') : '';
+                
+                let elementsHtml = '';
+                this.state.editingPopup.elements.forEach(el => {
+                    let contentHtml = '';
+                    if(el.type === 'heading') contentHtml = `<h2 style="font-size:${el.styles.fontSize}px; color:${el.styles.color}; font-weight:bold; margin:0;">${el.content}</h2>`;
+                    else if(el.type === 'text') contentHtml = `<p style="font-size:${el.styles.fontSize}px; color:${el.styles.color}; margin:0;">${el.content}</p>`;
+                    else if(el.type === 'button') contentHtml = `<button style="width:100%; height:100%; background:#4f46e5; color:white; border:none; border-radius:4px; cursor:pointer;">${el.content}</button>`;
+                    else if(el.type === 'image') contentHtml = `<div style="width:100%; height:100%; background:#e5e7eb; display:flex; align-items:center; justify-content:center; color:#9ca3af;"><i class="fas fa-image"></i></div>`;
+                    
+                    let alignStyle = '';
+                    if(el.styles.align === 'center') alignStyle = 'display:flex; justify-content:center; align-items:center; flex-direction:column;';
+                    if(el.styles.align === 'right') alignStyle = 'display:flex; justify-content:flex-end; align-items:center;';
+
+                    elementsHtml += `
+                        <div style="position:absolute; left:${el.x}px; top:${el.y}px; width:${el.width}px; height:${el.height}px; background:${el.styles.bgColor}; color:${el.styles.color}; font-size:${el.styles.fontSize}px; padding:10px; box-sizing:border-box; ${alignStyle}">
+                            ${contentHtml}
+                        </div>
+                    `;
+                });
+
+                const code = `
+<!-- PopMaker Pro Code -->
+<div id="pm-popup-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+    <div id="pm-popup" class="${posClass} ${bannerClass}" style="position:absolute; background:${s.bgColor}; width:${s.width}px; height:${s.height}px; box-shadow:0 10px 25px rgba(0,0,0,0.2); border-radius:8px; padding:20px; box-sizing:border-box;">
+        ${s.closeBtn ? '<span onclick="document.getElementById(\'pm-popup-overlay\').style.display=\'none\'" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:20px; color:#666;">&times;</span>' : ''}
+        ${elementsHtml}
+    </div>
+</div>
+<script>
+    setTimeout(() => { document.getElementById('pm-popup-overlay').style.display = 'flex'; }, 1000);
+<\/script>
+                `.trim();
+                
+                document.getElementById('codeOutput').textContent = code;
+                document.getElementById('codeModal').classList.remove('hidden');
+            },
+
+            copyCode() {
+                const code = document.getElementById('codeOutput').textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                    alert('Code copied to clipboard!');
+                    document.getElementById('codeModal').classList.add('hidden');
+                });
+            },
+
+            savePopup() {
+                if(this.state.isDemo) {
+                    document.getElementById('demoPrompt').classList.remove('hidden');
+                    return;
+                }
+                
+                // Save to local storage mock
+                const existing = JSON.parse(localStorage.getItem(`popups_${this.state.currentUser.id}`) || '[]');
+                const idx = existing.findIndex(p => p.id === this.state.editingPopup.id);
+                
+                if(idx >= 0) existing[idx] = this.state.editingPopup;
+                else existing.push(this.state.editingPopup);
+                
+                localStorage.setItem(`popups_${this.state.currentUser.id}`, JSON.stringify(existing));
+                alert('Popup saved successfully!');
+            },
+
+            saveAndExit() {
+                this.savePopup();
+                this.navigate('dashboard');
+            },
+            
+            editPopup(id) {
+                const p = this.state.popups.find(x => x.id === id);
+                if(!p) return;
+                
+                this.state.editingPopup = JSON.parse(JSON.stringify(p)); // Deep copy
+                this.state.newPopupType = p.type;
+                
+                // Re-render canvas
+                const canvas = document.getElementById('canvas');
+                canvas.innerHTML = '<div class="absolute top-2 right-2 text-gray-300 hover:text-gray-600 cursor-pointer z-50" id="closeBtnPreview"><i class="fas fa-times"></i></div>';
+                canvas.style.width = p.settings.width + 'px';
+                canvas.style.height = p.settings.height + 'px';
+                canvas.style.backgroundColor = p.settings.bgColor;
+                document.getElementById('closeBtnPreview').style.display = p.settings.closeBtn ? 'block' : 'none';
+                
+                p.elements.forEach(el => this.renderElement(el));
+                
+                document.getElementById('editorTitle').textContent = p.name;
+                document.getElementById('editorTypeBadge').textContent = p.type.toUpperCase();
+                this.navigate('editor');
+            }
+        };
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            app.init();
+            
+            // Setup global drop handler for canvas
+            const canvas = document.getElementById('canvas');
+            canvas.addEventListener('dragover', (e) => e.preventDefault());
+            canvas.addEventListener('drop', (e) => app.drop(e));
+        });
+    </script>
+</body>
+</html>
