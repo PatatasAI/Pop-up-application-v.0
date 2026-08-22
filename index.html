@@ -992,8 +992,10 @@
                             <select onchange="app.updatePopupProp('position', this.value)" class="w-full text-sm border rounded p-2">
                                 <option value="center" ${this.state.currentPopup.position === 'center' ? 'selected' : ''}>Center</option>
                                 <option value="top-left" ${this.state.currentPopup.position === 'top-left' ? 'selected' : ''}>Top Left</option>
+                                <option value="top-center" ${this.state.currentPopup.position === 'top-center' ? 'selected' : ''}>Top Center</option>
                                 <option value="top-right" ${this.state.currentPopup.position === 'top-right' ? 'selected' : ''}>Top Right</option>
                                 <option value="bottom-left" ${this.state.currentPopup.position === 'bottom-left' ? 'selected' : ''}>Bottom Left</option>
+                                <option value="bottom-center" ${this.state.currentPopup.position === 'bottom-center' ? 'selected' : ''}>Bottom Center</option>
                                 <option value="bottom-right" ${this.state.currentPopup.position === 'bottom-right' ? 'selected' : ''}>Bottom Right</option>
                             </select>
                         </div>
@@ -1207,8 +1209,10 @@
                         if (p.position === 'center') { posClass = ''; animClass = 'anim-bounce-in'; }
                         else if (p.position === 'top-left') { posClass = 'top-4 left-4'; animClass = 'anim-slide-down'; }
                         else if (p.position === 'top-right') { posClass = 'top-4 right-4'; animClass = 'anim-slide-down'; }
+                        else if (p.position === 'top-center') { posClass = 'top-4 left-1/2 -translate-x-1/2'; animClass = 'anim-slide-down'; }
                         else if (p.position === 'bottom-left') { posClass = 'bottom-4 left-4'; animClass = 'anim-slide-up'; }
                         else if (p.position === 'bottom-right') { posClass = 'bottom-4 right-4'; animClass = 'anim-slide-up'; }
+                        else if (p.position === 'bottom-center') { posClass = 'bottom-4 left-1/2 -translate-x-1/2'; animClass = 'anim-slide-up'; }
                     }
 
                     container.innerHTML = `
@@ -1243,8 +1247,10 @@
                 } else {
                     if (p.position === 'top-left') jsPos = 'display: flex; justify-content: flex-start; align-items: flex-start; padding: 20px;';
                     if (p.position === 'top-right') jsPos = 'display: flex; justify-content: flex-end; align-items: flex-start; padding: 20px;';
+                    if (p.position === 'top-center') jsPos = 'display: flex; justify-content: center; align-items: flex-start; padding: 20px;';
                     if (p.position === 'bottom-left') jsPos = 'display: flex; justify-content: flex-start; align-items: flex-end; padding: 20px;';
                     if (p.position === 'bottom-right') jsPos = 'display: flex; justify-content: flex-end; align-items: flex-end; padding: 20px;';
+                    if (p.position === 'bottom-center') jsPos = 'display: flex; justify-content: center; align-items: flex-end; padding: 20px;';
                 }
 
                 const code = `
@@ -1337,7 +1343,101 @@
         };
 
         // Initialize
-        app.init();
+    
+<script>
+// Editor interaction patch: make canvas elements movable, resizable, editable, and persistent.
+(function () {
+    const originalRenderCanvas = app.renderCanvas.bind(app);
+    const originalDrop = app.drop.bind(app);
+
+    app.bindEditorInteractions = function (canvas) {
+        canvas.querySelectorAll('.canvas-element').forEach((el) => {
+            if (el.dataset.editorInteractionsBound === 'true') return;
+            el.dataset.editorInteractionsBound = 'true';
+            el.dataset.editorDraggable = 'true';
+            el.style.touchAction = 'none';
+
+            el.addEventListener('pointerdown', (event) => {
+                if (event.target.closest('.resize-handle')) return;
+                event.preventDefault();
+                event.stopPropagation();
+                this.selectElement(el);
+                const startX = event.clientX;
+                const startY = event.clientY;
+                const startLeft = parseFloat(el.style.left) || 0;
+                const startTop = parseFloat(el.style.top) || 0;
+                const move = (moveEvent) => {
+                    el.style.left = (startLeft + moveEvent.clientX - startX) + 'px';
+                    el.style.top = (startTop + moveEvent.clientY - startY) + 'px';
+                };
+                const stop = () => {
+                    document.removeEventListener('pointermove', move);
+                    document.removeEventListener('pointerup', stop);
+                    this.updatePopupData();
+                };
+                document.addEventListener('pointermove', move);
+                document.addEventListener('pointerup', stop, { once: true });
+            });
+
+            el.addEventListener('dblclick', (event) => {
+                if (event.target.closest('.resize-handle')) return;
+                if (!['H1','H2','H3','H4','H5','H6','P','SPAN','BUTTON'].includes(el.tagName)) return;
+                event.preventDefault();
+                event.stopPropagation();
+                el.contentEditable = 'true';
+                el.focus();
+                const finish = () => {
+                    el.contentEditable = 'false';
+                    el.removeEventListener('blur', finish);
+                    this.updatePopupData();
+                    this.renderProperties(el);
+                };
+                el.addEventListener('blur', finish);
+            });
+
+            el.querySelectorAll('.resize-handle').forEach((handle) => {
+                handle.addEventListener('pointerdown', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.selectElement(el);
+                    const startX = event.clientX;
+                    const startY = event.clientY;
+                    const startWidth = el.getBoundingClientRect().width;
+                    const startHeight = el.getBoundingClientRect().height;
+                    const resize = (moveEvent) => {
+                        const dx = moveEvent.clientX - startX;
+                        const dy = moveEvent.clientY - startY;
+                        const horizontal = handle.classList.contains('rh-br') || handle.classList.contains('rh-tr') ? dx : -dx;
+                        const vertical = handle.classList.contains('rh-br') || handle.classList.contains('rh-bl') ? dy : -dy;
+                        el.style.width = Math.max(24, startWidth + horizontal) + 'px';
+                        el.style.height = Math.max(24, startHeight + vertical) + 'px';
+                    };
+                    const stopResize = () => {
+                        document.removeEventListener('pointermove', resize);
+                        document.removeEventListener('pointerup', stopResize);
+                        this.updatePopupData();
+                        this.renderProperties(el);
+                    };
+                    document.addEventListener('pointermove', resize);
+                    document.addEventListener('pointerup', stopResize, { once: true });
+                });
+            });
+        });
+    };
+
+    app.renderCanvas = function () {
+        originalRenderCanvas();
+        this.bindEditorInteractions(document.getElementById('canvas'));
+    };
+
+    app.drop = function (event) {
+        originalDrop(event);
+        this.bindEditorInteractions(document.getElementById('canvas'));
+    };
+})();
+</script>
+
+    app.init();
     </script>
 </body>
 </html>
