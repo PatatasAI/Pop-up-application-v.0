@@ -1256,10 +1256,12 @@
                     if (p.position === 'bottom-center') jsPos = 'display: flex; justify-content: center; align-items: flex-end; padding: 20px;';
                 }
 
+                const responsiveCss = '<style id="pm-responsive-styles">@media (max-width: 900px){#pm-popup-content{width:' + ((p.responsive && p.responsive.tablet && p.responsive.tablet.width) || '90%') + ';height:' + ((p.responsive && p.responsive.tablet && p.responsive.tablet.height) || 'auto') + ';}}@media (max-width: 600px){#pm-popup-content{width:' + ((p.responsive && p.responsive.mobile && p.responsive.mobile.width) || '90%') + ';height:' + ((p.responsive && p.responsive.mobile && p.responsive.mobile.height) || 'auto') + ';max-width:calc(100vw - 24px);}}<\/style>';
                 const code = `
+${responsiveCss}
 <!-- PopMaker Pro Installation -->
 <div id="pm-popup-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; ${jsPos}">
-    <div id="pm-popup-content" style="position:relative; background:${p.bgColor}; width:${p.width}; height:${p.height === 'auto' ? 'auto' : p.height}; box-shadow:0 10px 25px rgba(0,0,0,0.2); ${p.type === 'banner' ? 'border-radius:0' : 'border-radius:8px'}">
+    <div id="pm-popup-content" style="position:relative; background:${p.bgColor}; width:${p.width}; max-width:calc(100vw - 24px); box-sizing:border-box; height:${p.height === 'auto' ? 'auto' : p.height}; box-shadow:0 10px 25px rgba(0,0,0,0.2); ${p.type === 'banner' ? 'border-radius:0' : 'border-radius:8px'}">
         ${p.elements}
         ${p.closeBtnType !== 'none' ? `
             <div onclick="document.getElementById('pm-popup-overlay').style.display='none'" 
