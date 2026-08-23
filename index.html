@@ -1312,7 +1312,7 @@
             document.getElementById('prop-bg-color').value = popup.settings?.bg || '#ffffff';
             document.getElementById('prop-position').value = popup.settings?.position || 'center';
             canvas.style.width = (popup.settings?.width || 500) + 'px'; canvas.style.minHeight = (popup.settings?.height || 400) + 'px'; canvas.style.backgroundColor = popup.settings?.bg || '#ffffff';
-            Array.from(canvas.children).forEach((el,i)=>{ if(i>0){ el.classList.add('absolute','cursor-move'); this.makeElementInteractive(el); }});
+            Array.from(canvas.children).forEach((el)=>{ if(!el.matches('#popup-close-btn, [data-popup-close]')){ el.classList.add('absolute','cursor-move'); this.makeElementInteractive(el); }});
             document.getElementById('editor-title').innerText = popup.name || 'Untitled Popup';
             this.ensureCloseButton();
             this.selectPopupContainer();
