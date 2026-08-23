@@ -47,6 +47,11 @@
 
         /* Admin God Mode Indicator */
         .god-mode-banner { background: #ef4444; color: white; text-align: center; padding: 8px; font-weight: bold; font-size: 0.875rem; }
+
+        .demo-scene { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; opacity:0; animation: demoScene 16s infinite; padding:1.5rem; }
+        .demo-scene-1 { animation-delay:0s; } .demo-scene-2 { animation-delay:4s; } .demo-scene-3 { animation-delay:8s; } .demo-scene-4 { animation-delay:12s; }
+        .demo-popup { animation: demoPopup 4s ease-in-out infinite; } .demo-progress { animation: demoProgress 16s linear infinite; width:25%; }
+        @keyframes demoScene { 0%,20%{opacity:1;transform:translateY(0)} 25%,100%{opacity:0;transform:translateY(10px)} } @keyframes demoPopup { 0%,100%{transform:scale(.95)} 50%{transform:scale(1.05)} } @keyframes demoProgress { 0%{width:0} 25%{width:25%} 50%{width:50%} 75%{width:75%} 100%{width:100%} }
     </style>
 </head>
 <body class="text-slate-800 antialiased">
@@ -180,6 +185,21 @@
             </div>
         </section>
 
+
+        <!-- Product Demo Video-style Animation -->
+        <section id="product-demo" class="py-20 bg-white">
+            <div class="max-w-6xl mx-auto px-6">
+                <div class="text-center mb-10"><span class="text-xs font-bold uppercase tracking-widest text-indigo-600">See it in action</span><h2 class="text-3xl font-bold text-slate-900 mt-2">From login to live popup in under a minute</h2><p class="text-slate-500 mt-3">A guided product demo that plays directly on the page—no external video hosting required.</p></div>
+                <div class="rounded-2xl bg-slate-950 shadow-2xl overflow-hidden border border-slate-800">
+                    <div class="flex items-center gap-2 px-5 py-3 bg-slate-900 border-b border-slate-800"><span class="w-3 h-3 rounded-full bg-red-400"></span><span class="w-3 h-3 rounded-full bg-yellow-400"></span><span class="w-3 h-3 rounded-full bg-green-400"></span><span class="ml-3 text-xs text-slate-400">popmaker.pro / product tour</span></div>
+                    <div class="p-6 md:p-10 grid md:grid-cols-2 gap-8 items-center">
+                        <div class="rounded-xl bg-slate-900 border border-slate-700 p-5 min-h-[260px] relative overflow-hidden"><div class="demo-scene demo-scene-1"><div class="text-indigo-300 text-4xl mb-3"><i class="fas fa-user-circle"></i></div><div class="font-bold text-white text-lg">Log in or try Demo Free</div><div class="text-slate-400 text-sm mt-2">Start building without an account.</div></div><div class="demo-scene demo-scene-2"><div class="flex gap-2 mb-5"><span class="px-3 py-1 rounded bg-indigo-500/20 text-indigo-300 text-xs">Dashboard</span><span class="px-3 py-1 rounded bg-slate-800 text-slate-400 text-xs">Create Popup</span></div><div class="h-3 bg-slate-700 rounded w-3/4 mb-3"></div><div class="h-3 bg-slate-800 rounded w-1/2"></div></div><div class="demo-scene demo-scene-3"><div class="rounded-lg bg-white p-5 shadow-xl text-center transform demo-popup"><div class="text-indigo-600 font-bold text-lg">Special Offer</div><div class="text-slate-500 text-xs mt-1">20% off your first order</div><button class="mt-4 px-4 py-2 bg-indigo-600 text-white text-xs rounded-lg">Shop Now</button></div></div><div class="demo-scene demo-scene-4"><div class="text-green-400 text-4xl mb-3"><i class="fas fa-check-circle"></i></div><div class="font-bold text-white text-lg">Published successfully</div><div class="text-slate-400 text-sm mt-2">Preview, copy code, and publish.</div></div></div>
+                        <div><div class="flex items-center gap-3 mb-5"><div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold" id="demo-step-number">1</div><div><div class="text-white font-bold" id="demo-step-title">Log in or try Demo Free</div><div class="text-slate-400 text-sm" id="demo-step-copy">No account required to explore the editor.</div></div></div><div class="h-2 bg-slate-800 rounded-full overflow-hidden"><div id="demo-progress" class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full demo-progress"></div></div><div class="flex justify-between text-xs text-slate-500 mt-3"><span>Dashboard</span><span>Editor</span><span>Preview</span><span>Publish</span></div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Templates Preview Section -->
         <section id="templates" class="py-20 bg-slate-50">
             <div class="max-w-7xl mx-auto px-6">
@@ -224,9 +244,9 @@
                     &copy; 2026 PopMaker Pro. All Rights Reserved.
                 </div>
                 <div class="flex gap-6 text-slate-400">
-                    <a href="#" class="hover:text-indigo-600"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="hover:text-indigo-600"><i class="fab fa-facebook"></i></a>
-                    <a href="#" class="hover:text-indigo-600"><i class="fab fa-instagram"></i></a>
+                    <a href="#features" class="hover:text-indigo-600" aria-label="Features"><i class="fab fa-twitter"></i></a>
+                    <a href="#templates" class="hover:text-indigo-600" aria-label="Templates"><i class="fab fa-facebook"></i></a>
+                    <a href="#product-demo" class="hover:text-indigo-600" aria-label="Product demo"><i class="fas fa-play"></i></a>
                 </div>
             </div>
         </footer>
@@ -613,7 +633,7 @@
         </header>
         <main class="flex-1 p-6 overflow-y-auto">
             <div class="max-w-7xl mx-auto">
-                <h2 class="text-2xl font-bold mb-6">All Users</h2>
+                <div class="flex items-center justify-between mb-6"><h2 class="text-2xl font-bold">All Users</h2><button onclick="app.createSubAccount()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-bold"><i class="fas fa-user-plus mr-2"></i>Create Sub-account</button></div>
                 <div class="bg-slate-800 rounded-xl overflow-hidden shadow-xl">
                     <table class="w-full text-left">
                         <thead class="bg-slate-700 text-slate-300 text-xs uppercase">
@@ -1254,6 +1274,89 @@
                 return "#" + ((1 << 24) + (parseInt(rgb[0]) << 16) + (parseInt(rgb[1]) << 8) + parseInt(rgb[2])).toString(16).slice(1);
             }
         };
+
+
+        // ================= RELIABILITY PATCH =================
+        // Keep editor state in one object so preview, save, edit, and Get Code use the same data.
+        app.state.currentPopup = null;
+        app.state.editingPopupId = null;
+        app.state.newPopupType = 'regular';
+
+        app.capturePopup = function () {
+            const canvas = document.getElementById('popup-canvas');
+            const content = canvas.innerHTML.replace(/<div class="resize-handle[^>]*><\/div>/g, '').replace(/element-selected/g, '').replace(/\sdata-editor-interactions-bound="[^"]*"/g, '');
+            return { content, width: document.getElementById('prop-width').value || 500, height: document.getElementById('prop-height').value || 400, bg: document.getElementById('prop-bg-color').value || '#ffffff', position: document.getElementById('prop-position').value || 'center' };
+        };
+
+        const originalStartEditor = app.startEditor.bind(app);
+        app.startEditor = function (mode, templateName) {
+            this.state.editingPopupId = null;
+            this.state.currentPopup = null;
+            originalStartEditor(mode, templateName);
+            this.state.currentPopup = this.capturePopup();
+            document.querySelectorAll('#popup-canvas > *:not(:first-child)').forEach(el => this.makeElementInteractive(el));
+        };
+
+        app.openEditor = function (id) {
+            const popup = this.state.popups.find(p => String(p.id) === String(id));
+            if (!popup) return;
+            this.state.isDemo = false;
+            this.state.editingPopupId = popup.id;
+            this.state.currentPopup = popup;
+            document.getElementById('user-dashboard').classList.add('hidden');
+            document.getElementById('editor-page').classList.remove('hidden');
+            const canvas = document.getElementById('popup-canvas');
+            canvas.innerHTML = popup.content || '<div class="absolute top-2 right-2 text-slate-300 cursor-pointer p-1" onclick="app.toggleCloseBtn()"><i class="fas fa-times"></i></div>';
+            document.getElementById('prop-width').value = parseInt(popup.settings?.width || 500);
+            document.getElementById('prop-height').value = parseInt(popup.settings?.height || 400);
+            document.getElementById('prop-bg-color').value = popup.settings?.bg || '#ffffff';
+            document.getElementById('prop-position').value = popup.settings?.position || 'center';
+            canvas.style.width = (popup.settings?.width || 500) + 'px'; canvas.style.minHeight = (popup.settings?.height || 400) + 'px'; canvas.style.backgroundColor = popup.settings?.bg || '#ffffff';
+            Array.from(canvas.children).forEach((el,i)=>{ if(i>0){ el.classList.add('absolute','cursor-move'); this.makeElementInteractive(el); }});
+            document.getElementById('editor-title').innerText = popup.name || 'Untitled Popup';
+            this.selectPopupContainer();
+        };
+
+        app.updatePopupProp = function (key, val) {
+            const canvas=document.getElementById('popup-canvas');
+            if(key==='width'){canvas.style.width=Math.max(240,parseInt(val)||500)+'px';document.getElementById('prop-width').value=parseInt(val)||500;}
+            if(key==='height'){canvas.style.minHeight=Math.max(120,parseInt(val)||400)+'px';document.getElementById('prop-height').value=parseInt(val)||400;}
+            if(key==='bg'){canvas.style.backgroundColor=val;document.getElementById('prop-bg-color').value=val;}
+            if(key==='position') canvas.dataset.position=val;
+            if(!this.state.currentPopup) this.state.currentPopup={};
+            this.state.currentPopup.settings={width:document.getElementById('prop-width').value,height:document.getElementById('prop-height').value,bg:document.getElementById('prop-bg-color').value,position:document.getElementById('prop-position').value};
+        };
+
+        app.togglePreview = function () {
+            const modal=document.getElementById('preview-modal'), area=document.getElementById('preview-area');
+            if(!modal.classList.contains('hidden')){modal.classList.add('hidden');return;}
+            const data=this.capturePopup(), source=document.getElementById('popup-canvas');
+            const clone=source.cloneNode(true); clone.id='preview-popup'; clone.className='bg-white shadow-2xl relative overflow-hidden'; clone.style.position='relative'; clone.style.top='auto'; clone.style.left='auto'; clone.style.right='auto'; clone.style.bottom='auto'; clone.style.transform='none'; clone.style.margin='0'; clone.style.width=data.width+'px'; clone.style.minHeight=data.height+'px'; clone.style.maxWidth='calc(100vw - 32px)'; clone.style.backgroundColor=data.bg;
+            clone.querySelectorAll('.resize-handle').forEach(h=>h.remove()); clone.querySelectorAll('.element-selected').forEach(el=>el.classList.remove('element-selected')); clone.querySelectorAll('[onclick*="toggleCloseBtn"]').forEach(btn=>{btn.onclick=(e)=>{e.stopPropagation();btn.style.display='none';};});
+            area.innerHTML=''; area.style.alignItems=data.position.includes('top')?'flex-start':data.position.includes('bottom')?'flex-end':'center'; area.style.justifyContent=data.position.includes('left')?'flex-start':data.position.includes('right')?'flex-end':'center';
+            if(data.position==='top-center'||data.position==='bottom-center') area.style.justifyContent='center';
+            const device=this.state.device||'desktop'; const frame=document.createElement('div'); frame.className='device-frame frame-'+device; frame.style.maxWidth='100%'; frame.style.overflow='auto'; frame.style.display='flex'; frame.style.alignItems=data.position.includes('top')?'flex-start':data.position.includes('bottom')?'flex-end':'center'; frame.style.justifyContent=data.position.includes('left')?'flex-start':data.position.includes('right')?'flex-end':'center'; if(device==='mobile'){frame.style.width='375px';frame.style.height='667px';} else if(device==='tablet'){frame.style.width='768px';frame.style.height='700px';} else {frame.style.width='100%';frame.style.height='100%';} frame.appendChild(clone); area.appendChild(frame); modal.classList.remove('hidden');
+        };
+
+        app.savePopup = function () {
+            if(this.state.isDemo){document.getElementById('demo-prompt').classList.remove('hidden');return;}
+            const data=this.capturePopup(); const name=prompt('Name your popup:',this.state.currentPopup?.name||'My Popup')||this.state.currentPopup?.name||'Untitled';
+            const popup={id:this.state.editingPopupId||Date.now().toString(),userId:this.state.currentUser.id,name,type:this.state.newPopupType||this.state.currentPopup?.type||'regular',status:'draft',content:data.content,settings:data,updatedAt:Date.now()};
+            const idx=this.state.popups.findIndex(p=>String(p.id)===String(popup.id)); if(idx>=0)this.state.popups[idx]=popup;else this.state.popups.push(popup); this.state.currentPopup=popup; this.state.editingPopupId=popup.id; this.saveData(); alert('Saved successfully!'); this.exitEditor(); this.loadDashboard();
+        };
+
+        app.getCode = function () {
+            if(this.state.isDemo){document.getElementById('demo-prompt').classList.remove('hidden');return;}
+            const data=this.capturePopup(); let pos='top:50%;left:50%;transform:translate(-50%,-50%);'; const p=data.position;
+            if(p==='top-left')pos='top:20px;left:20px;'; if(p==='top-center')pos='top:20px;left:50%;transform:translateX(-50%);'; if(p==='top-right')pos='top:20px;right:20px;'; if(p==='bottom-left')pos='bottom:20px;left:20px;'; if(p==='bottom-center')pos='bottom:20px;left:50%;transform:translateX(-50%);'; if(p==='bottom-right')pos='bottom:20px;right:20px;';
+            const code='<!-- PopMaker Pro Code -->\n<style>@media(max-width:600px){#pm-popup{width:90%!important;max-width:calc(100vw - 24px);}}</style>\n<div id="pm-popup-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;">\n  <div id="pm-popup" style="position:absolute;'+pos+'width:'+data.width+'px;min-height:'+data.height+'px;max-width:calc(100vw - 24px);box-sizing:border-box;background:'+data.bg+';box-shadow:0 10px 25px rgba(0,0,0,.2);border-radius:8px;overflow:hidden;">'+data.content.replace(/onclick="app.toggleCloseBtn()"/g,'onclick="document.getElementById(\'pm-popup-overlay\').style.display=\'none\'"')+'</div>\n</div>\n<script>setTimeout(()=>{document.getElementById(\'pm-popup-overlay\').style.display=\'block\'},1000)<\/script>';
+            document.getElementById('code-output').innerText=code; document.getElementById('code-modal').classList.remove('hidden');
+        };
+
+        app.createSubAccount = function () { if(this.state.currentUser?.role!=='admin' && !this.state.currentUser?.email?.includes('admin')) return; const email=prompt('Sub-account email:'); if(!email)return; if(this.state.users.some(u=>u.email===email)){alert('Account exists');return;} const user={id:Date.now(),name:prompt('Name:')||email.split('@')[0],company:prompt('Company:')||'Managed Account',email,password:prompt('Temporary password:')||'change-me',website:'',role:'user'}; this.state.users.push(user); this.saveData(); this.renderAdmin(); alert('Sub-account created. Share the temporary password securely, then require a real backend before production.'); };
+
+        // Fix live controls that relied on an implicit global event.
+        const originalSetDevice=app.setDevice.bind(app); app.setDevice=function(device){this.state.device=device;document.querySelectorAll('.device-btn').forEach(b=>b.classList.remove('bg-white','shadow','text-slate-700'));const btn=[...document.querySelectorAll('.device-btn')].find(b=>b.getAttribute('onclick')?.includes(device));if(btn)btn.classList.add('bg-white','shadow','text-slate-700');const c=document.getElementById('canvas-container');c.className='relative transition-all duration-300';if(device==='tablet')c.classList.add('scale-75');if(device==='mobile')c.classList.add('scale-50');};
 
         // Initialize App
         window.addEventListener('DOMContentLoaded', () => app.init());
