@@ -8,1236 +8,1255 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Inter', sans-serif; }
         
-        /* Smooth Scrolling */
-        html { scroll-behavior: smooth; }
-
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        
         /* Animations */
         .fade-in { animation: fadeIn 0.5s ease-out forwards; opacity: 0; }
-        .slide-up { animation: slideUp 0.6s ease-out forwards; opacity: 0; transform: translateY(20px); }
-        .scale-in { animation: scaleIn 0.4s ease-out forwards; opacity: 0; transform: scale(0.95); }
-        
+        .slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
         @keyframes fadeIn { to { opacity: 1; } }
         @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
-        @keyframes scaleIn { to { opacity: 1; transform: scale(1); } }
 
-        /* Delays */
-        .delay-100 { animation-delay: 0.1s; }
-        .delay-200 { animation-delay: 0.2s; }
-        .delay-300 { animation-delay: 0.3s; }
-        .delay-400 { animation-delay: 0.4s; }
-
-        /* Canvas Grid */
-        .canvas-bg {
-            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-
-        /* Draggable Item */
-        .draggable-item { cursor: grab; transition: all 0.2s; }
-        .draggable-item:active { cursor: grabbing; transform: scale(1.02); }
-        .draggable-item:hover { border-color: #6366f1; background-color: #eef2ff; }
-
-        /* Selected Element */
-        .selected-element { outline: 2px solid #6366f1; position: relative; }
-        .resize-handle {
-            width: 10px; height: 10px; background: #6366f1; position: absolute;
-            border-radius: 50%; display: none; z-index: 10;
-        }
-        .selected-element .resize-handle { display: block; }
+        /* Editor Specifics */
+        .canvas-area { background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 24px 24px; }
+        .element-selected { outline: 2px solid #3b82f6; position: relative; }
+        .resize-handle { width: 10px; height: 10px; background: #3b82f6; border: 1px solid white; position: absolute; z-index: 50; display: none; }
+        .element-selected .resize-handle { display: block; }
         .rh-tl { top: -5px; left: -5px; cursor: nw-resize; }
         .rh-tr { top: -5px; right: -5px; cursor: ne-resize; }
         .rh-bl { bottom: -5px; left: -5px; cursor: sw-resize; }
         .rh-br { bottom: -5px; right: -5px; cursor: se-resize; }
 
-        /* Modal Transitions */
-        .modal { transition: opacity 0.3s ease, visibility 0.3s ease; }
-        .modal.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-        .modal.visible { opacity: 1; visibility: visible; pointer-events: auto; }
-
+        /* Modal Overlay */
+        .modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        
         /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* Template Card Hover */
-        .template-card { transition: all 0.3s ease; }
-        .template-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        /* Template Cards */
+        .template-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        
+        /* Device Frames */
+        .device-frame { transition: all 0.3s ease; margin: 0 auto; background: white; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .frame-desktop { width: 100%; max-width: 100%; height: 100%; }
+        .frame-tablet { width: 768px; height: 1024px; border: 12px solid #333; border-radius: 20px; }
+        .frame-mobile { width: 375px; height: 667px; border: 12px solid #333; border-radius: 20px; }
+
+        /* Admin God Mode Indicator */
+        .god-mode-banner { background: #ef4444; color: white; text-align: center; padding: 8px; font-weight: bold; font-size: 0.875rem; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 antialiased overflow-x-hidden">
+<body class="text-slate-800 antialiased">
 
-    <!-- NAVIGATION -->
-    <nav class="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 transition-all duration-300" id="navbar">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <!-- Logo -->
-                <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer" onclick="handleLogoClick()">
-                    <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-                        <i class="fas fa-bolt text-xl"></i>
-                    </div>
-                    <span class="font-bold text-2xl tracking-tight text-gray-900">PopMaker<span class="text-indigo-600">Pro</span></span>
+    <!-- ================= LANDING PAGE ================= -->
+    <div id="landing-page" class="min-h-screen flex flex-col">
+        <!-- Nav -->
+        <nav class="w-full py-6 px-6 md:px-12 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="app.navigate('landing')">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-200">P</div>
+                <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">PopMaker Pro</span>
+            </div>
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#features" class="text-slate-600 hover:text-indigo-600 font-medium transition">Features</a>
+                <a href="#templates" class="text-slate-600 hover:text-indigo-600 font-medium transition">Templates</a>
+                <a href="#how-it-works" class="text-slate-600 hover:text-indigo-600 font-medium transition">How It Works</a>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="app.navigate('login')" class="text-slate-600 hover:text-indigo-600 font-semibold transition">Log In</button>
+                <button onclick="app.navigate('signup')" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-full shadow-lg shadow-indigo-200 transition transform hover:-translate-y-0.5">Get Started</button>
+            </div>
+        </nav>
+
+        <!-- Hero -->
+        <header class="flex-1 flex flex-col md:flex-row items-center justify-center px-6 md:px-12 py-12 md:py-20 gap-12 max-w-7xl mx-auto w-full">
+            <div class="md:w-1/2 space-y-6 slide-up" style="animation-delay: 0.1s;">
+                <div class="inline-block px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm font-semibold border border-indigo-100">
+                    🚀 Version 2.0 is Live
                 </div>
-
-                <!-- Desktop Menu -->
-                <div class="hidden md:flex items-center space-x-8" id="nav-links">
-                    <!-- Injected via JS based on auth state -->
-                </div>
-
-                <!-- Mobile Menu Button -->
-                <div class="md:hidden flex items-center">
-                    <button onclick="toggleMobileMenu()" class="text-gray-500 hover:text-gray-700 focus:outline-none">
-                        <i class="fas fa-bars text-2xl"></i>
+                <h1 class="text-5xl md:text-6xl font-extrabold leading-tight text-slate-900">
+                    Create Powerful <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Popups Without Code</span>
+                </h1>
+                <p class="text-lg text-slate-600 leading-relaxed max-w-lg">
+                    Build, customize, and manage high-converting website popups, banners, and forms in minutes. No design skills needed.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                    <button onclick="app.startDemo()" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xl shadow-indigo-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                        <i class="fas fa-magic"></i> Try Demo Free
+                    </button>
+                    <button onclick="app.navigate('signup')" class="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl border border-slate-200 shadow-lg transition flex items-center justify-center gap-2">
+                        Create Account
                     </button>
                 </div>
+                <p class="text-sm text-slate-400 pt-2">No credit card required • 14-day free trial</p>
             </div>
-        </div>
-        <!-- Mobile Menu -->
-        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100 absolute w-full">
-            <div class="px-4 pt-2 pb-6 space-y-2 shadow-lg" id="mobile-nav-links">
-                <!-- Injected via JS -->
-            </div>
-        </div>
-    </nav>
-
-    <!-- MAIN CONTENT CONTAINER -->
-    <main id="app-container" class="pt-20 min-h-screen">
-        <!-- Views injected here -->
-    </main>
-
-    <!-- FOOTER -->
-    <footer class="bg-gray-900 text-white py-12 mt-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div class="col-span-1 md:col-span-2">
-                <div class="flex items-center gap-2 mb-4">
-                    <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-bolt text-white"></i>
+            
+            <!-- Hero Animation / Demo Preview -->
+            <div class="md:w-1/2 w-full relative slide-up" style="animation-delay: 0.3s;">
+                <div class="relative z-10 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden aspect-video group">
+                    <!-- Simulated UI -->
+                    <div class="bg-slate-50 border-b border-slate-100 p-3 flex gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
                     </div>
-                    <span class="font-bold text-xl">PopMaker Pro</span>
+                    <div class="p-6 grid grid-cols-3 gap-4 h-full">
+                        <div class="col-span-1 space-y-3">
+                            <div class="h-8 bg-indigo-100 rounded w-full animate-pulse"></div>
+                            <div class="h-20 bg-slate-100 rounded w-full"></div>
+                            <div class="h-20 bg-slate-100 rounded w-full"></div>
+                        </div>
+                        <div class="col-span-2 bg-slate-50 rounded border border-dashed border-slate-300 flex items-center justify-center relative overflow-hidden">
+                            <div class="absolute inset-0 bg-indigo-500/10 animate-pulse"></div>
+                            <div class="w-32 h-40 bg-white shadow-lg rounded-lg transform transition duration-500 group-hover:scale-105 group-hover:rotate-1 flex flex-col items-center justify-center p-4 text-center">
+                                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-2"><i class="fas fa-check"></i></div>
+                                <div class="h-2 w-20 bg-slate-200 rounded mb-1"></div>
+                                <div class="h-2 w-12 bg-slate-200 rounded"></div>
+                                <div class="mt-3 h-6 w-16 bg-indigo-500 rounded"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-gray-400 text-sm max-w-xs">The easiest way to create beautiful, high-converting popups for your website without coding.</p>
+                <!-- Decorative blobs -->
+                <div class="absolute -top-10 -right-10 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
+                <div class="absolute -bottom-10 -left-10 w-64 h-64 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
             </div>
-            <div>
-                <h4 class="font-bold mb-4">Product</h4>
-                <ul class="space-y-2 text-sm text-gray-400">
-                    <li><a href="#features" class="hover:text-white transition">Features</a></li>
-                    <li><a href="#templates" class="hover:text-white transition">Templates</a></li>
-                    <li><a href="#how-it-works" class="hover:text-white transition">How it Works</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="font-bold mb-4">Legal</h4>
-                <ul class="space-y-2 text-sm text-gray-400">
-                    <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
-                    <li><a href="#" class="hover:text-white transition">Terms of Service</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-gray-800 text-center text-sm text-gray-500">
-            &copy; 2026 PopMaker Pro. All Rights Reserved.
-        </div>
-    </footer>
+        </header>
 
-    <!-- MODALS -->
-    
-    <!-- Login Modal -->
-    <div id="login-modal" class="modal hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 scale-95 transition-transform duration-300" id="login-content">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-bold text-gray-900">Welcome Back</h3>
-                <button onclick="closeModal('login-modal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-            </div>
-            <form onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <input type="email" id="login-email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="you@example.com">
+        <!-- Features Section -->
+        <section id="features" class="py-20 bg-white">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl font-bold text-slate-900">Everything You Need to Convert</h2>
+                    <p class="text-slate-500 mt-2">Powerful features wrapped in a simple interface.</p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input type="password" id="login-password" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="••••••••">
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Feature 1 -->
+                    <div class="p-8 rounded-2xl bg-slate-50 hover:bg-indigo-50 transition duration-300">
+                        <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center text-xl mb-4"><i class="fas fa-mouse-pointer"></i></div>
+                        <h3 class="text-xl font-bold mb-2">Drag & Drop Editor</h3>
+                        <p class="text-slate-600">Intuitive canvas. Drag elements, resize freely, and see changes in real-time.</p>
+                    </div>
+                    <!-- Feature 2 -->
+                    <div class="p-8 rounded-2xl bg-slate-50 hover:bg-indigo-50 transition duration-300">
+                        <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-xl mb-4"><i class="fas fa-layer-group"></i></div>
+                        <h3 class="text-xl font-bold mb-2">20+ Pro Templates</h3>
+                        <p class="text-slate-600">Start fast with pre-designed templates for newsletters, discounts, and more.</p>
+                    </div>
+                    <!-- Feature 3 -->
+                    <div class="p-8 rounded-2xl bg-slate-50 hover:bg-indigo-50 transition duration-300">
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-xl mb-4"><i class="fas fa-mobile-alt"></i></div>
+                        <h3 class="text-xl font-bold mb-2">Responsive Preview</h3>
+                        <p class="text-slate-600">Check how your popup looks on Desktop, Tablet, and Mobile instantly.</p>
+                    </div>
                 </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-indigo-200">Sign In</button>
-            </form>
-            <div class="mt-6 text-center text-sm text-gray-500">
-                Don't have an account? <button onclick="switchModal('login-modal', 'signup-modal')" class="text-indigo-600 font-bold hover:underline">Sign Up</button>
             </div>
-            <div class="mt-4 text-center text-xs text-gray-400">
-                Demo: Click "View Demo" on homepage
+        </section>
+
+        <!-- How It Works (Animation) -->
+        <section id="how-it-works" class="py-20 bg-slate-900 text-white overflow-hidden">
+            <div class="max-w-7xl mx-auto px-6 text-center">
+                <h2 class="text-3xl font-bold mb-12">From Idea to Live in Seconds</h2>
+                <div class="relative h-64 md:h-80 bg-slate-800/50 rounded-2xl border border-slate-700 flex items-center justify-center overflow-hidden">
+                    <!-- Simple CSS Animation Steps -->
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="workflow-step opacity-0 transition-opacity duration-500 absolute" id="step1">
+                            <div class="text-6xl text-indigo-400 mb-4"><i class="fas fa-plus-circle"></i></div>
+                            <p class="text-xl font-bold">1. Create New</p>
+                        </div>
+                        <div class="workflow-step opacity-0 transition-opacity duration-500 absolute" id="step2">
+                            <div class="text-6xl text-purple-400 mb-4"><i class="fas fa-palette"></i></div>
+                            <p class="text-xl font-bold">2. Customize</p>
+                        </div>
+                        <div class="workflow-step opacity-0 transition-opacity duration-500 absolute" id="step3">
+                            <div class="text-6xl text-green-400 mb-4"><i class="fas fa-code"></i></div>
+                            <p class="text-xl font-bold">3. Get Code</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
+
+        <!-- Templates Preview Section -->
+        <section id="templates" class="py-20 bg-slate-50">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl font-bold text-slate-900">Beautiful Templates</h2>
+                    <p class="text-slate-500 mt-2">Choose from our library of high-converting designs.</p>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                    <!-- Template Thumbnails (Static for Landing) -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
+                        <div class="h-32 bg-indigo-50 rounded mb-3 flex items-center justify-center text-indigo-300"><i class="fas fa-envelope text-2xl"></i></div>
+                        <h4 class="font-semibold text-sm">Newsletter</h4>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
+                        <div class="h-32 bg-red-50 rounded mb-3 flex items-center justify-center text-red-300"><i class="fas fa-percent text-2xl"></i></div>
+                        <h4 class="font-semibold text-sm">Discount</h4>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
+                        <div class="h-32 bg-green-50 rounded mb-3 flex items-center justify-center text-green-300"><i class="fas fa-gift text-2xl"></i></div>
+                        <h4 class="font-semibold text-sm">Welcome Offer</h4>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
+                        <div class="h-32 bg-blue-50 rounded mb-3 flex items-center justify-center text-blue-300"><i class="fas fa-bell text-2xl"></i></div>
+                        <h4 class="font-semibold text-sm">Announcement</h4>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
+                        <div class="h-32 bg-orange-50 rounded mb-3 flex items-center justify-center text-orange-300"><i class="fas fa-clock text-2xl"></i></div>
+                        <h4 class="font-semibold text-sm">Countdown</h4>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-slate-100 py-12">
+            <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">P</div>
+                    <span class="font-bold text-slate-700">PopMaker Pro</span>
+                </div>
+                <div class="text-slate-500 text-sm">
+                    &copy; 2026 PopMaker Pro. All Rights Reserved.
+                </div>
+                <div class="flex gap-6 text-slate-400">
+                    <a href="#" class="hover:text-indigo-600"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="hover:text-indigo-600"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="hover:text-indigo-600"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+        </footer>
     </div>
 
-    <!-- Signup Modal -->
-    <div id="signup-modal" class="modal hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 scale-95 transition-transform duration-300" id="signup-content">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-bold text-gray-900">Create Account</h3>
-                <button onclick="closeModal('signup-modal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-            </div>
-            <form onsubmit="handleSignup(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input type="text" id="signup-name" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="John Doe">
+    <!-- ================= AUTH PAGES (Login/Signup) ================= -->
+    <div id="auth-page" class="hidden min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden fade-in">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4 shadow-lg">P</div>
+                    <h2 id="auth-title" class="text-2xl font-bold text-slate-800">Welcome Back</h2>
+                    <p class="text-slate-500 text-sm mt-2">Enter your details to access your account</p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                    <input type="text" id="signup-company" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="Acme Inc.">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <input type="email" id="signup-email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="you@example.com">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input type="password" id="signup-password" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="••••••••">
-                </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-indigo-200">Create Account</button>
-            </form>
-            <div class="mt-6 text-center text-sm text-gray-500">
-                Already have an account? <button onclick="switchModal('signup-modal', 'login-modal')" class="text-indigo-600 font-bold hover:underline">Log In</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Save Prompt Modal (Demo) -->
-    <div id="save-prompt-modal" class="modal hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
-            <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600">
-                <i class="fas fa-save text-2xl"></i>
-            </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">Save Your Work?</h3>
-            <p class="text-gray-500 mb-6">You are currently in Demo Mode. Create a free account to save this popup and access it anytime from any device.</p>
-            <div class="space-y-3">
-                <button onclick="convertDemoToAccount()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-indigo-200">Create Free Account</button>
-                <button onclick="closeModal('save-prompt-modal')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition">Continue Editing</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- JAVASCRIPT LOGIC -->
-    <script>
-        // --- DATA STORE (LocalStorage Wrapper) ---
-        const DB = {
-            getUsers: () => JSON.parse(localStorage.getItem('pm_users')) || [],
-            setUsers: (users) => localStorage.setItem('pm_users', JSON.stringify(users)),
-            getPopups: () => JSON.parse(localStorage.getItem('pm_popups')) || [],
-            setPopups: (popups) => localStorage.setItem('pm_popups', JSON.stringify(popups)),
-            getCurrentUser: () => JSON.parse(localStorage.getItem('pm_current_user')),
-            setCurrentUser: (user) => {
-                if(user) localStorage.setItem('pm_current_user', JSON.stringify(user));
-                else localStorage.removeItem('pm_current_user');
-            },
-            getDemoData: () => JSON.parse(localStorage.getItem('pm_demo_data')),
-            setDemoData: (data) => localStorage.setItem('pm_demo_data', JSON.stringify(data))
-        };
-
-        // --- STATE MANAGEMENT ---
-        let appState = {
-            view: 'landing', // landing, dashboard, editor, admin
-            user: null,
-            isDemo: false,
-            currentPopup: null,
-            selectedElement: null,
-            devicePreview: 'desktop'
-        };
-
-        // --- INITIALIZATION ---
-        document.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
-            renderNav();
-            
-            // Start animation if on landing page
-            if(appState.view === 'landing') startLandingAnimation();
-        });
-
-        // --- AUTHENTICATION ---
-        function checkAuth() {
-            const user = DB.getCurrentUser();
-            if (user) {
-                appState.user = user;
-                appState.isDemo = user.email === 'demo@popmaker.local';
-                if (user.role === 'admin') {
-                    appState.view = 'admin';
-                    renderAdminDashboard();
-                } else {
-                    appState.view = 'dashboard';
-                    renderUserDashboard();
-                }
-            } else {
-                appState.view = 'landing';
-                renderLandingPage();
-            }
-        }
-
-        function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            
-            const users = DB.getUsers();
-            const user = users.find(u => u.email === email && u.password === password);
-
-            // Hardcoded Admin
-            if (email === 'admin@poptin.com' && password === 'admin123') {
-                const adminUser = { id: 'admin', name: 'Super Admin', email: 'admin@poptin.com', role: 'admin', company: 'PopMaker HQ' };
-                DB.setCurrentUser(adminUser);
-                appState.user = adminUser;
-                closeModal('login-modal');
-                appState.view = 'admin';
-                renderAdminDashboard();
-                renderNav();
-                return;
-            }
-
-            if (user) {
-                DB.setCurrentUser(user);
-                appState.user = user;
-                appState.isDemo = false;
-                closeModal('login-modal');
-                appState.view = 'dashboard';
-                renderUserDashboard();
-                renderNav();
-            } else {
-                alert('Invalid credentials. Please try again or sign up.');
-            }
-        }
-
-        function handleSignup(e) {
-            e.preventDefault();
-            const name = document.getElementById('signup-name').value;
-            const company = document.getElementById('signup-company').value;
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-
-            const users = DB.getUsers();
-            if (users.find(u => u.email === email)) {
-                alert('Email already exists. Please login.');
-                return;
-            }
-
-            const newUser = {
-                id: Date.now().toString(),
-                name, company, email, password, role: 'user',
-                website: '', joinedAt: new Date().toISOString()
-            };
-
-            users.push(newUser);
-            DB.setUsers(users);
-            DB.setCurrentUser(newUser);
-            appState.user = newUser;
-            appState.isDemo = false;
-
-            // Transfer Demo Data if exists
-            const demoData = DB.getDemoData();
-            if (demoData && demoData.popup) {
-                savePopupToDB(demoData.popup, newUser.id);
-                localStorage.removeItem('pm_demo_data');
-            }
-
-            closeModal('signup-modal');
-            appState.view = 'dashboard';
-            renderUserDashboard();
-            renderNav();
-        }
-
-        function handleLogout() {
-            DB.setCurrentUser(null);
-            appState.user = null;
-            appState.isDemo = false;
-            appState.view = 'landing';
-            renderLandingPage();
-            renderNav();
-        }
-
-        function startDemoMode() {
-            const demoUser = { id: 'demo', name: 'Demo User', email: 'demo@popmaker.local', role: 'user', company: 'Demo Company' };
-            DB.setCurrentUser(demoUser);
-            appState.user = demoUser;
-            appState.isDemo = true;
-            appState.view = 'dashboard';
-            renderUserDashboard();
-            renderNav();
-        }
-
-        function convertDemoToAccount() {
-            closeModal('save-prompt-modal');
-            openModal('signup-modal');
-        }
-
-        // --- NAVIGATION RENDERER ---
-        function renderNav() {
-            const navLinks = document.getElementById('nav-links');
-            const mobileLinks = document.getElementById('mobile-nav-links');
-            
-            let html = '';
-            let mobileHtml = '';
-
-            if (appState.user) {
-                // Logged In
-                const is_admin = appState.user.role === 'admin';
-                const dashboardLabel = is_admin ? 'Admin Panel' : 'Dashboard';
                 
-                html = `
-                    <button onclick="navigateTo('${is_admin ? 'admin' : 'dashboard'}')" class="text-gray-600 hover:text-indigo-600 font-medium transition">${dashboardLabel}</button>
-                    <div class="flex items-center gap-4 pl-4 border-l border-gray-200">
-                        <span class="text-sm font-medium text-gray-700">${appState.user.name}</span>
-                        <button onclick="handleLogout()" class="text-sm text-red-500 hover:text-red-700 font-medium">Logout</button>
+                <form id="auth-form" onsubmit="app.handleAuth(event)" class="space-y-4">
+                    <div id="name-field" class="hidden">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                        <input type="text" id="auth-name" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
                     </div>
-                `;
-                mobileHtml = `
-                    <button onclick="navigateTo('${is_admin ? 'admin' : 'dashboard'}'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50 rounded-md">${dashboardLabel}</button>
-                    <button onclick="handleLogout(); toggleMobileMenu()" class="block w-full text-left px-3 py-2 text-base font-medium text-red-500 hover:bg-red-50 rounded-md">Logout</button>
-                `;
-            } else {
-                // Logged Out
-                html = `
-                    <a href="#features" class="text-gray-600 hover:text-indigo-600 font-medium transition">Features</a>
-                    <a href="#templates" class="text-gray-600 hover:text-indigo-600 font-medium transition">Templates</a>
-                    <a href="#how-it-works" class="text-gray-600 hover:text-indigo-600 font-medium transition">How It Works</a>
-                    <button onclick="openModal('login-modal')" class="text-gray-600 hover:text-indigo-600 font-medium transition">Log In</button>
-                    <button onclick="openModal('signup-modal')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition shadow-lg shadow-indigo-200">Get Started</button>
-                `;
-                mobileHtml = `
-                    <a href="#features" onclick="toggleMobileMenu()" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50 rounded-md">Features</a>
-                    <a href="#templates" onclick="toggleMobileMenu()" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50 rounded-md">Templates</a>
-                    <button onclick="openModal('login-modal'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50 rounded-md">Log In</button>
-                    <button onclick="openModal('signup-modal'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 text-base font-medium text-indigo-600 hover:bg-indigo-50 rounded-md">Get Started</button>
-                `;
-            }
-
-            navLinks.innerHTML = html;
-            mobileLinks.innerHTML = mobileHtml;
-        }
-
-        function handleLogoClick() {
-            if (appState.user) {
-                if(appState.user.role === 'admin') renderAdminDashboard();
-                else renderUserDashboard();
-            } else {
-                renderLandingPage();
-            }
-        }
-
-        // --- VIEW RENDERERS ---
-
-        function renderLandingPage() {
-            const container = document.getElementById('app-container');
-            container.innerHTML = `
-                <!-- Hero Section -->
-                <section class="relative pt-20 pb-32 overflow-hidden">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 text-indigo-700 text-sm font-semibold mb-8 fade-in">
-                            <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
-                            v2.0 Now Live: Banners & GHL Forms
-                        </div>
-                        <h1 class="text-5xl md:text-7xl font-extrabold text-gray-900 tracking-tight mb-8 slide-up delay-100">
-                            Create Powerful Popups <br/>
-                            <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Without the Hassle</span>
-                        </h1>
-                        <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-10 slide-up delay-200">
-                            Build, customize, and manage high-converting website popups from one simple platform. No coding required.
-                        </p>
-                        <div class="flex flex-col sm:flex-row gap-4 justify-center slide-up delay-300">
-                            <button onclick="startDemoMode()" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold rounded-xl shadow-xl shadow-indigo-200 transition transform hover:-translate-y-1">
-                                Start Creating Free
-                            </button>
-                            <button onclick="openModal('login-modal')" class="px-8 py-4 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-lg font-bold rounded-xl shadow-lg transition">
-                                View Demo
-                            </button>
-                        </div>
+                    <div id="company-field" class="hidden">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Company Name</label>
+                        <input type="text" id="auth-company" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                        <input type="email" id="auth-email" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                        <input type="password" id="auth-password" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
                     </div>
                     
-                    <!-- Animated Dashboard Preview -->
-                    <div class="mt-20 max-w-6xl mx-auto px-4 slide-up delay-400">
-                        <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden relative aspect-video group">
-                            <div class="absolute inset-0 bg-gray-100 flex items-center justify-center overflow-hidden">
-                                <!-- CSS Animation of Workflow -->
-                                <div id="workflow-anim" class="relative w-full h-full">
-                                    <!-- Step 1: Dashboard -->
-                                    <div class="anim-step absolute inset-0 bg-white flex flex-col p-8 transition-opacity duration-700 opacity-100" data-step="1">
-                                        <div class="h-8 border-b flex items-center px-4 gap-2 mb-4">
-                                            <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                                            <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-                                            <div class="w-3 h-3 rounded-full bg-green-400"></div>
-                                        </div>
-                                        <div class="flex-1 flex gap-4">
-                                            <div class="w-48 bg-gray-100 rounded-lg h-full"></div>
-                                            <div class="flex-1 bg-gray-50 rounded-lg p-6 grid grid-cols-3 gap-4">
-                                                <div class="bg-white rounded-lg shadow-sm h-32 animate-pulse"></div>
-                                                <div class="bg-white rounded-lg shadow-sm h-32 animate-pulse delay-75"></div>
-                                                <div class="bg-indigo-600 rounded-lg shadow-sm h-32 flex items-center justify-center text-white font-bold">+ New</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Step 2: Editor -->
-                                    <div class="anim-step absolute inset-0 bg-gray-50 flex flex-col transition-opacity duration-700 opacity-0" data-step="2">
-                                        <div class="h-12 bg-white border-b flex items-center px-4 justify-between">
-                                            <div class="font-bold text-gray-700">Editor</div>
-                                            <div class="flex gap-2"><div class="w-20 h-6 bg-indigo-100 rounded"></div></div>
-                                        </div>
-                                        <div class="flex-1 flex">
-                                            <div class="w-64 bg-white border-r p-4 space-y-3">
-                                                <div class="h-8 bg-gray-100 rounded w-full"></div>
-                                                <div class="h-8 bg-gray-100 rounded w-full"></div>
-                                                <div class="h-8 bg-gray-100 rounded w-full"></div>
-                                            </div>
-                                            <div class="flex-1 flex items-center justify-center relative">
-                                                <div class="w-80 h-96 bg-white shadow-xl rounded-lg border-2 border-indigo-500 relative">
-                                                    <div class="absolute -right-8 top-10 bg-indigo-600 text-white text-xs px-2 py-1 rounded">Drag Me</div>
-                                                </div>
-                                            </div>
-                                            <div class="w-64 bg-white border-l p-4"></div>
-                                        </div>
-                                    </div>
-                                    <!-- Step 3: Preview -->
-                                    <div class="anim-step absolute inset-0 bg-gray-800/90 flex items-center justify-center transition-opacity duration-700 opacity-0" data-step="3">
-                                        <div class="w-96 bg-white rounded-lg shadow-2xl p-6 transform scale-110">
-                                            <div class="text-2xl font-bold text-indigo-600 mb-2">50% OFF!</div>
-                                            <div class="h-2 w-full bg-gray-200 rounded mb-4"></div>
-                                            <button class="w-full bg-indigo-600 text-white py-2 rounded">Get Code</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                    <button type="submit" id="auth-btn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-lg transition transform active:scale-95">
+                        Log In
+                    </button>
+                </form>
 
-                <!-- Features Section -->
-                <section id="features" class="py-24 bg-white">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div class="text-center mb-16">
-                            <h2 class="text-3xl font-bold text-gray-900 mb-4">Everything You Need</h2>
-                            <p class="text-gray-600 max-w-2xl mx-auto">Powerful features wrapped in a simple interface.</p>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <!-- Feature 1 -->
-                            <div class="p-8 rounded-2xl bg-gray-50 hover:bg-indigo-50 transition duration-300">
-                                <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 mb-6">
-                                    <i class="fas fa-mouse-pointer text-xl"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-gray-900 mb-3">Drag & Drop Editor</h3>
-                                <p class="text-gray-600">Easily build popups by dragging elements. No coding knowledge required.</p>
-                            </div>
-                            <!-- Feature 2 -->
-                            <div class="p-8 rounded-2xl bg-gray-50 hover:bg-indigo-50 transition duration-300">
-                                <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 mb-6">
-                                    <i class="fas fa-layer-group text-xl"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-gray-900 mb-3">20+ Templates</h3>
-                                <p class="text-gray-600">Start fast with professionally designed templates for every goal.</p>
-                            </div>
-                            <!-- Feature 3 -->
-                            <div class="p-8 rounded-2xl bg-gray-50 hover:bg-indigo-50 transition duration-300">
-                                <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 mb-6">
-                                    <i class="fas fa-mobile-alt text-xl"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-gray-900 mb-3">Responsive Preview</h3>
-                                <p class="text-gray-600">See exactly how your popup looks on Desktop, Tablet, and Mobile.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <div class="mt-6 text-center text-sm text-slate-500">
+                    <span id="auth-switch-text">Don't have an account?</span>
+                    <button onclick="app.toggleAuthMode()" class="text-indigo-600 font-semibold hover:underline ml-1">Sign Up</button>
+                </div>
+                <div class="mt-4 text-center">
+                    <button onclick="app.navigate('landing')" class="text-xs text-slate-400 hover:text-slate-600">← Back to Home</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Templates Section -->
-                <section id="templates" class="py-24 bg-gray-50">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div class="text-center mb-16">
-                            <h2 class="text-3xl font-bold text-gray-900 mb-4">Beautiful Templates</h2>
-                            <p class="text-gray-600">Choose from our library of high-converting designs.</p>
-                        </div>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            ${generateTemplateCards()}
-                        </div>
-                    </div>
-                </section>
+    <!-- ================= USER DASHBOARD ================= -->
+    <div id="user-dashboard" class="hidden min-h-screen bg-slate-50 flex flex-col">
+        <!-- Top Bar -->
+        <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 sticky top-0 z-40">
+            <div class="flex items-center gap-4">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold cursor-pointer" onclick="app.navigate('dashboard')">P</div>
+                <h1 class="font-bold text-slate-800 hidden md:block">My Dashboard</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden md:block">
+                    <div id="dash-user-name" class="text-sm font-bold text-slate-800">User</div>
+                    <div id="dash-company-name" class="text-xs text-slate-500">Company</div>
+                </div>
+                <button onclick="app.logout()" class="text-slate-500 hover:text-red-600 transition"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </header>
 
-                <!-- How It Works -->
-                <section id="how-it-works" class="py-24 bg-white">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div class="text-center mb-16">
-                            <h2 class="text-3xl font-bold text-gray-900 mb-4">How It Works</h2>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-                            <div class="p-6">
-                                <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">1</div>
-                                <h3 class="font-bold text-lg mb-2">Sign Up</h3>
-                                <p class="text-gray-600 text-sm">Create your free account in seconds.</p>
-                            </div>
-                            <div class="p-6">
-                                <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">2</div>
-                                <h3 class="font-bold text-lg mb-2">Choose Template</h3>
-                                <p class="text-gray-600 text-sm">Pick a design or start from scratch.</p>
-                            </div>
-                            <div class="p-6">
-                                <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">3</div>
-                                <h3 class="font-bold text-lg mb-2">Customize</h3>
-                                <p class="text-gray-600 text-sm">Edit text, colors, and images easily.</p>
-                            </div>
-                            <div class="p-6">
-                                <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">4</div>
-                                <h3 class="font-bold text-lg mb-2">Publish</h3>
-                                <p class="text-gray-600 text-sm">Copy the code and paste it on your site.</p>
-                            </div>
-                        </div>
+        <!-- Content -->
+        <main class="flex-1 p-6 md:p-12 overflow-y-auto">
+            <div class="max-w-6xl mx-auto">
+                <!-- Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <div class="text-slate-500 text-sm font-medium mb-1">Total Popups</div>
+                        <div id="stat-total" class="text-3xl font-bold text-slate-800">0</div>
                     </div>
-                </section>
-            `;
-            startLandingAnimation();
-        }
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <div class="text-slate-500 text-sm font-medium mb-1">Active</div>
+                        <div id="stat-active" class="text-3xl font-bold text-green-600">0</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <div class="text-slate-500 text-sm font-medium mb-1">Drafts</div>
+                        <div id="stat-drafts" class="text-3xl font-bold text-orange-500">0</div>
+                    </div>
+                </div>
 
-        function renderUserDashboard() {
-            const container = document.getElementById('app-container');
-            const popups = DB.getPopups().filter(p => p.userId === appState.user.id);
-            
-            container.innerHTML = `
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                    <div class="flex justify-between items-center mb-8">
-                        <div>
-                            <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
-                            <p class="text-gray-500 mt-1">Welcome back, ${appState.user.name}</p>
-                        </div>
-                        <button onclick="showCreatePopupModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-indigo-200 transition flex items-center gap-2">
-                            <i class="fas fa-plus"></i> Create New Popup
+                <!-- Website Info -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800">Your Website</h3>
+                        <p class="text-sm text-slate-500">Connect your site to track performance</p>
+                    </div>
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <input type="url" id="dash-website" placeholder="https://yourwebsite.com" class="flex-1 md:w-64 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <button onclick="app.saveWebsite()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">Save</button>
+                        <a id="dash-visit-site" href="#" target="_blank" class="hidden px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200"><i class="fas fa-external-link-alt"></i> Visit</a>
+                    </div>
+                </div>
+
+                <!-- Create Button -->
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-slate-800">Your Popups</h2>
+                    <button onclick="app.openCreateModal()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Create New Popup
+                    </button>
+                </div>
+
+                <!-- Popup List -->
+                <div id="popup-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= CREATE POPUP MODAL ================= -->
+    <div id="create-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto fade-in">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                <h3 class="text-xl font-bold text-slate-800">Create New Popup</h3>
+                <button onclick="document.getElementById('create-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-8">
+                <!-- Step 1: Type -->
+                <div class="mb-8">
+                    <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">1. Choose Type</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button onclick="app.selectType('regular')" class="type-btn p-6 border-2 border-indigo-600 bg-indigo-50 rounded-xl text-center hover:shadow-md transition">
+                            <i class="fas fa-window-maximize text-3xl text-indigo-600 mb-2"></i>
+                            <div class="font-bold text-slate-800">Regular Popup</div>
+                            <div class="text-xs text-slate-500">Centered or Corner</div>
+                        </button>
+                        <button onclick="app.selectType('banner')" class="type-btn p-6 border-2 border-slate-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
+                            <i class="fas fa-arrows-alt-h text-3xl text-slate-400 mb-2"></i>
+                            <div class="font-bold text-slate-800">Banner</div>
+                            <div class="text-xs text-slate-500">Top or Bottom Bar</div>
+                        </button>
+                        <button onclick="app.selectType('ghl')" class="type-btn p-6 border-2 border-slate-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
+                            <i class="fas fa-form text-3xl text-slate-400 mb-2"></i>
+                            <div class="font-bold text-slate-800">GHL Form</div>
+                            <div class="text-xs text-slate-500">Embed GoHighLevel</div>
                         </button>
                     </div>
-
-                    <!-- Stats -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <div class="text-gray-500 text-sm font-medium mb-1">Total Popups</div>
-                            <div class="text-3xl font-bold text-gray-900">${popups.length}</div>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <div class="text-gray-500 text-sm font-medium mb-1">Active</div>
-                            <div class="text-3xl font-bold text-green-600">${popups.filter(p => p.status === 'active').length}</div>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <div class="text-gray-500 text-sm font-medium mb-1">Drafts</div>
-                            <div class="text-3xl font-bold text-orange-500">${popups.filter(p => p.status === 'draft').length}</div>
-                        </div>
-                    </div>
-
-                    <!-- Popup List -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
-                            <h3 class="font-bold text-gray-700">Your Popups</h3>
-                        </div>
-                        <div class="divide-y divide-gray-100">
-                            ${popups.length === 0 ? `
-                                <div class="p-12 text-center text-gray-500">
-                                    <i class="fas fa-inbox text-4xl mb-4 text-gray-300"></i>
-                                    <p>No popups yet. Create your first one!</p>
-                                </div>
-                            ` : popups.map(p => `
-                                <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
-                                            <i class="fas fa-${p.type === 'banner' ? 'banner' : 'window-maximize'}"></i>
-                                        </div>
-                                        <div>
-                                            <div class="font-bold text-gray-900">${p.name}</div>
-                                            <div class="text-xs text-gray-500">${p.type} • Last updated ${new Date(p.updatedAt).toLocaleDateString()}</div>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        <span class="px-3 py-1 rounded-full text-xs font-medium ${p.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">${p.status}</span>
-                                        <button onclick="editPopup('${p.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">Edit</button>
-                                        <button onclick="deletePopup('${p.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Create Popup Modal -->
-                <div id="create-popup-modal" class="modal hidden fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl p-8">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-2xl font-bold text-gray-900">Create New Popup</h3>
-                            <button onclick="closeModal('create-popup-modal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-                        </div>
-                        
-                        <!-- Step 1: Type -->
-                        <div class="mb-8">
-                            <label class="block text-sm font-bold text-gray-700 mb-3">1. Choose Type</label>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <button onclick="selectPopupType('regular')" class="type-btn p-4 border-2 border-indigo-600 bg-indigo-50 rounded-xl text-center hover:shadow-md transition" data-type="regular">
-                                    <i class="fas fa-window-maximize text-2xl text-indigo-600 mb-2"></i>
-                                    <div class="font-bold">Regular Popup</div>
-                                </button>
-                                <button onclick="selectPopupType('banner')" class="type-btn p-4 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition" data-type="banner">
-                                    <i class="fas fa-arrows-alt-h text-2xl text-gray-600 mb-2"></i>
-                                    <div class="font-bold">Banner</div>
-                                </button>
-                                <button onclick="selectPopupType('ghl')" class="type-btn p-4 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition" data-type="ghl">
-                                    <i class="fas fa-form text-2xl text-gray-600 mb-2"></i>
-                                    <div class="font-bold">GHL Form</div>
-                                </button>
+                <!-- Step 2: Start From -->
+                <div>
+                    <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">2. Start From</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <button onclick="app.startEditor('blank')" class="group p-6 border-2 border-slate-200 rounded-xl hover:border-indigo-600 transition text-left">
+                            <div class="h-32 bg-slate-50 rounded-lg mb-4 flex items-center justify-center group-hover:bg-indigo-50 transition">
+                                <i class="fas fa-plus text-4xl text-slate-300 group-hover:text-indigo-400"></i>
                             </div>
-                        </div>
-
-                        <!-- Step 2: Start From -->
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-3">2. Start From</label>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <button onclick="finalizeCreate('blank')" class="p-4 border-2 border-gray-200 rounded-xl text-left hover:border-indigo-600 transition flex items-center gap-4">
-                                    <div class="w-12 h-12 bg-gray-100 rounded flex items-center justify-center"><i class="fas fa-plus text-gray-500"></i></div>
-                                    <div>
-                                        <div class="font-bold">Blank Canvas</div>
-                                        <div class="text-xs text-gray-500">Start from scratch</div>
-                                    </div>
-                                </button>
-                                <button onclick="finalizeCreate('template')" class="p-4 border-2 border-gray-200 rounded-xl text-left hover:border-indigo-600 transition flex items-center gap-4">
-                                    <div class="w-12 h-12 bg-indigo-100 rounded flex items-center justify-center"><i class="fas fa-layer-group text-indigo-600"></i></div>
-                                    <div>
-                                        <div class="font-bold">Choose Template</div>
-                                        <div class="text-xs text-gray-500">Pick a pre-made design</div>
-                                    </div>
-                                </button>
+                            <div class="font-bold text-slate-800">Blank Canvas</div>
+                            <div class="text-sm text-slate-500">Start from scratch</div>
+                        </button>
+                        <button onclick="app.openTemplateSelector()" class="group p-6 border-2 border-slate-200 rounded-xl hover:border-indigo-600 transition text-left">
+                            <div class="h-32 bg-slate-50 rounded-lg mb-4 flex items-center justify-center group-hover:bg-indigo-50 transition relative overflow-hidden">
+                                <div class="absolute inset-2 bg-white shadow-sm border border-slate-200 rounded transform rotate-3 scale-75 opacity-50"></div>
+                                <div class="absolute inset-2 bg-white shadow-sm border border-slate-200 rounded transform -rotate-3 scale-75 opacity-50"></div>
+                                <i class="fas fa-layer-group text-4xl text-slate-300 group-hover:text-indigo-400 relative z-10"></i>
                             </div>
-                        </div>
+                            <div class="font-bold text-slate-800">Choose Template</div>
+                            <div class="text-sm text-slate-500">Pick from 20+ designs</div>
+                        </button>
                     </div>
                 </div>
-            `;
-        }
+            </div>
+        </div>
+    </div>
 
-        function renderAdminDashboard() {
-            const container = document.getElementById('app-container');
-            const users = DB.getUsers().filter(u => u.role !== 'admin');
-            const popups = DB.getPopups();
-
-            container.innerHTML = `
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                    <div class="flex justify-between items-center mb-8">
-                        <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-                        <button onclick="handleLogout()" class="text-red-600 font-medium hover:underline">Logout</button>
-                    </div>
-                    
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
-                            <h3 class="font-bold text-gray-700">Registered Users</h3>
-                        </div>
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
-                                <tr>
-                                    <th class="px-6 py-3">Company</th>
-                                    <th class="px-6 py-3">User</th>
-                                    <th class="px-6 py-3">Email</th>
-                                    <th class="px-6 py-3">Popups</th>
-                                    <th class="px-6 py-3">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                ${users.map(u => {
-                                    const uPopups = popups.filter(p => p.userId === u.id).length;
-                                    return `
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 font-bold text-gray-900">${u.company}</td>
-                                        <td class="px-6 py-4 text-gray-600">${u.name}</td>
-                                        <td class="px-6 py-4 text-gray-500">${u.email}</td>
-                                        <td class="px-6 py-4"><span class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-bold">${uPopups}</span></td>
-                                        <td class="px-6 py-4">
-                                            <button onclick="impersonateUser('${u.id}')" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">View Account</button>
-                                        </td>
-                                    </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
+    <!-- ================= TEMPLATE SELECTOR MODAL ================= -->
+    <div id="template-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col fade-in">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-slate-800">Select a Template</h3>
+                <button onclick="document.getElementById('template-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div id="template-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <!-- Populated by JS -->
                 </div>
-            `;
-        }
+            </div>
+        </div>
+    </div>
 
-        // --- EDITOR LOGIC ---
-
-        function showCreatePopupModal() {
-            openModal('create-popup-modal');
-        }
-
-        let newPopupConfig = { type: 'regular', startFrom: 'blank' };
-
-        function selectPopupType(type) {
-            newPopupConfig.type = type;
-            document.querySelectorAll('.type-btn').forEach(btn => {
-                btn.classList.remove('border-indigo-600', 'bg-indigo-50');
-                btn.classList.add('border-gray-200');
-                if(btn.dataset.type === type) {
-                    btn.classList.remove('border-gray-200');
-                    btn.classList.add('border-indigo-600', 'bg-indigo-50');
-                }
-            });
-        }
-
-        function finalizeCreate(startFrom) {
-            newPopupConfig.startFrom = startFrom;
-            closeModal('create-popup-modal');
+    <!-- ================= EDITOR ================= -->
+    <div id="editor-page" class="hidden fixed inset-0 bg-slate-100 flex flex-col z-50">
+        <!-- Top Toolbar -->
+        <header class="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 z-40">
+            <div class="flex items-center gap-4">
+                <button onclick="app.exitEditor()" class="text-slate-500 hover:text-slate-800 font-medium text-sm"><i class="fas fa-arrow-left mr-1"></i> Exit</button>
+                <div class="h-6 w-px bg-slate-300"></div>
+                <span class="font-bold text-slate-700 text-sm" id="editor-title">Untitled Popup</span>
+            </div>
             
-            if (startFrom === 'template') {
-                // Show template picker then open editor
-                // For simplicity in this single file, we'll just open editor with a default template
-                // In a full app, this would be another modal step
-                openEditor(null, newPopupConfig.type, true); 
-            } else {
-                openEditor(null, newPopupConfig.type, false);
-            }
-        }
+            <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
+                <button onclick="app.setDevice('desktop')" class="device-btn px-3 py-1.5 rounded text-xs font-medium bg-white shadow text-slate-700"><i class="fas fa-desktop"></i></button>
+                <button onclick="app.setDevice('tablet')" class="device-btn px-3 py-1.5 rounded text-xs font-medium text-slate-500 hover:bg-white/50"><i class="fas fa-tablet-alt"></i></button>
+                <button onclick="app.setDevice('mobile')" class="device-btn px-3 py-1.5 rounded text-xs font-medium text-slate-500 hover:bg-white/50"><i class="fas fa-mobile-alt"></i></button>
+            </div>
 
-        function openEditor(popupId, type = 'regular', loadTemplate = false) {
-            appState.view = 'editor';
-            const container = document.getElementById('app-container');
-            
-            // Initialize State
-            appState.currentPopup = {
-                id: popupId || Date.now().toString(),
-                userId: appState.user.id,
-                name: popupId ? DB.getPopups().find(p=>p.id===popupId).name : 'New Popup',
-                type: type,
-                status: 'draft',
-                position: 'center',
-                width: '500px',
-                height: 'auto',
-                bgColor: '#ffffff',
-                elements: loadTemplate ? getDefaultElements(type) : []
-            };
+            <div class="flex items-center gap-3">
+                <button onclick="app.togglePreview()" class="px-4 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition"><i class="fas fa-eye mr-1"></i> Preview</button>
+                <button onclick="app.savePopup()" class="px-4 py-1.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow transition"><i class="fas fa-save mr-1"></i> Save</button>
+                <button onclick="app.getCode()" class="px-4 py-1.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg shadow-sm transition"><i class="fas fa-code mr-1"></i> Get Code</button>
+            </div>
+        </header>
 
-            container.innerHTML = `
-                <div class="flex h-[calc(100vh-80px)] overflow-hidden">
-                    <!-- Left Sidebar: Elements & Templates -->
-                    <div class="w-64 bg-white border-r border-gray-200 flex flex-col z-10">
-                        <div class="p-4 border-b border-gray-100">
-                            <h3 class="font-bold text-gray-700 mb-4">Elements</h3>
-                            <div class="space-y-2">
-                                ${['Heading', 'Text', 'Button', 'Image', 'Video', 'Divider'].map(item => `
-                                    <div draggable="true" ondragstart="drag(event, '${item}')" class="draggable-item p-3 bg-gray-50 border border-gray-200 rounded flex items-center gap-3">
-                                        <i class="fas fa-${getIcon(item)} text-gray-400"></i>
-                                        <span class="text-sm font-medium">${item}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        <div class="p-4 flex-1 overflow-y-auto">
-                            <h3 class="font-bold text-gray-700 mb-4">Templates</h3>
-                            <div class="grid grid-cols-2 gap-2">
-                                ${generateMiniTemplateCards()}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Center: Canvas -->
-                    <div class="flex-1 canvas-bg relative overflow-auto flex items-center justify-center p-8" onclick="handleCanvasClick(event)">
-                        <div id="editor-canvas" 
-                             class="relative transition-all duration-300 shadow-2xl"
-                             style="width: ${appState.currentPopup.width}; min-height: 400px; background: ${appState.currentPopup.bgColor}; position: relative;">
-                            
-                            <!-- Render Elements -->
-                            <div id="canvas-elements" class="w-full h-full relative">
-                                ${renderElements()}
-                            </div>
-
-                            <!-- Close Button (Visual) -->
-                            <div class="absolute top-2 right-2 text-gray-400 hover:text-gray-600 cursor-pointer p-2">
-                                <i class="fas fa-times"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Sidebar: Properties -->
-                    <div class="w-72 bg-white border-l border-gray-200 p-4 overflow-y-auto z-10">
-                        <h3 class="font-bold text-gray-700 mb-4" id="prop-title">Properties</h3>
-                        <div id="properties-content">
-                            <p class="text-sm text-gray-500">Select an element or click the background to edit popup settings.</p>
-                        </div>
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Left Sidebar: Elements & Templates -->
+            <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 z-30">
+                <div class="p-4 border-b border-slate-100">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Elements</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button ondragstart="app.drag(event, 'heading')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-heading mr-1"></i> Heading</button>
+                        <button ondragstart="app.drag(event, 'text')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-paragraph mr-1"></i> Text</button>
+                        <button ondragstart="app.drag(event, 'button')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-square mr-1"></i> Button</button>
+                        <button ondragstart="app.drag(event, 'image')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-image mr-1"></i> Image</button>
+                        <button ondragstart="app.drag(event, 'video')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-video mr-1"></i> Video</button>
+                        <button ondragstart="app.drag(event, 'divider')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-minus mr-1"></i> Divider</button>
+                        <button ondragstart="app.drag(event, 'spacer')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-arrows-alt-v mr-1"></i> Spacer</button>
+                        <button ondragstart="app.drag(event, 'social')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-share-alt mr-1"></i> Social</button>
                     </div>
                 </div>
-                
-                <!-- Top Bar for Editor -->
-                <div class="fixed top-20 right-6 z-20 flex gap-2">
-                     <select onchange="changeDevice(this.value)" class="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium shadow-sm">
-                        <option value="desktop">Desktop</option>
-                        <option value="tablet">Tablet</option>
-                        <option value="mobile">Mobile</option>
-                     </select>
-                     <button onclick="openPreview()" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg"><i class="fas fa-eye mr-2"></i>Preview</button>
-                     <button onclick="savePopup()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg"><i class="fas fa-save mr-2"></i>Save</button>
-                     <button onclick="getCode()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg"><i class="fas fa-code mr-2"></i>Get Code</button>
-                     <button onclick="renderUserDashboard()" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg text-sm font-bold shadow-sm">Exit</button>
+                <div class="p-4 flex-1 overflow-y-auto">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Templates</h3>
+                    <div class="space-y-3">
+                        <button onclick="app.loadTemplateIntoEditor('newsletter')" class="w-full text-left p-2 border border-slate-200 rounded hover:border-indigo-500 transition">
+                            <div class="text-xs font-bold text-slate-700">Newsletter</div>
+                            <div class="h-16 bg-slate-100 rounded mt-1 flex items-center justify-center text-slate-400 text-xs"><i class="fas fa-envelope"></i></div>
+                        </button>
+                        <button onclick="app.loadTemplateIntoEditor('discount')" class="w-full text-left p-2 border border-slate-200 rounded hover:border-indigo-500 transition">
+                            <div class="text-xs font-bold text-slate-700">Discount</div>
+                            <div class="h-16 bg-red-50 rounded mt-1 flex items-center justify-center text-red-400 text-xs"><i class="fas fa-percent"></i></div>
+                        </button>
+                         <button onclick="app.loadTemplateIntoEditor('welcome')" class="w-full text-left p-2 border border-slate-200 rounded hover:border-indigo-500 transition">
+                            <div class="text-xs font-bold text-slate-700">Welcome</div>
+                            <div class="h-16 bg-green-50 rounded mt-1 flex items-center justify-center text-green-400 text-xs"><i class="fas fa-hand-sparkles"></i></div>
+                        </button>
+                        <!-- More templates can be added here similarly -->
+                    </div>
                 </div>
-            `;
-            
-            // Attach Global Drag Listeners
-            setupDropZone();
-        }
+            </aside>
 
-        function getDefaultElements(type) {
-            if(type === 'banner') {
-                return [
-                    { id: 1, type: 'Heading', content: '50% OFF TODAY', x: 50, y: 20, width: 200, fontSize: 24 },
-                    { id: 2, type: 'Button', content: 'Shop Now', x: 280, y: 25, width: 100, bgColor: '#000', color: '#fff' }
-                ];
-            }
-            return [
-                { id: 1, type: 'Heading', content: 'Welcome!', x: 50, y: 50, width: 300, fontSize: 28 },
-                { id: 2, type: 'Text', content: 'Subscribe to get special offers.', x: 50, y: 100, width: 300 },
-                { id: 3, type: 'Button', content: 'Subscribe', x: 50, y: 150, width: 120, bgColor: '#4f46e5', color: '#fff' }
-            ];
-        }
-
-        function renderElements() {
-            return appState.currentPopup.elements.map(el => `
-                <div class="absolute group hover:outline hover:outline-2 hover:outline-indigo-400 cursor-move"
-                     style="left: ${el.x}px; top: ${el.y}px; width: ${el.width}px; font-size: ${el.fontSize || 16}px; color: ${el.color || '#000'}; background: ${el.bgColor || 'transparent'}; padding: 5px;"
-                     onclick="selectElement(${el.id}, event)"
-                     draggable="true"
-                     ondragstart="dragElement(event, ${el.id})">
-                    ${el.content}
-                    <div class="hidden group-hover:block absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs cursor-pointer" onclick="deleteElement(${el.id}, event)">×</div>
+            <!-- Canvas Area -->
+            <main class="flex-1 canvas-area relative overflow-auto flex items-center justify-center p-8" onclick="app.selectPopupContainer()">
+                <div id="canvas-container" class="relative transition-all duration-300" onclick="event.stopPropagation()">
+                    <!-- The Popup Being Edited -->
+                    <div id="popup-canvas" class="bg-white shadow-2xl relative overflow-hidden" style="width: 500px; min-height: 400px; position: relative;">
+                        <!-- Elements will be dropped here -->
+                        <div class="absolute top-2 right-2 text-slate-300 hover:text-red-500 cursor-pointer p-1" onclick="app.toggleCloseBtn()"><i class="fas fa-times"></i></div>
+                    </div>
                 </div>
-            `).join('');
-        }
+            </main>
 
-        function selectElement(id, e) {
-            e.stopPropagation();
-            appState.selectedElement = appState.currentPopup.elements.find(el => el.id === id);
-            renderProperties();
-        }
-
-        function handleCanvasClick(e) {
-            if(e.target.id === 'editor-canvas' || e.target.id === 'canvas-elements') {
-                appState.selectedElement = null;
-                renderProperties();
-            }
-        }
-
-        function renderProperties() {
-            const container = document.getElementById('properties-content');
-            const title = document.getElementById('prop-title');
-
-            if (!appState.selectedElement) {
-                title.innerText = "Popup Settings";
-                container.innerHTML = `
-                    <div class="space-y-4">
+            <!-- Right Sidebar: Properties -->
+            <aside class="w-72 bg-white border-l border-slate-200 flex flex-col shrink-0 z-30 overflow-y-auto">
+                <div class="p-4 border-b border-slate-100">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider" id="prop-title">Popup Settings</h3>
+                </div>
+                <div id="properties-panel" class="p-4 space-y-4">
+                    <!-- Popup Properties -->
+                    <div id="popup-props">
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Width</label>
-                            <input type="text" value="${appState.currentPopup.width}" onchange="updatePopupProp('width', this.value)" class="w-full border rounded px-2 py-1 text-sm">
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Width (px)</label>
+                            <input type="number" id="prop-width" onchange="app.updatePopupProp('width', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Background</label>
-                            <input type="color" value="${appState.currentPopup.bgColor}" onchange="updatePopupProp('bgColor', this.value)" class="w-full h-8">
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Min Height (px)</label>
+                            <input type="number" id="prop-height" onchange="app.updatePopupProp('height', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Position</label>
-                            <select onchange="updatePopupProp('position', this.value)" class="w-full border rounded px-2 py-1 text-sm">
-                                <option value="center" ${appState.currentPopup.position === 'center' ? 'selected' : ''}>Center</option>
-                                <option value="top-left" ${appState.currentPopup.position === 'top-left' ? 'selected' : ''}>Top Left</option>
-                                <option value="top-right" ${appState.currentPopup.position === 'top-right' ? 'selected' : ''}>Top Right</option>
-                                <option value="bottom-left" ${appState.currentPopup.position === 'bottom-left' ? 'selected' : ''}>Bottom Left</option>
-                                <option value="bottom-right" ${appState.currentPopup.position === 'bottom-right' ? 'selected' : ''}>Bottom Right</option>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Background</label>
+                            <div class="flex gap-2">
+                                <input type="color" id="prop-bg-color" onchange="app.updatePopupProp('bg', this.value)" class="h-9 w-full rounded cursor-pointer border border-slate-300">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Position</label>
+                            <select id="prop-position" onchange="app.updatePopupProp('position', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none">
+                                <option value="center">Center</option>
+                                <option value="top-left">Top Left</option>
+                                <option value="top-center">Top Center</option>
+                                <option value="top-right">Top Right</option>
+                                <option value="bottom-left">Bottom Left</option>
+                                <option value="bottom-center">Bottom Center</option>
+                                <option value="bottom-right">Bottom Right</option>
                             </select>
                         </div>
                     </div>
-                `;
-                return;
-            }
 
-            const el = appState.selectedElement;
-            title.innerText = `${el.type} Settings`;
-            container.innerHTML = `
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Content</label>
-                        <textarea onchange="updateElementProp('content', this.value)" class="w-full border rounded px-2 py-1 text-sm">${el.content}</textarea>
+                    <!-- Element Properties (Hidden by default) -->
+                    <div id="element-props" class="hidden space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Width (%)</label>
+                            <input type="range" id="elem-width" min="10" max="100" oninput="app.updateElementProp('width', this.value + '%')" class="w-full">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Height (Auto/Px)</label>
+                            <input type="text" id="elem-height" placeholder="Auto" onblur="app.updateElementProp('height', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Text Color</label>
+                            <input type="color" id="elem-color" oninput="app.updateElementProp('color', this.value)" class="h-8 w-full rounded cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Background</label>
+                            <input type="color" id="elem-bg" oninput="app.updateElementProp('bg', this.value)" class="h-8 w-full rounded cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Font Size (px)</label>
+                            <input type="number" id="elem-font" oninput="app.updateElementProp('fontSize', this.value + 'px')" class="w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Link URL</label>
+                            <input type="text" id="elem-link" placeholder="https://..." onblur="app.updateElementProp('link', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                        </div>
+                        <div class="pt-2 flex gap-2">
+                            <button onclick="app.deleteElement()" class="flex-1 py-2 bg-red-50 text-red-600 rounded text-xs font-bold hover:bg-red-100">Delete</button>
+                            <button onclick="app.duplicateElement()" class="flex-1 py-2 bg-slate-100 text-slate-600 rounded text-xs font-bold hover:bg-slate-200">Duplicate</button>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Width (px)</label>
-                        <input type="number" value="${el.width}" onchange="updateElementProp('width', this.value)" class="w-full border rounded px-2 py-1 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Font Size</label>
-                        <input type="number" value="${el.fontSize || 16}" onchange="updateElementProp('fontSize', this.value)" class="w-full border rounded px-2 py-1 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Text Color</label>
-                        <input type="color" value="${el.color || '#000000'}" onchange="updateElementProp('color', this.value)" class="w-full h-8">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Background</label>
-                        <input type="color" value="${el.bgColor || '#ffffff'}" onchange="updateElementProp('bgColor', this.value)" class="w-full h-8">
-                    </div>
-                    <button onclick="duplicateElement(${el.id})" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded text-sm font-bold">Duplicate</button>
-                    <button onclick="deleteElement(${el.id})" class="w-full bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded text-sm font-bold">Delete</button>
                 </div>
-            `;
-        }
+            </aside>
+        </div>
+    </div>
 
-        function updatePopupProp(key, value) {
-            appState.currentPopup[key] = value;
-            const canvas = document.getElementById('editor-canvas');
-            if(key === 'width') canvas.style.width = value;
-            if(key === 'bgColor') canvas.style.background = value;
-            // Position is handled in preview/export mainly, but can update class here
-        }
+    <!-- ================= PREVIEW MODAL ================= -->
+    <div id="preview-modal" class="hidden fixed inset-0 z-[60] bg-slate-900/90 backdrop-blur-sm flex flex-col">
+        <div class="h-16 bg-slate-800 flex items-center justify-between px-6 text-white shrink-0">
+            <span class="font-bold">Preview Mode</span>
+            <button onclick="document.getElementById('preview-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium transition">Close Preview</button>
+        </div>
+        <div class="flex-1 relative overflow-hidden flex items-center justify-center p-8" id="preview-area">
+            <!-- Preview injected here -->
+        </div>
+    </div>
 
-        function updateElementProp(key, value) {
-            if(!appState.selectedElement) return;
-            appState.selectedElement[key] = key === 'width' || key === 'fontSize' ? parseInt(value) : value;
-            document.getElementById('canvas-elements').innerHTML = renderElements();
-        }
+    <!-- ================= GET CODE MODAL ================= -->
+    <div id="code-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[80vh]">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-slate-800">Installation Code</h3>
+                <button onclick="document.getElementById('code-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 bg-slate-50 flex-1 overflow-auto">
+                <p class="text-sm text-slate-600 mb-4">Copy this code and paste it before the <code class="bg-slate-200 px-1 rounded">&lt;/body&gt;</code> tag on your website.</p>
+                <pre id="code-output" class="bg-slate-800 text-green-400 p-4 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap"></pre>
+            </div>
+            <div class="p-6 border-t border-slate-100 flex justify-end gap-3">
+                <button onclick="document.getElementById('code-modal').classList.add('hidden')" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cancel</button>
+                <button onclick="app.copyCode()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow transition">Copy Code</button>
+            </div>
+        </div>
+    </div>
 
-        function deleteElement(id, e) {
-            if(e) e.stopPropagation();
-            appState.currentPopup.elements = appState.currentPopup.elements.filter(el => el.id !== id);
-            document.getElementById('canvas-elements').innerHTML = renderElements();
-            appState.selectedElement = null;
-            renderProperties();
-        }
+    <!-- ================= SIGNUP PROMPT (DEMO) ================= -->
+    <div id="demo-prompt" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center fade-in">
+            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-slate-800 mb-2">Save Your Work?</h3>
+            <p class="text-slate-600 mb-6">You are currently in Demo Mode. Create a free account to save this popup and access it anytime from any device.</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="app.navigate('signup')" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">Create Free Account</button>
+                <button onclick="document.getElementById('demo-prompt').classList.add('hidden')" class="w-full py-3 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl border border-slate-200 transition">Continue Editing</button>
+            </div>
+        </div>
+    </div>
 
-        function duplicateElement(id) {
-            const original = appState.currentPopup.elements.find(el => el.id === id);
-            const copy = { ...original, id: Date.now(), x: original.x + 20, y: original.y + 20 };
-            appState.currentPopup.elements.push(copy);
-            document.getElementById('canvas-elements').innerHTML = renderElements();
-        }
+    <!-- ================= ADMIN DASHBOARD (Separate View) ================= -->
+    <div id="admin-dashboard" class="hidden min-h-screen bg-slate-900 text-white flex flex-col">
+        <div class="god-mode-banner" id="god-mode-banner" style="display:none;">
+            VIEWING AS: <span id="god-mode-user"></span> 
+            <button onclick="app.exitGodMode()" class="ml-4 underline text-xs">Exit Admin Mode</button>
+        </div>
+        <header class="bg-slate-800 border-b border-slate-700 h-16 flex items-center justify-between px-6">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center font-bold">A</div>
+                <h1 class="font-bold text-lg">Admin Dashboard</h1>
+            </div>
+            <button onclick="app.logout()" class="text-slate-400 hover:text-white"><i class="fas fa-sign-out-alt"></i></button>
+        </header>
+        <main class="flex-1 p-6 overflow-y-auto">
+            <div class="max-w-7xl mx-auto">
+                <h2 class="text-2xl font-bold mb-6">All Users</h2>
+                <div class="bg-slate-800 rounded-xl overflow-hidden shadow-xl">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-700 text-slate-300 text-xs uppercase">
+                            <tr>
+                                <th class="p-4">Company</th>
+                                <th class="p-4">User</th>
+                                <th class="p-4">Email</th>
+                                <th class="p-4">Website</th>
+                                <th class="p-4">Popups</th>
+                                <th class="p-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-user-list" class="divide-y divide-slate-700 text-sm">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
 
-        // --- DRAG AND DROP LOGIC ---
-        function drag(ev, type) {
-            ev.dataTransfer.setData("type", type);
-            ev.dataTransfer.setData("mode", "new");
-        }
+    <script>
+        // ================= APP LOGIC =================
+        const app = {
+            state: {
+                currentUser: null,
+                isDemo: false,
+                currentPopup: null,
+                selectedElement: null,
+                device: 'desktop',
+                users: JSON.parse(localStorage.getItem('pm_users')) || [],
+                popups: JSON.parse(localStorage.getItem('pm_popups')) || []
+            },
 
-        function dragElement(ev, id) {
-            ev.dataTransfer.setData("id", id);
-            ev.dataTransfer.setData("mode", "move");
-        }
+            init() {
+                // Check session
+                const session = localStorage.getItem('pm_session');
+                if (session) {
+                    const user = JSON.parse(session);
+                    if (user.email === 'admin@poptin.com') {
+                        this.navigate('admin');
+                        this.renderAdmin();
+                    } else {
+                        this.state.currentUser = user;
+                        this.navigate('dashboard');
+                        this.loadDashboard();
+                    }
+                } else {
+                    this.navigate('landing');
+                }
+                this.startAnimation();
+            },
 
-        function setupDropZone() {
-            const canvas = document.getElementById('editor-canvas');
-            canvas.addEventListener('dragover', (ev) => ev.preventDefault());
-            canvas.addEventListener('drop', (ev) => {
+            navigate(page) {
+                document.querySelectorAll('#landing-page, #auth-page, #user-dashboard, #editor-page, #admin-dashboard').forEach(el => el.classList.add('hidden'));
+                
+                if (page === 'landing') document.getElementById('landing-page').classList.remove('hidden');
+                else if (page === 'login' || page === 'signup') {
+                    document.getElementById('auth-page').classList.remove('hidden');
+                    document.getElementById('auth-title').innerText = page === 'login' ? 'Welcome Back' : 'Create Account';
+                    document.getElementById('name-field').classList.toggle('hidden', page === 'login');
+                    document.getElementById('company-field').classList.toggle('hidden', page === 'login');
+                    document.getElementById('auth-btn').innerText = page === 'login' ? 'Log In' : 'Sign Up';
+                    document.getElementById('auth-switch-text').innerText = page === 'login' ? "Don't have an account?" : "Already have an account?";
+                    document.querySelector('#auth-page button[onclick*="toggleAuthMode"]').innerText = page === 'login' ? "Sign Up" : "Log In";
+                }
+                else if (page === 'dashboard') {
+                    document.getElementById('user-dashboard').classList.remove('hidden');
+                    this.loadDashboard();
+                }
+                else if (page === 'admin') {
+                    document.getElementById('admin-dashboard').classList.remove('hidden');
+                    this.renderAdmin();
+                }
+            },
+
+            toggleAuthMode() {
+                const isLogin = document.getElementById('auth-title').innerText === 'Welcome Back';
+                this.navigate(isLogin ? 'signup' : 'login');
+            },
+
+            handleAuth(e) {
+                e.preventDefault();
+                const email = document.getElementById('auth-email').value;
+                const password = document.getElementById('auth-password').value;
+                const name = document.getElementById('auth-name').value;
+                const company = document.getElementById('auth-company').value;
+                const isLogin = document.getElementById('auth-btn').innerText === 'Log In';
+
+                if (email === 'admin@poptin.com' && password === 'admin123') {
+                    localStorage.setItem('pm_session', JSON.stringify({ email, role: 'admin' }));
+                    this.navigate('admin');
+                    this.renderAdmin();
+                    return;
+                }
+
+                let user = this.state.users.find(u => u.email === email);
+
+                if (isLogin) {
+                    if (!user || user.password !== password) { alert('Invalid credentials'); return; }
+                } else {
+                    if (user) { alert('Account exists'); return; }
+                    user = { id: Date.now(), name, company, email, password, website: '' };
+                    this.state.users.push(user);
+                    this.saveData();
+                }
+
+                localStorage.setItem('pm_session', JSON.stringify(user));
+                this.state.currentUser = user;
+                this.navigate('dashboard');
+            },
+
+            logout() {
+                localStorage.removeItem('pm_session');
+                this.state.currentUser = null;
+                this.state.isDemo = false;
+                this.navigate('landing');
+            },
+
+            startDemo() {
+                this.state.isDemo = true;
+                this.state.currentUser = { name: 'Demo User', email: 'demo@temp.com' };
+                this.navigate('dashboard');
+                this.loadDashboard();
+            },
+
+            loadDashboard() {
+                if (this.state.isDemo) {
+                    document.getElementById('dash-user-name').innerText = 'Demo User';
+                    document.getElementById('dash-company-name').innerText = 'Tryout Mode';
+                    document.getElementById('popup-list').innerHTML = '<div class="col-span-3 text-center py-12 text-slate-400">Demo Mode: Create a popup to try it out!</div>';
+                    return;
+                }
+
+                document.getElementById('dash-user-name').innerText = this.state.currentUser.name;
+                document.getElementById('dash-company-name').innerText = this.state.currentUser.company;
+                document.getElementById('dash-website').value = this.state.currentUser.website || '';
+                
+                if(this.state.currentUser.website) {
+                    const link = document.getElementById('dash-visit-site');
+                    link.href = this.state.currentUser.website;
+                    link.classList.remove('hidden');
+                }
+
+                const userPopups = this.state.popups.filter(p => p.userId === this.state.currentUser.id);
+                document.getElementById('stat-total').innerText = userPopups.length;
+                document.getElementById('stat-active').innerText = userPopups.filter(p => p.status === 'active').length;
+                document.getElementById('stat-drafts').innerText = userPopups.filter(p => p.status === 'draft').length;
+
+                const list = document.getElementById('popup-list');
+                list.innerHTML = '';
+                userPopups.forEach(p => {
+                    list.innerHTML += `
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition flex justify-between items-center">
+                            <div>
+                                <div class="font-bold text-slate-800">${p.name}</div>
+                                <div class="text-xs text-slate-500">${p.type} • ${p.status}</div>
+                            </div>
+                            <button onclick="app.openEditor('${p.id}')" class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-bold hover:bg-indigo-100">Edit</button>
+                        </div>
+                    `;
+                });
+            },
+
+            saveWebsite() {
+                const url = document.getElementById('dash-website').value;
+                if (!this.state.isDemo) {
+                    this.state.currentUser.website = url;
+                    const idx = this.state.users.findIndex(u => u.id === this.state.currentUser.id);
+                    this.state.users[idx] = this.state.currentUser;
+                    this.saveData();
+                    alert('Website saved!');
+                    location.reload();
+                }
+            },
+
+            openCreateModal() {
+                if (this.state.isDemo && this.state.popups.some(p => p.userId === 'demo')) {
+                    alert('Demo limit reached. Please sign up to save more.');
+                    document.getElementById('demo-prompt').classList.remove('hidden');
+                    return;
+                }
+                document.getElementById('create-modal').classList.remove('hidden');
+            },
+
+            selectType(type) {
+                this.state.newPopupType = type;
+                document.querySelectorAll('.type-btn').forEach(b => {
+                    b.classList.remove('border-indigo-600', 'bg-indigo-50');
+                    b.classList.add('border-slate-200');
+                });
+                event.currentTarget.classList.remove('border-slate-200');
+                event.currentTarget.classList.add('border-indigo-600', 'bg-indigo-50');
+            },
+
+            openTemplateSelector() {
+                document.getElementById('create-modal').classList.add('hidden');
+                document.getElementById('template-modal').classList.remove('hidden');
+                const grid = document.getElementById('template-grid');
+                grid.innerHTML = '';
+                const templates = [
+                    'Newsletter', 'Discount', 'Welcome', 'Lead Gen', 'Contact', 
+                    'Event', 'Product', 'Limited Offer', 'Consultation', 'Get Started',
+                    'Announcement', 'New Product', 'Holiday', 'Exit Intent', 'Booking',
+                    'Social Follow', 'Web Announce', 'Email Signup', 'Special Offer', 'Simple CTA'
+                ];
+                templates.forEach(t => {
+                    grid.innerHTML += `
+                        <button onclick="app.startEditor('template', '${t}')" class="group bg-white border border-slate-200 rounded-xl p-4 hover:border-indigo-600 transition text-left">
+                            <div class="h-24 bg-slate-50 rounded mb-2 flex items-center justify-center text-slate-400 group-hover:text-indigo-500">
+                                <i class="fas fa-file-alt text-2xl"></i>
+                            </div>
+                            <div class="font-bold text-sm text-slate-700">${t}</div>
+                        </button>
+                    `;
+                });
+            },
+
+            startEditor(mode, templateName = null) {
+                document.getElementById('template-modal').classList.add('hidden');
+                document.getElementById('editor-page').classList.remove('hidden');
+                
+                const canvas = document.getElementById('popup-canvas');
+                canvas.innerHTML = '<div class="absolute top-2 right-2 text-slate-300 hover:text-red-500 cursor-pointer p-1" onclick="app.toggleCloseBtn()"><i class="fas fa-times"></i></div>';
+                
+                // Reset Props
+                document.getElementById('prop-width').value = 500;
+                document.getElementById('prop-height').value = 400;
+                document.getElementById('prop-bg-color').value = '#ffffff';
+                document.getElementById('prop-position').value = 'center';
+                this.updatePopupProp('width', 500);
+                this.updatePopupProp('height', 400);
+                this.updatePopupProp('bg', '#ffffff');
+                this.updatePopupProp('position', 'center');
+
+                if (mode === 'template') {
+                    this.loadTemplateIntoEditor(templateName.toLowerCase().replace(' ', ''));
+                }
+            },
+
+            loadTemplateIntoEditor(key) {
+                const canvas = document.getElementById('popup-canvas');
+                // Clear except close btn
+                canvas.innerHTML = '<div class="absolute top-2 right-2 text-slate-300 hover:text-red-500 cursor-pointer p-1" onclick="app.toggleCloseBtn()"><i class="fas fa-times"></i></div>';
+                
+                let html = '';
+                if (key === 'newsletter') {
+                    html = `<div class="p-8 text-center"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600"><i class="fas fa-envelope text-2xl"></i></div><h2 class="text-2xl font-bold text-slate-800 mb-2">Join Our Newsletter</h2><p class="text-slate-600 mb-6">Get the latest updates sent straight to your inbox.</p><input type="email" placeholder="Enter email" class="w-full p-3 border rounded mb-3"><button class="w-full py-3 bg-blue-600 text-white font-bold rounded">Subscribe</button></div>`;
+                } else if (key === 'discount') {
+                    html = `<div class="p-8 text-center bg-red-50 h-full"><h2 class="text-3xl font-extrabold text-red-600 my-4">FLASH SALE<br>50% OFF</h2><p class="text-slate-700 mb-6">Use code: SAVE50</p><button class="px-8 py-3 bg-red-600 text-white font-bold rounded shadow-lg">Shop Now</button></div>`;
+                } else if (key === 'welcome') {
+                    html = `<div class="p-8 text-center"><h2 class="text-2xl font-bold text-green-600 mb-2">Welcome!</h2><p class="text-slate-600 mb-4">Thanks for visiting.</p><button class="px-6 py-2 bg-green-600 text-white rounded">Get Started</button></div>`;
+                } else {
+                    html = `<div class="p-6 text-center"><h2 class="text-xl font-bold">Template Loaded</h2><p class="text-slate-500">Edit this text</p><button class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded">Button</button></div>`;
+                }
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                Array.from(tempDiv.children).forEach(child => {
+                    child.classList.add('absolute', 'cursor-move');
+                    child.style.left = '20px';
+                    child.style.top = (20 + (Array.from(canvas.children).length * 60)) + 'px';
+                    this.makeElementInteractive(child);
+                    canvas.appendChild(child);
+                });
+            },
+
+            drag(ev, type) {
+                ev.dataTransfer.setData("type", type);
+            },
+
+            drop(ev) {
                 ev.preventDefault();
-                const mode = ev.dataTransfer.getData("mode");
+                const type = ev.dataTransfer.getData("type");
+                const canvas = document.getElementById('popup-canvas');
                 const rect = canvas.getBoundingClientRect();
                 const x = ev.clientX - rect.left;
                 const y = ev.clientY - rect.top;
 
-                if (mode === "new") {
-                    const type = ev.dataTransfer.getData("type");
-                    const newEl = {
-                        id: Date.now(),
-                        type: type,
-                        content: type === 'Button' ? 'Click Me' : `New ${type}`,
-                        x: x,
-                        y: y,
-                        width: type === 'Heading' ? 200 : 100,
-                        fontSize: type === 'Heading' ? 24 : 16,
-                        bgColor: 'transparent',
-                        color: '#000'
+                let el;
+                if (type === 'heading') el = document.createElement('h2');
+                else if (type === 'text') el = document.createElement('p');
+                else if (type === 'button') el = document.createElement('button');
+                else if (type === 'image') { el = document.createElement('img'); el.src = 'https://via.placeholder.com/150'; }
+                else if (type === 'video') { el = document.createElement('div'); el.className = 'bg-black text-white flex items-center justify-center'; el.innerText = 'Video Placeholder'; el.style.width='200px'; el.style.height='150px'; }
+                else if (type === 'divider') { el = document.createElement('hr'); el.className = 'border-t-2 border-slate-300'; el.style.width='100%'; }
+                else if (type === 'spacer') { el = document.createElement('div'); el.style.height='50px'; el.style.width='100%'; }
+                else if (type === 'social') { el = document.createElement('div'); el.className = 'flex gap-2 text-blue-500'; el.innerHTML = '<i class="fab fa-facebook"></i><i class="fab fa-twitter"></i>'; }
+
+                if (el) {
+                    if (type === 'heading') { el.innerText = 'New Heading'; el.className = 'text-2xl font-bold'; }
+                    if (type === 'text') { el.innerText = 'Lorem ipsum dolor sit amet.'; el.className = 'text-slate-600'; }
+                    if (type === 'button') { el.innerText = 'Click Me'; el.className = 'px-4 py-2 bg-indigo-600 text-white rounded'; }
+                    
+                    el.classList.add('absolute', 'cursor-move');
+                    el.style.left = (x - 50) + 'px';
+                    el.style.top = (y - 20) + 'px';
+                    if(type !== 'image' && type !== 'video') { el.style.width = 'auto'; }
+                    
+                    this.makeElementInteractive(el);
+                    canvas.appendChild(el);
+                    this.selectElement(el);
+                }
+            },
+
+            makeElementInteractive(el) {
+                el.onmousedown = (e) => {
+                    if (e.target !== el) return;
+                    e.stopPropagation();
+                    this.selectElement(el);
+                    let shiftX = e.clientX - el.getBoundingClientRect().left;
+                    let shiftY = e.clientY - el.getBoundingClientRect().top;
+
+                    const moveAt = (pageX, pageY) => {
+                        const canvas = document.getElementById('popup-canvas').getBoundingClientRect();
+                        el.style.left = pageX - canvas.left - shiftX + 'px';
+                        el.style.top = pageY - canvas.top - shiftY + 'px';
                     };
-                    appState.currentPopup.elements.push(newEl);
-                } else if (mode === "move") {
-                    const id = parseInt(ev.dataTransfer.getData("id"));
-                    const el = appState.currentPopup.elements.find(e => e.id === id);
-                    if(el) {
-                        el.x = x;
-                        el.y = y;
+
+                    const onMouseMove = (event) => moveAt(event.pageX, event.pageY);
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    el.onmouseup = () => {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        el.onmouseup = null;
+                    };
+                };
+            },
+
+            selectElement(el) {
+                if (this.state.selectedElement) this.state.selectedElement.classList.remove('element-selected');
+                this.state.selectedElement = el;
+                el.classList.add('element-selected');
+                
+                // Add resize handles if not present
+                if (!el.querySelector('.rh-br')) {
+                    ['tl','tr','bl','br'].forEach(pos => {
+                        const h = document.createElement('div');
+                        h.className = `resize-handle rh-${pos}`;
+                        h.onmousedown = (e) => this.resizeElement(e, el, pos);
+                        el.appendChild(h);
+                    });
+                }
+
+                document.getElementById('popup-props').classList.add('hidden');
+                document.getElementById('element-props').classList.remove('hidden');
+                document.getElementById('prop-title').innerText = 'Element Settings';
+                
+                // Populate values (simplified)
+                const style = window.getComputedStyle(el);
+                document.getElementById('elem-color').value = this.rgbToHex(style.color);
+                document.getElementById('elem-font').value = parseInt(style.fontSize);
+            },
+
+            resizeElement(e, el, pos) {
+                e.stopPropagation();
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const startWidth = el.offsetWidth;
+                const startHeight = el.offsetHeight;
+                const startLeft = el.offsetLeft;
+                const startTop = el.offsetTop;
+
+                const doDrag = (e) => {
+                    if (pos.includes('r')) el.style.width = (startWidth + e.clientX - startX) + 'px';
+                    if (pos.includes('b')) el.style.height = (startHeight + e.clientY - startY) + 'px';
+                    if (pos.includes('l')) {
+                        el.style.width = (startWidth - (e.clientX - startX)) + 'px';
+                        el.style.left = (startLeft + (e.clientX - startX)) + 'px';
+                    }
+                    if (pos.includes('t')) {
+                        el.style.height = (startHeight - (e.clientY - startY)) + 'px';
+                        el.style.top = (startTop + (e.clientY - startY)) + 'px';
+                    }
+                };
+
+                const stopDrag = () => {
+                    document.removeEventListener('mousemove', doDrag);
+                    document.removeEventListener('mouseup', stopDrag);
+                };
+
+                document.addEventListener('mousemove', doDrag);
+                document.addEventListener('mouseup', stopDrag);
+            },
+
+            selectPopupContainer() {
+                if (this.state.selectedElement) {
+                    this.state.selectedElement.classList.remove('element-selected');
+                    this.state.selectedElement = null;
+                }
+                document.getElementById('element-props').classList.add('hidden');
+                document.getElementById('popup-props').classList.remove('hidden');
+                document.getElementById('prop-title').innerText = 'Popup Settings';
+            },
+
+            updatePopupProp(key, val) {
+                const canvas = document.getElementById('popup-canvas');
+                if (key === 'width') canvas.style.width = val + 'px';
+                if (key === 'height') canvas.style.minHeight = val + 'px';
+                if (key === 'bg') canvas.style.backgroundColor = val;
+                if (key === 'position') {
+                    canvas.style.top = ''; canvas.style.bottom = ''; canvas.style.left = ''; canvas.style.right = ''; canvas.style.transform = '';
+                    if (val === 'center') { canvas.style.top = '50%'; canvas.style.left = '50%'; canvas.style.transform = 'translate(-50%, -50%)'; }
+                    if (val === 'top-left') { canvas.style.top = '20px'; canvas.style.left = '20px'; }
+                    if (val === 'top-center') { canvas.style.top = '20px'; canvas.style.left = '50%'; canvas.style.transform = 'translateX(-50%)'; }
+                    if (val === 'top-right') { canvas.style.top = '20px'; canvas.style.right = '20px'; }
+                    if (val === 'bottom-left') { canvas.style.bottom = '20px'; canvas.style.left = '20px'; }
+                    if (val === 'bottom-center') { canvas.style.bottom = '20px'; canvas.style.left = '50%'; canvas.style.transform = 'translateX(-50%)'; }
+                    if (val === 'bottom-right') { canvas.style.bottom = '20px'; canvas.style.right = '20px'; }
+                }
+            },
+
+            updateElementProp(key, val) {
+                if (!this.state.selectedElement) return;
+                const el = this.state.selectedElement;
+                if (key === 'width') el.style.width = val;
+                if (key === 'height') el.style.height = val === 'Auto' ? 'auto' : val;
+                if (key === 'color') el.style.color = val;
+                if (key === 'bg') el.style.backgroundColor = val;
+                if (key === 'fontSize') el.style.fontSize = val;
+                if (key === 'link') { 
+                    if (val) { 
+                        if (el.tagName !== 'A') {
+                            const a = document.createElement('a');
+                            a.href = val; a.target = '_blank';
+                            a.innerHTML = el.innerHTML;
+                            a.className = el.className;
+                            a.style.cssText = el.style.cssText;
+                            el.parentNode.replaceChild(a, el);
+                            this.selectElement(a);
+                        } else { el.href = val; }
                     }
                 }
-                document.getElementById('canvas-elements').innerHTML = renderElements();
-            });
-        }
+            },
 
-        // --- SAVE & EXPORT ---
+            deleteElement() {
+                if (this.state.selectedElement) {
+                    this.state.selectedElement.remove();
+                    this.state.selectedElement = null;
+                    this.selectPopupContainer();
+                }
+            },
 
-        function savePopup() {
-            if (appState.isDemo) {
-                DB.setDemoData({ popup: appState.currentPopup });
-                openModal('save-prompt-modal');
-                return;
-            }
+            duplicateElement() {
+                if (this.state.selectedElement) {
+                    const clone = this.state.selectedElement.cloneNode(true);
+                    clone.style.top = (parseInt(this.state.selectedElement.style.top) + 20) + 'px';
+                    clone.style.left = (parseInt(this.state.selectedElement.style.left) + 20) + 'px';
+                    this.makeElementInteractive(clone);
+                    document.getElementById('popup-canvas').appendChild(clone);
+                    this.selectElement(clone);
+                }
+            },
 
-            savePopupToDB(appState.currentPopup, appState.user.id);
-            alert('Popup Saved Successfully!');
-            renderUserDashboard();
-        }
+            toggleCloseBtn() {
+                const btn = document.querySelector('#popup-canvas .fa-times').parentElement;
+                btn.style.display = btn.style.display === 'none' ? 'block' : 'none';
+            },
 
-        function savePopupToDB(popup, userId) {
-            const popups = DB.getPopups();
-            const existingIndex = popups.findIndex(p => p.id === popup.id);
-            
-            const data = { ...popup, userId, updatedAt: new Date().toISOString(), status: 'draft' };
-            
-            if (existingIndex > -1) {
-                popups[existingIndex] = data;
-            } else {
-                data.name = `Popup ${popups.length + 1}`;
-                popups.push(data);
-            }
-            DB.setPopups(popups);
-        }
+            setDevice(device) {
+                this.state.device = device;
+                document.querySelectorAll('.device-btn').forEach(b => {
+                    b.classList.remove('bg-white', 'shadow', 'text-slate-700');
+                    b.classList.add('text-slate-500');
+                });
+                event.currentTarget.classList.remove('text-slate-500');
+                event.currentTarget.classList.add('bg-white', 'shadow', 'text-slate-700');
+                
+                const container = document.getElementById('canvas-container');
+                container.className = 'relative transition-all duration-300';
+                if (device === 'tablet') container.classList.add('scale-75');
+                if (device === 'mobile') container.classList.add('scale-50');
+            },
 
-        function getCode() {
-            if (appState.isDemo) {
-                openModal('save-prompt-modal');
-                return;
-            }
-            
-            const p = appState.currentPopup;
-            const elementsHTML = p.elements.map(el => `
-                <div style="position:absolute; left:${el.x}px; top:${el.y}px; width:${el.width}px; font-size:${el.fontSize}px; color:${el.color}; background:${el.bgColor}; padding:5px;">${el.content}</div>
-            `).join('');
+            togglePreview() {
+                const modal = document.getElementById('preview-modal');
+                const area = document.getElementById('preview-area');
+                if (modal.classList.contains('hidden')) {
+                    modal.classList.remove('hidden');
+                    const clone = document.getElementById('popup-canvas').cloneNode(true);
+                    clone.classList.remove('element-selected');
+                    clone.querySelectorAll('.resize-handle').forEach(h => h.remove());
+                    clone.style.position = 'relative';
+                    clone.style.transform = 'none';
+                    clone.style.top = 'auto'; clone.style.left = 'auto'; clone.style.right = 'auto'; clone.style.bottom = 'auto';
+                    
+                    // Re-apply position logic for preview
+                    const pos = document.getElementById('prop-position').value;
+                    if (pos === 'center') { clone.style.margin = 'auto'; }
+                    else if (pos.includes('top')) { clone.style.alignSelf = 'flex-start'; }
+                    else if (pos.includes('bottom')) { clone.style.alignSelf = 'flex-end'; }
+                    
+                    if (pos.includes('left')) clone.style.justifySelf = 'flex-start';
+                    if (pos.includes('right')) clone.style.justifySelf = 'flex-end';
+                    if (pos === 'center') clone.style.justifySelf = 'center';
 
-            const positionCSS = {
-                'center': 'top:50%; left:50%; transform:translate(-50%, -50%);',
-                'top-left': 'top:20px; left:20px;',
-                'top-right': 'top:20px; right:20px;',
-                'bottom-left': 'bottom:20px; left:20px;',
-                'bottom-right': 'bottom:20px; right:20px;'
-            }[p.position];
+                    area.innerHTML = '';
+                    area.appendChild(clone);
+                } else {
+                    modal.classList.add('hidden');
+                }
+            },
 
-            const code = `
+            savePopup() {
+                if (this.state.isDemo) {
+                    document.getElementById('demo-prompt').classList.remove('hidden');
+                    return;
+                }
+                const name = prompt("Name your popup:", "My Popup") || "Untitled";
+                const newPopup = {
+                    id: Date.now().toString(),
+                    userId: this.state.currentUser.id,
+                    name,
+                    type: this.state.newPopupType || 'regular',
+                    status: 'draft',
+                    content: document.getElementById('popup-canvas').innerHTML,
+                    settings: {
+                        width: document.getElementById('prop-width').value,
+                        height: document.getElementById('prop-height').value,
+                        bg: document.getElementById('prop-bg-color').value,
+                        position: document.getElementById('prop-position').value
+                    }
+                };
+                this.state.popups.push(newPopup);
+                this.saveData();
+                alert('Saved successfully!');
+                this.exitEditor();
+                this.loadDashboard();
+            },
+
+            getCode() {
+                if (this.state.isDemo) {
+                    document.getElementById('demo-prompt').classList.remove('hidden');
+                    return;
+                }
+                const content = document.getElementById('popup-canvas').innerHTML.replace(/element-selected|resize-handle|rh-\w+/g, '');
+                const settings = {
+                    w: document.getElementById('prop-width').value,
+                    h: document.getElementById('prop-height').value,
+                    bg: document.getElementById('prop-bg-color').value,
+                    pos: document.getElementById('prop-position').value
+                };
+                
+                let cssPos = '';
+                if (settings.pos === 'center') cssPos = 'top:50%;left:50%;transform:translate(-50%,-50%);';
+                else if (settings.pos === 'top-left') cssPos = 'top:20px;left:20px;';
+                else if (settings.pos === 'top-right') cssPos = 'top:20px;right:20px;';
+                else if (settings.pos === 'bottom-left') cssPos = 'bottom:20px;left:20px;';
+                else if (settings.pos === 'bottom-right') cssPos = 'bottom:20px;right:20px;';
+                else cssPos = 'top:20px;left:50%;transform:translateX(-50%);'; // defaults
+
+                const code = `
 <!-- PopMaker Pro Code -->
-<div id="pm-popup-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; display:none; justify-content:center; align-items:center;">
-    <div id="pm-popup" style="position:relative; width:${p.width}; min-height:400px; background:${p.bgColor}; ${positionCSS} box-shadow:0 10px 25px rgba(0,0,0,0.2); border-radius:8px; padding:20px;">
-        <span onclick="document.getElementById('pm-popup-overlay').style.display='none'" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:20px;">&times;</span>
-        ${elementsHTML}
-    </div>
+<div id="pm-popup-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;">
+  <div id="pm-popup" style="position:absolute;${cssPos}width:${settings.w}px;min-height:${settings.h}px;background:${settings.bg};box-shadow:0 10px 25px rgba(0,0,0,0.2);border-radius:8px;overflow:hidden;">
+    ${content}
+  </div>
 </div>
-<script>setTimeout(()=>{document.getElementById('pm-popup-overlay').style.display='flex'}, 1000);<\/script>
-            `;
-            
-            navigator.clipboard.writeText(code.trim());
-            alert('Code copied to clipboard!');
-        }
+<script>
+  setTimeout(()=>{document.getElementById('pm-popup-overlay').style.display='block'}, 1000);
+  document.querySelector('#pm-popup .fa-times').parentElement.onclick = ()=>{document.getElementById('pm-popup-overlay').style.display='none'};
+<\/script>`;
+                
+                document.getElementById('code-output').innerText = code.trim();
+                document.getElementById('code-modal').classList.remove('hidden');
+            },
 
-        function openPreview() {
-            const p = appState.currentPopup;
-            const positionCSS = {
-                'center': 'top:50%; left:50%; transform:translate(-50%, -50%);',
-                'top-left': 'top:20px; left:20px;',
-                'top-right': 'top:20px; right:20px;',
-                'bottom-left': 'bottom:20px; left:20px;',
-                'bottom-right': 'bottom:20px; right:20px;'
-            }[p.position];
+            copyCode() {
+                const code = document.getElementById('code-output').innerText;
+                navigator.clipboard.writeText(code).then(() => alert('Code copied!'));
+            },
 
-            const elementsHTML = p.elements.map(el => `
-                <div style="position:absolute; left:${el.x}px; top:${el.y}px; width:${el.width}px; font-size:${el.fontSize}px; color:${el.color}; background:${el.bgColor}; padding:5px; cursor:default;">${el.content}</div>
-            `).join('');
+            exitEditor() {
+                document.getElementById('editor-page').classList.add('hidden');
+                if (this.state.isDemo) this.navigate('landing');
+                else this.navigate('dashboard');
+            },
 
-            const overlay = document.createElement('div');
-            overlay.id = 'preview-overlay';
-            overlay.className = 'fixed inset-0 z-[200] bg-gray-900/90 backdrop-blur-sm flex items-center justify-center';
-            overlay.innerHTML = `
-                <div class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-6 py-2 rounded-full shadow-lg z-50 flex items-center gap-4">
-                    <span class="font-bold text-gray-700">Preview Mode</span>
-                    <button onclick="document.getElementById('preview-overlay').remove()" class="bg-red-500 text-white px-4 py-1 rounded-full text-sm font-bold hover:bg-red-600">Close Preview</button>
-                </div>
-                <div style="position:relative; width:${p.width}; min-height:400px; background:${p.bgColor}; ${positionCSS} box-shadow:0 20px 50px rgba(0,0,0,0.3); border-radius:8px; padding:20px;">
-                    <span onclick="document.getElementById('preview-overlay').remove()" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:20px; color:#666;">&times;</span>
-                    ${elementsHTML}
-                </div>
-            `;
-            document.body.appendChild(overlay);
-        }
+            renderAdmin() {
+                const list = document.getElementById('admin-user-list');
+                list.innerHTML = '';
+                this.state.users.filter(u => u.email !== 'admin@poptin.com').forEach(u => {
+                    const count = this.state.popups.filter(p => p.userId === u.id).length;
+                    list.innerHTML += `
+                        <tr class="hover:bg-slate-700/50">
+                            <td class="p-4 font-bold">${u.company}</td>
+                            <td class="p-4">${u.name}</td>
+                            <td class="p-4 text-slate-400">${u.email}</td>
+                            <td class="p-4"><a href="${u.website||'#'}" target="_blank" class="text-indigo-400 hover:underline">${u.website||'-'}</a></td>
+                            <td class="p-4">${count}</td>
+                            <td class="p-4">
+                                <button onclick="app.impersonate(${u.id})" class="px-3 py-1 bg-indigo-600 rounded text-xs hover:bg-indigo-500">View Account</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            },
 
-        // --- UTILS ---
+            impersonate(userId) {
+                const user = this.state.users.find(u => u.id === userId);
+                this.state.currentUser = user;
+                document.getElementById('god-mode-banner').style.display = 'block';
+                document.getElementById('god-mode-user').innerText = user.name;
+                this.navigate('dashboard');
+                this.loadDashboard();
+            },
 
-        function openModal(id) {
-            const modal = document.getElementById(id);
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.add('visible');
-                modal.querySelector('div').classList.remove('scale-95');
-                modal.querySelector('div').classList.add('scale-100');
-            }, 10);
-        }
+            exitGodMode() {
+                const admin = { email: 'admin@poptin.com', role: 'admin' };
+                this.state.currentUser = admin;
+                document.getElementById('god-mode-banner').style.display = 'none';
+                this.navigate('admin');
+                this.renderAdmin();
+            },
 
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            modal.classList.remove('visible');
-            modal.classList.add('hidden');
-            modal.querySelector('div').classList.remove('scale-100');
-            modal.querySelector('div').classList.add('scale-95');
-        }
+            saveData() {
+                localStorage.setItem('pm_users', JSON.stringify(this.state.users));
+                localStorage.setItem('pm_popups', JSON.stringify(this.state.popups));
+            },
 
-        function switchModal(from, to) {
-            closeModal(from);
-            setTimeout(() => openModal(to), 300);
-        }
+            startAnimation() {
+                // Simple loop for landing page animation
+                let step = 1;
+                setInterval(() => {
+                    document.querySelectorAll('.workflow-step').forEach(el => el.classList.add('opacity-0'));
+                    const next = document.getElementById(`step${step}`);
+                    if (next) {
+                        next.classList.remove('opacity-0');
+                        step = step === 3 ? 1 : step + 1;
+                    }
+                }, 2000);
+            },
 
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
-        }
-
-        function getIcon(type) {
-            const map = { 'Heading': 'heading', 'Text': 'paragraph', 'Button': 'square', 'Image': 'image', 'Video': 'video', 'Divider': 'minus' };
-            return map[type] || 'circle';
-        }
-
-        function generateTemplateCards() {
-            const templates = ['Newsletter', 'Discount', 'Welcome', 'Lead Gen', 'Contact', 'Event', 'Product', 'Offer', 'Consultation', 'Get Started', 'Announcement', 'New Product', 'Holiday', 'Exit Intent', 'Booking', 'Social', 'Web Announce', 'Email Signup', 'Special Offer', 'Simple CTA'];
-            return templates.map(t => `
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition cursor-pointer" onclick="startDemoMode()">
-                    <div class="h-32 bg-gray-100 flex items-center justify-center text-gray-400">
-                        <i class="fas fa-image text-2xl"></i>
-                    </div>
-                    <div class="p-3">
-                        <div class="font-bold text-sm text-gray-800">${t}</div>
-                        <div class="text-xs text-gray-500">Click to Try</div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function generateMiniTemplateCards() {
-             const templates = ['Newsletter', 'Discount', 'Welcome', 'Lead Gen'];
-             return templates.map(t => `
-                <div class="bg-gray-50 rounded border border-gray-200 p-2 text-center hover:bg-indigo-50 hover:border-indigo-500 cursor-pointer transition" onclick="loadTemplateIntoEditor('${t}')">
-                    <div class="text-xs font-bold text-gray-600">${t}</div>
-                </div>
-            `).join('');
-        }
-
-        function loadTemplateIntoEditor(name) {
-            // Simple mock load
-            appState.currentPopup.elements = getDefaultElements('regular');
-            document.getElementById('canvas-elements').innerHTML = renderElements();
-        }
-
-        function startLandingAnimation() {
-            const steps = document.querySelectorAll('.anim-step');
-            let current = 0;
-            setInterval(() => {
-                steps[current].classList.remove('opacity-100');
-                steps[current].classList.add('opacity-0');
-                current = (current + 1) % steps.length;
-                steps[current].classList.remove('opacity-0');
-                steps[current].classList.add('opacity-100');
-            }, 2500);
-        }
-
-        function impersonateUser(userId) {
-            const users = DB.getUsers();
-            const user = users.find(u => u.id === userId);
-            if(user) {
-                DB.setCurrentUser(user);
-                appState.user = user;
-                renderUserDashboard();
-                renderNav();
-                alert(`Now viewing as ${user.name}. Use Logout to return to Admin.`);
+            rgbToHex(col) {
+                if(col.charAt(0)=='#') return col;
+                let rgb = col.match(/\d+/g);
+                if(!rgb) return '#000000';
+                return "#" + ((1 << 24) + (parseInt(rgb[0]) << 16) + (parseInt(rgb[1]) << 8) + parseInt(rgb[2])).toString(16).slice(1);
             }
-        }
+        };
 
-        function changeDevice(device) {
-            const canvas = document.getElementById('editor-canvas');
-            if(device === 'mobile') canvas.style.transform = 'scale(0.6)';
-            else if(device === 'tablet') canvas.style.transform = 'scale(0.8)';
-            else canvas.style.transform = 'scale(1)';
-        }
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => app.init());
     </script>
 </body>
 </html>
