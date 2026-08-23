@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PopMaker Pro — Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background:#0b1220; }
+        .modal-overlay { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .template-card:hover { transform: translateY(-3px); }
+        .glow { box-shadow: 0 0 0 1px rgba(99,102,241,0.15), 0 10px 30px -10px rgba(99,102,241,0.35); }
+    </style>
+</head>
+<body class="text-slate-200 antialiased min-h-screen">
+
+    <!-- ================= ADMIN LOGIN ================= -->
+    <div id="admin-login-page" class="hidden min-h-screen flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl glow p-8">
+            <div class="text-center mb-8">
+                <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-700 rounded-xl flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4 shadow-lg">A</div>
+                <h2 class="text-2xl font-bold text-white">Admin Sign In</h2>
+                <p class="text-slate-400 text-sm mt-2">This is a separate, restricted area from the customer app.</p>
+            </div>
+            <form onsubmit="admin.login(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Admin Email</label>
+                    <input type="email" id="admin-email" required class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-red-500 outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Password</label>
+                    <input type="password" id="admin-password" required class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-red-500 outline-none transition">
+                </div>
+                <button type="submit" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-lg transition">Sign In</button>
+                <p id="admin-login-error" class="hidden text-red-400 text-sm text-center">Invalid admin credentials.</p>
+            </form>
+            <p class="text-xs text-slate-500 text-center mt-6">Default demo credentials: admin@poptin.com / admin123</p>
+            <div class="mt-4 text-center">
+                <a href="index.html" class="text-xs text-slate-500 hover:text-slate-300">← Back to customer site</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ADMIN DASHBOARD ================= -->
+    <div id="admin-dashboard" class="hidden min-h-screen flex flex-col">
+        <header class="bg-slate-900 border-b border-slate-800 h-16 flex items-center justify-between px-6 sticky top-0 z-40">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-gradient-to-br from-red-500 to-rose-700 rounded-lg flex items-center justify-center font-bold text-white">A</div>
+                <h1 class="font-bold text-lg text-white">Admin Dashboard</h1>
+                <span class="ml-2 px-2 py-0.5 bg-red-500/10 text-red-400 text-[10px] font-bold rounded-full border border-red-500/30">RESTRICTED</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="index.html" class="text-slate-400 hover:text-white text-sm"><i class="fas fa-external-link-alt mr-1"></i>Customer site</a>
+                <button onclick="admin.logout()" class="text-slate-400 hover:text-red-400 transition"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </header>
+
+        <main class="flex-1 p-6 md:p-10 overflow-y-auto">
+            <div class="max-w-7xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                        <div class="text-slate-400 text-xs font-medium mb-1">Accounts</div>
+                        <div id="admin-stat-accounts" class="text-2xl font-bold text-white">0</div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                        <div class="text-slate-400 text-xs font-medium mb-1">Total Popups</div>
+                        <div id="admin-stat-popups" class="text-2xl font-bold text-white">0</div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                        <div class="text-slate-400 text-xs font-medium mb-1">Active Popups</div>
+                        <div id="admin-stat-active" class="text-2xl font-bold text-emerald-400">0</div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                        <div class="text-slate-400 text-xs font-medium mb-1">Sub-accounts</div>
+                        <div id="admin-stat-subs" class="text-2xl font-bold text-indigo-400">0</div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+                    <h2 class="text-xl font-bold text-white">All Accounts</h2>
+                    <button onclick="admin.openCreateAccountModal()" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg transition flex items-center gap-2">
+                        <i class="fas fa-user-plus"></i> Create Sub-account
+                    </button>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left min-w-[800px]">
+                            <thead class="bg-slate-800/60 text-slate-400 text-xs uppercase">
+                                <tr>
+                                    <th class="p-4">Company</th>
+                                    <th class="p-4">User</th>
+                                    <th class="p-4">Email</th>
+                                    <th class="p-4">Website</th>
+                                    <th class="p-4">Popups</th>
+                                    <th class="p-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-user-list" class="divide-y divide-slate-800 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= CREATE / EDIT ACCOUNT MODAL ================= -->
+    <div id="account-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-5">
+                <h3 id="account-modal-title" class="text-lg font-bold text-white">Create Sub-account</h3>
+                <button onclick="document.getElementById('account-modal').classList.add('hidden')" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="admin.saveAccount(event)" class="space-y-3">
+                <input type="hidden" id="account-id">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Full Name</label>
+                    <input type="text" id="account-name" required class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Company</label>
+                    <input type="text" id="account-company" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Email</label>
+                    <input type="email" id="account-email" required class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+                <div id="account-password-wrap">
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Password</label>
+                    <input type="text" id="account-password" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Website</label>
+                    <input type="url" id="account-website" placeholder="https://..." class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+                <button type="submit" class="w-full mt-2 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition">Save Account</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= CREATE POPUP FOR ACCOUNT MODAL ================= -->
+    <div id="admin-popup-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Create Popup</h3>
+                    <p class="text-xs text-slate-400">For account: <span id="admin-popup-target-name" class="font-semibold text-slate-300"></span></p>
+                </div>
+                <button onclick="document.getElementById('admin-popup-modal').classList.add('hidden')" class="text-slate-500 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div id="admin-template-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ACCOUNT POPUPS MODAL ================= -->
+    <div id="admin-popups-list-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white">Popups for <span id="admin-popups-list-name" class="text-red-400"></span></h3>
+                <button onclick="document.getElementById('admin-popups-list-modal').classList.add('hidden')" class="text-slate-500 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div id="admin-popups-list-body" class="p-6 overflow-y-auto flex-1 space-y-3"></div>
+        </div>
+    </div>
+
+    <script src="templates.js"></script>
+    <script>
+        const admin = {
+            state: {
+                users: JSON.parse(localStorage.getItem('pm_users')) || [],
+                popups: JSON.parse(localStorage.getItem('pm_popups')) || [],
+                activePopupTarget: null
+            },
+
+            ADMIN_EMAIL: 'admin@poptin.com',
+            ADMIN_PASSWORD: 'admin123',
+
+            init() {
+                const session = localStorage.getItem('pm_admin_session');
+                if (session) {
+                    this.show('admin-dashboard');
+                    this.render();
+                } else {
+                    this.show('admin-login-page');
+                }
+            },
+
+            show(id) {
+                document.querySelectorAll('#admin-login-page, #admin-dashboard').forEach(el => el.classList.add('hidden'));
+                document.getElementById(id).classList.remove('hidden');
+            },
+
+            login(e) {
+                e.preventDefault();
+                const email = document.getElementById('admin-email').value.trim().toLowerCase();
+                const pass = document.getElementById('admin-password').value;
+                if (email === this.ADMIN_EMAIL && pass === this.ADMIN_PASSWORD) {
+                    localStorage.setItem('pm_admin_session', JSON.stringify({ email, role: 'admin' }));
+                    document.getElementById('admin-login-error').classList.add('hidden');
+                    this.show('admin-dashboard');
+                    this.render();
+                } else {
+                    document.getElementById('admin-login-error').classList.remove('hidden');
+                }
+            },
+
+            logout() {
+                localStorage.removeItem('pm_admin_session');
+                this.show('admin-login-page');
+            },
+
+            refresh() {
+                this.state.users = JSON.parse(localStorage.getItem('pm_users')) || [];
+                this.state.popups = JSON.parse(localStorage.getItem('pm_popups')) || [];
+            },
+
+            saveData() {
+                localStorage.setItem('pm_users', JSON.stringify(this.state.users));
+                localStorage.setItem('pm_popups', JSON.stringify(this.state.popups));
+            },
+
+            render() {
+                this.refresh();
+                document.getElementById('admin-stat-accounts').innerText = this.state.users.length;
+                document.getElementById('admin-stat-popups').innerText = this.state.popups.length;
+                document.getElementById('admin-stat-active').innerText = this.state.popups.filter(p => p.status === 'active').length;
+                document.getElementById('admin-stat-subs').innerText = this.state.users.filter(u => u.createdByAdmin).length;
+
+                const list = document.getElementById('admin-user-list');
+                list.innerHTML = '';
+                if (!this.state.users.length) {
+                    list.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500">No accounts yet. Create a sub-account to get started.</td></tr>';
+                    return;
+                }
+                this.state.users.forEach(u => {
+                    const count = this.state.popups.filter(p => p.userId === u.id).length;
+                    list.innerHTML += `
+                        <tr class="hover:bg-slate-800/40">
+                            <td class="p-4 font-bold text-white">${admin.esc(u.company || '—')}</td>
+                            <td class="p-4">${admin.esc(u.name || '—')}</td>
+                            <td class="p-4 text-slate-400">${admin.esc(u.email)}</td>
+                            <td class="p-4">${u.website ? `<a href="${admin.esc(u.website)}" target="_blank" class="text-indigo-400 hover:underline text-xs">${admin.esc(u.website)}</a>` : '<span class="text-slate-600 text-xs">—</span>'}</td>
+                            <td class="p-4"><button onclick="admin.viewPopups(${u.id})" class="text-slate-300 hover:text-white underline decoration-dotted">${count}</button></td>
+                            <td class="p-4">
+                                <div class="flex flex-wrap gap-1.5">
+                                    <button onclick="admin.visit(${u.id})" title="Visit / impersonate" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded text-xs font-bold text-white"><i class="fas fa-right-to-bracket"></i></button>
+                                    <button onclick="admin.createPopupFor(${u.id})" title="Create popup for this account" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-xs font-bold text-white"><i class="fas fa-plus"></i></button>
+                                    <button onclick="admin.openEditAccountModal(${u.id})" title="Edit account" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs font-bold text-white"><i class="fas fa-pen"></i></button>
+                                    <button onclick="admin.deleteAccount(${u.id})" title="Delete account" class="px-2.5 py-1 bg-red-600/80 hover:bg-red-600 rounded text-xs font-bold text-white"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            },
+
+            esc(s) { const d = document.createElement('div'); d.innerText = s || ''; return d.innerHTML; },
+
+            // ---------- Account create/edit ----------
+            openCreateAccountModal() {
+                document.getElementById('account-modal-title').innerText = 'Create Sub-account';
+                document.getElementById('account-id').value = '';
+                document.getElementById('account-name').value = '';
+                document.getElementById('account-company').value = '';
+                document.getElementById('account-email').value = '';
+                document.getElementById('account-password').value = Math.random().toString(36).slice(2, 10);
+                document.getElementById('account-website').value = '';
+                document.getElementById('account-modal').classList.remove('hidden');
+            },
+
+            openEditAccountModal(id) {
+                const u = this.state.users.find(x => x.id === id);
+                if (!u) return;
+                document.getElementById('account-modal-title').innerText = 'Edit Account';
+                document.getElementById('account-id').value = u.id;
+                document.getElementById('account-name').value = u.name || '';
+                document.getElementById('account-company').value = u.company || '';
+                document.getElementById('account-email').value = u.email || '';
+                document.getElementById('account-password').value = u.password || '';
+                document.getElementById('account-website').value = u.website || '';
+                document.getElementById('account-modal').classList.remove('hidden');
+            },
+
+            saveAccount(e) {
+                e.preventDefault();
+                const id = document.getElementById('account-id').value;
+                const name = document.getElementById('account-name').value;
+                const company = document.getElementById('account-company').value;
+                const email = document.getElementById('account-email').value.trim().toLowerCase();
+                const password = document.getElementById('account-password').value;
+                const website = document.getElementById('account-website').value;
+
+                if (id) {
+                    const u = this.state.users.find(x => x.id == id);
+                    if (u) Object.assign(u, { name, company, email, password, website });
+                } else {
+                    if (this.state.users.some(u => u.email.toLowerCase() === email)) { alert('An account with that email already exists.'); return; }
+                    this.state.users.push({ id: Date.now(), name, company, email, password, website, createdByAdmin: true });
+                }
+                this.saveData();
+                document.getElementById('account-modal').classList.add('hidden');
+                this.render();
+            },
+
+            deleteAccount(id) {
+                if (!confirm('Delete this account and all of its popups? This cannot be undone.')) return;
+                this.state.users = this.state.users.filter(u => u.id !== id);
+                this.state.popups = this.state.popups.filter(p => p.userId !== id);
+                this.saveData();
+                this.render();
+            },
+
+            // ---------- Visit / impersonate ----------
+            visit(id) {
+                const u = this.state.users.find(x => x.id === id);
+                if (!u) return;
+                localStorage.setItem('pm_session', JSON.stringify(u));
+                localStorage.setItem('pm_god_mode', 'true');
+                window.location.href = 'index.html';
+            },
+
+            // ---------- Popups per account ----------
+            viewPopups(id) {
+                const u = this.state.users.find(x => x.id === id);
+                if (!u) return;
+                document.getElementById('admin-popups-list-name').innerText = u.company || u.name || u.email;
+                const body = document.getElementById('admin-popups-list-body');
+                const popups = this.state.popups.filter(p => p.userId === id);
+                body.innerHTML = popups.length ? popups.map(p => `
+                    <div class="flex justify-between items-center bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+                        <div>
+                            <div class="font-bold text-white text-sm">${admin.esc(p.name)}</div>
+                            <div class="text-xs text-slate-400">${admin.esc(p.type)} • ${p.status}</div>
+                        </div>
+                        <button onclick="admin.deletePopup('${p.id}', ${id})" class="text-red-400 hover:text-red-300 text-xs font-bold"><i class="fas fa-trash"></i></button>
+                    </div>
+                `).join('') : '<p class="text-slate-500 text-sm text-center py-6">No popups for this account yet.</p>';
+                document.getElementById('admin-popups-list-modal').classList.remove('hidden');
+            },
+
+            deletePopup(popupId, userId) {
+                this.state.popups = this.state.popups.filter(p => p.id !== popupId);
+                this.saveData();
+                this.render();
+                this.viewPopups(userId);
+            },
+
+            createPopupFor(id) {
+                const u = this.state.users.find(x => x.id === id);
+                if (!u) return;
+                this.state.activePopupTarget = id;
+                document.getElementById('admin-popup-target-name').innerText = u.company || u.name || u.email;
+                const grid = document.getElementById('admin-template-grid');
+                grid.innerHTML = TEMPLATES.map(t => `
+                    <button onclick="admin.instantiateTemplate('${t.key}')" class="group bg-slate-800 border border-slate-700 rounded-xl p-4 hover:border-red-500 transition text-left template-card">
+                        <div class="h-20 rounded mb-2 flex items-center justify-center text-2xl" style="background:${t.swatch};color:${t.accent}"><i class="fas ${t.icon}"></i></div>
+                        <div class="font-bold text-sm text-white">${t.name}</div>
+                        <div class="text-xs text-slate-500">${t.category}</div>
+                    </button>
+                `).join('');
+                document.getElementById('admin-popup-modal').classList.remove('hidden');
+            },
+
+            instantiateTemplate(key) {
+                const tpl = TEMPLATES.find(t => t.key === key);
+                if (!tpl || !this.state.activePopupTarget) return;
+
+                // Build the popup's HTML content off-DOM using the shared block builder.
+                const container = document.createElement('div');
+                let y = 20;
+                tpl.blocks.forEach(b => {
+                    const el = buildBlockElement(b);
+                    el.style.left = (b.left !== undefined ? b.left : 20) + 'px';
+                    el.style.top = (b.top !== undefined ? b.top : y) + 'px';
+                    if (b.top === undefined) y += (b.blockHeight || 56);
+                    container.appendChild(el);
+                });
+                const closeBtn = '<div class="absolute top-2 right-2 text-slate-300 cursor-pointer p-1"><i class="fas fa-times"></i></div>';
+
+                const popup = {
+                    id: Date.now().toString(),
+                    userId: this.state.activePopupTarget,
+                    name: tpl.name,
+                    type: 'regular',
+                    status: 'draft',
+                    content: closeBtn + container.innerHTML,
+                    settings: { width: tpl.width, height: tpl.height, bg: tpl.bg, position: tpl.position || 'center' }
+                };
+                this.state.popups.push(popup);
+                this.saveData();
+                document.getElementById('admin-popup-modal').classList.add('hidden');
+                this.render();
+                alert(`"${tpl.name}" was added as a draft to that account. They'll see it — and can keep editing it — next time they log in.`);
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => admin.init());
+    </script>
+</body>
+</html>

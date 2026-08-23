@@ -8,57 +8,56 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        
+
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
-        
-        /* Animations */
+
         .fade-in { animation: fadeIn 0.5s ease-out forwards; opacity: 0; }
         .slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
         @keyframes fadeIn { to { opacity: 1; } }
         @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes blob { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(20px,-30px) scale(1.1)} 66%{transform:translate(-15px,15px) scale(0.95)} }
+        .animate-blob{animation:blob 8s infinite ease-in-out}
+        .animation-delay-2000{animation-delay:2s}
 
-        /* Editor Specifics */
         .canvas-area { background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 24px 24px; }
-        .element-selected { outline: 2px solid #3b82f6; position: relative; }
-        .resize-handle { width: 10px; height: 10px; background: #3b82f6; border: 1px solid white; position: absolute; z-index: 50; display: none; }
+        .element-selected { outline: 2px solid #3b82f6; }
+        .resize-handle { width: 12px; height: 12px; background: #3b82f6; border: 2px solid white; border-radius: 3px; position: absolute; z-index: 50; display: none; box-shadow: 0 1px 3px rgba(0,0,0,.3);}
         .element-selected .resize-handle { display: block; }
-        .rh-tl { top: -5px; left: -5px; cursor: nw-resize; }
-        .rh-tr { top: -5px; right: -5px; cursor: ne-resize; }
-        .rh-bl { bottom: -5px; left: -5px; cursor: sw-resize; }
-        .rh-br { bottom: -5px; right: -5px; cursor: se-resize; }
+        .rh-tl { top: -6px; left: -6px; cursor: nw-resize; }
+        .rh-tr { top: -6px; right: -6px; cursor: ne-resize; }
+        .rh-bl { bottom: -6px; left: -6px; cursor: sw-resize; }
+        .rh-br { bottom: -6px; right: -6px; cursor: se-resize; }
+        .canvas-el { user-select: none; }
 
-        /* Modal Overlay */
         .modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
-        
-        /* Scrollbar */
+
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* Template Cards */
         .template-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
-        
-        /* Device Frames */
-        .device-frame { transition: all 0.3s ease; margin: 0 auto; background: white; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        .frame-desktop { width: 100%; max-width: 100%; height: 100%; }
-        .frame-tablet { width: 768px; height: 1024px; border: 12px solid #333; border-radius: 20px; }
-        .frame-mobile { width: 375px; height: 667px; border: 12px solid #333; border-radius: 20px; }
 
-        /* Admin God Mode Indicator */
+        .device-frame { transition: all 0.3s ease; margin: 0 auto; background: white; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+
         .god-mode-banner { background: #ef4444; color: white; text-align: center; padding: 8px; font-weight: bold; font-size: 0.875rem; }
 
-        .demo-scene { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; opacity:0; animation: demoScene 16s infinite; padding:1.5rem; }
-        .demo-scene-1 { animation-delay:0s; } .demo-scene-2 { animation-delay:4s; } .demo-scene-3 { animation-delay:8s; } .demo-scene-4 { animation-delay:12s; }
-        .demo-popup { animation: demoPopup 4s ease-in-out infinite; } .demo-progress { animation: demoProgress 16s linear infinite; width:25%; }
-        @keyframes demoScene { 0%,20%{opacity:1;transform:translateY(0)} 25%,100%{opacity:0;transform:translateY(10px)} } @keyframes demoPopup { 0%,100%{transform:scale(.95)} 50%{transform:scale(1.05)} } @keyframes demoProgress { 0%{width:0} 25%{width:25%} 50%{width:50%} 75%{width:75%} 100%{width:100%} }
+        .toolbar-scroll { overflow-x: auto; scrollbar-width: none; }
+        .toolbar-scroll::-webkit-scrollbar{ display:none; }
+
+        /* Product demo "video tour" — scenes are shown/hidden by JS (one shared timer),
+           not by independent CSS animation-delay, so the caption panel can never drift
+           out of sync with the scene on the left. */
+        .demo-scene { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:1.5rem; opacity:0; transition:opacity .4s ease; pointer-events:none; }
+        .demo-scene.active { opacity:1; }
+        .demo-popup { animation: demoPopup 4s ease-in-out infinite; }
+        @keyframes demoPopup { 0%,100%{transform:scale(.95)} 50%{transform:scale(1.05)} }
     </style>
 </head>
 <body class="text-slate-800 antialiased">
 
     <!-- ================= LANDING PAGE ================= -->
     <div id="landing-page" class="min-h-screen flex flex-col">
-        <!-- Nav -->
         <nav class="w-full py-6 px-6 md:px-12 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100">
             <div class="flex items-center gap-2 cursor-pointer" onclick="app.navigate('landing')">
                 <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-200">P</div>
@@ -67,6 +66,7 @@
             <div class="hidden md:flex items-center gap-8">
                 <a href="#features" class="text-slate-600 hover:text-indigo-600 font-medium transition">Features</a>
                 <a href="#templates" class="text-slate-600 hover:text-indigo-600 font-medium transition">Templates</a>
+                <a href="#product-demo" class="text-slate-600 hover:text-indigo-600 font-medium transition">See it in action</a>
                 <a href="#how-it-works" class="text-slate-600 hover:text-indigo-600 font-medium transition">How It Works</a>
             </div>
             <div class="flex items-center gap-4">
@@ -75,34 +75,25 @@
             </div>
         </nav>
 
-        <!-- Hero -->
         <header class="flex-1 flex flex-col md:flex-row items-center justify-center px-6 md:px-12 py-12 md:py-20 gap-12 max-w-7xl mx-auto w-full">
             <div class="md:w-1/2 space-y-6 slide-up" style="animation-delay: 0.1s;">
-                <div class="inline-block px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm font-semibold border border-indigo-100">
-                    🚀 Version 2.0 is Live
-                </div>
+                <div class="inline-block px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm font-semibold border border-indigo-100">🚀 Version 2.0 is Live</div>
                 <h1 class="text-5xl md:text-6xl font-extrabold leading-tight text-slate-900">
                     Create Powerful <br>
                     <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Popups Without Code</span>
                 </h1>
-                <p class="text-lg text-slate-600 leading-relaxed max-w-lg">
-                    Build, customize, and manage high-converting website popups, banners, and forms in minutes. No design skills needed.
-                </p>
+                <p class="text-lg text-slate-600 leading-relaxed max-w-lg">Build, customize, and manage high-converting website popups, banners, and forms in minutes. No design skills needed.</p>
                 <div class="flex flex-col sm:flex-row gap-4 pt-4">
                     <button onclick="app.startDemo()" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xl shadow-indigo-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
                         <i class="fas fa-magic"></i> Try Demo Free
                     </button>
-                    <button onclick="app.navigate('signup')" class="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl border border-slate-200 shadow-lg transition flex items-center justify-center gap-2">
-                        Create Account
-                    </button>
+                    <button onclick="app.navigate('signup')" class="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl border border-slate-200 shadow-lg transition flex items-center justify-center gap-2">Create Account</button>
                 </div>
-                <p class="text-sm text-slate-400 pt-2">No credit card required • 14-day free trial</p>
+                <p class="text-sm text-slate-400 pt-2">No credit card required • 14-day free trial • Demo needs no account</p>
             </div>
-            
-            <!-- Hero Animation / Demo Preview -->
+
             <div class="md:w-1/2 w-full relative slide-up" style="animation-delay: 0.3s;">
                 <div class="relative z-10 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden aspect-video group">
-                    <!-- Simulated UI -->
                     <div class="bg-slate-50 border-b border-slate-100 p-3 flex gap-2">
                         <div class="w-3 h-3 rounded-full bg-red-400"></div>
                         <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
@@ -125,13 +116,11 @@
                         </div>
                     </div>
                 </div>
-                <!-- Decorative blobs -->
                 <div class="absolute -top-10 -right-10 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
                 <div class="absolute -bottom-10 -left-10 w-64 h-64 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
             </div>
         </header>
 
-        <!-- Features Section -->
         <section id="features" class="py-20 bg-white">
             <div class="max-w-7xl mx-auto px-6">
                 <div class="text-center mb-16">
@@ -139,19 +128,16 @@
                     <p class="text-slate-500 mt-2">Powerful features wrapped in a simple interface.</p>
                 </div>
                 <div class="grid md:grid-cols-3 gap-8">
-                    <!-- Feature 1 -->
                     <div class="p-8 rounded-2xl bg-slate-50 hover:bg-indigo-50 transition duration-300">
                         <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center text-xl mb-4"><i class="fas fa-mouse-pointer"></i></div>
                         <h3 class="text-xl font-bold mb-2">Drag & Drop Editor</h3>
-                        <p class="text-slate-600">Intuitive canvas. Drag elements, resize freely, and see changes in real-time.</p>
+                        <p class="text-slate-600">Intuitive canvas. Drag elements, resize freely from any corner, and see changes in real-time.</p>
                     </div>
-                    <!-- Feature 2 -->
                     <div class="p-8 rounded-2xl bg-slate-50 hover:bg-indigo-50 transition duration-300">
                         <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-xl mb-4"><i class="fas fa-layer-group"></i></div>
-                        <h3 class="text-xl font-bold mb-2">20+ Pro Templates</h3>
+                        <h3 class="text-xl font-bold mb-2">20 Pro Templates</h3>
                         <p class="text-slate-600">Start fast with pre-designed templates for newsletters, discounts, and more.</p>
                     </div>
-                    <!-- Feature 3 -->
                     <div class="p-8 rounded-2xl bg-slate-50 hover:bg-indigo-50 transition duration-300">
                         <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-xl mb-4"><i class="fas fa-mobile-alt"></i></div>
                         <h3 class="text-xl font-bold mb-2">Responsive Preview</h3>
@@ -161,12 +147,66 @@
             </div>
         </section>
 
-        <!-- How It Works (Animation) -->
+        <!-- Product demo section: single animated "video tour" card (left = scene player, right = synced captions) -->
+        <section id="product-demo" class="py-20 bg-white">
+            <div class="max-w-6xl mx-auto px-6">
+                <div class="text-center mb-10">
+                    <span class="text-xs font-bold uppercase tracking-widest text-indigo-600">See it in action</span>
+                    <h2 class="text-3xl font-bold text-slate-900 mt-2">From login to live popup in under a minute</h2>
+                    <p class="text-slate-500 mt-3">A guided product demo that plays directly on the page — no external video hosting required.</p>
+                </div>
+                <div class="rounded-2xl bg-slate-950 shadow-2xl overflow-hidden border border-slate-800">
+                    <div class="flex items-center gap-2 px-5 py-3 bg-slate-900 border-b border-slate-800">
+                        <span class="w-3 h-3 rounded-full bg-red-400"></span><span class="w-3 h-3 rounded-full bg-yellow-400"></span><span class="w-3 h-3 rounded-full bg-green-400"></span>
+                        <span class="ml-3 text-xs text-slate-400">popmaker.pro / product tour</span>
+                    </div>
+                    <div class="p-6 md:p-10 grid md:grid-cols-2 gap-8 items-center">
+                        <div class="rounded-xl bg-slate-900 border border-slate-700 p-5 min-h-[260px] relative overflow-hidden">
+                            <div class="demo-scene demo-scene-1">
+                                <div class="text-indigo-300 text-4xl mb-3"><i class="fas fa-user-circle"></i></div>
+                                <div class="font-bold text-white text-lg">Log in or try Demo Free</div>
+                                <div class="text-slate-400 text-sm mt-2">Start building without an account.</div>
+                            </div>
+                            <div class="demo-scene demo-scene-2">
+                                <div class="flex gap-2 mb-5"><span class="px-3 py-1 rounded bg-indigo-500/20 text-indigo-300 text-xs">Dashboard</span><span class="px-3 py-1 rounded bg-slate-800 text-slate-400 text-xs">Create Popup</span></div>
+                                <div class="h-3 bg-slate-700 rounded w-3/4 mb-3"></div>
+                                <div class="h-3 bg-slate-800 rounded w-1/2"></div>
+                            </div>
+                            <div class="demo-scene demo-scene-3">
+                                <div class="rounded-lg bg-white p-5 shadow-xl text-center transform demo-popup">
+                                    <div class="text-indigo-600 font-bold text-lg">Special Offer</div>
+                                    <div class="text-slate-500 text-xs mt-1">20% off your first order</div>
+                                    <button class="mt-4 px-4 py-2 bg-indigo-600 text-white text-xs rounded-lg">Shop Now</button>
+                                </div>
+                            </div>
+                            <div class="demo-scene demo-scene-4">
+                                <div class="text-green-400 text-4xl mb-3"><i class="fas fa-check-circle"></i></div>
+                                <div class="font-bold text-white text-lg">Published successfully</div>
+                                <div class="text-slate-400 text-sm mt-2">Preview, copy code, and publish.</div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-3 mb-5">
+                                <div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold" id="demo-step-number">1</div>
+                                <div>
+                                    <div class="text-white font-bold" id="demo-step-title">Log in or try Demo Free</div>
+                                    <div class="text-slate-400 text-sm" id="demo-step-copy">No account required to explore the editor.</div>
+                                </div>
+                            </div>
+                            <div class="h-2 bg-slate-800 rounded-full overflow-hidden"><div id="demo-progress" class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full" style="width:25%"></div></div>
+                            <div class="flex justify-between text-xs text-slate-500 mt-3">
+                                <span id="demo-label-0">Dashboard</span><span id="demo-label-1">Editor</span><span id="demo-label-2">Preview</span><span id="demo-label-3">Publish</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="how-it-works" class="py-20 bg-slate-900 text-white overflow-hidden">
             <div class="max-w-7xl mx-auto px-6 text-center">
                 <h2 class="text-3xl font-bold mb-12">From Idea to Live in Seconds</h2>
                 <div class="relative h-64 md:h-80 bg-slate-800/50 rounded-2xl border border-slate-700 flex items-center justify-center overflow-hidden">
-                    <!-- Simple CSS Animation Steps -->
                     <div class="absolute inset-0 flex items-center justify-center">
                         <div class="workflow-step opacity-0 transition-opacity duration-500 absolute" id="step1">
                             <div class="text-6xl text-indigo-400 mb-4"><i class="fas fa-plus-circle"></i></div>
@@ -185,74 +225,33 @@
             </div>
         </section>
 
-
-        <!-- Product Demo Video-style Animation -->
-        <section id="product-demo" class="py-20 bg-white">
-            <div class="max-w-6xl mx-auto px-6">
-                <div class="text-center mb-10"><span class="text-xs font-bold uppercase tracking-widest text-indigo-600">See it in action</span><h2 class="text-3xl font-bold text-slate-900 mt-2">From login to live popup in under a minute</h2><p class="text-slate-500 mt-3">A guided product demo that plays directly on the page—no external video hosting required.</p></div>
-                <div class="rounded-2xl bg-slate-950 shadow-2xl overflow-hidden border border-slate-800">
-                    <div class="flex items-center gap-2 px-5 py-3 bg-slate-900 border-b border-slate-800"><span class="w-3 h-3 rounded-full bg-red-400"></span><span class="w-3 h-3 rounded-full bg-yellow-400"></span><span class="w-3 h-3 rounded-full bg-green-400"></span><span class="ml-3 text-xs text-slate-400">popmaker.pro / product tour</span></div>
-                    <div class="p-6 md:p-10 grid md:grid-cols-2 gap-8 items-center">
-                        <div class="rounded-xl bg-slate-900 border border-slate-700 p-5 min-h-[260px] relative overflow-hidden"><div class="demo-scene demo-scene-1"><div class="text-indigo-300 text-4xl mb-3"><i class="fas fa-user-circle"></i></div><div class="font-bold text-white text-lg">Log in or try Demo Free</div><div class="text-slate-400 text-sm mt-2">Start building without an account.</div></div><div class="demo-scene demo-scene-2"><div class="flex gap-2 mb-5"><span class="px-3 py-1 rounded bg-indigo-500/20 text-indigo-300 text-xs">Dashboard</span><span class="px-3 py-1 rounded bg-slate-800 text-slate-400 text-xs">Create Popup</span></div><div class="h-3 bg-slate-700 rounded w-3/4 mb-3"></div><div class="h-3 bg-slate-800 rounded w-1/2"></div></div><div class="demo-scene demo-scene-3"><div class="rounded-lg bg-white p-5 shadow-xl text-center transform demo-popup"><div class="text-indigo-600 font-bold text-lg">Special Offer</div><div class="text-slate-500 text-xs mt-1">20% off your first order</div><button class="mt-4 px-4 py-2 bg-indigo-600 text-white text-xs rounded-lg">Shop Now</button></div></div><div class="demo-scene demo-scene-4"><div class="text-green-400 text-4xl mb-3"><i class="fas fa-check-circle"></i></div><div class="font-bold text-white text-lg">Published successfully</div><div class="text-slate-400 text-sm mt-2">Preview, copy code, and publish.</div></div></div>
-                        <div><div class="flex items-center gap-3 mb-5"><div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold" id="demo-step-number">1</div><div><div class="text-white font-bold" id="demo-step-title">Log in or try Demo Free</div><div class="text-slate-400 text-sm" id="demo-step-copy">No account required to explore the editor.</div></div></div><div class="h-2 bg-slate-800 rounded-full overflow-hidden"><div id="demo-progress" class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full demo-progress"></div></div><div class="flex justify-between text-xs text-slate-500 mt-3"><span>Dashboard</span><span>Editor</span><span>Preview</span><span>Publish</span></div></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Templates Preview Section -->
         <section id="templates" class="py-20 bg-slate-50">
             <div class="max-w-7xl mx-auto px-6">
                 <div class="text-center mb-16">
                     <h2 class="text-3xl font-bold text-slate-900">Beautiful Templates</h2>
-                    <p class="text-slate-500 mt-2">Choose from our library of high-converting designs.</p>
+                    <p class="text-slate-500 mt-2">Choose from our library of 20 high-converting designs.</p>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                    <!-- Template Thumbnails (Static for Landing) -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
-                        <div class="h-32 bg-indigo-50 rounded mb-3 flex items-center justify-center text-indigo-300"><i class="fas fa-envelope text-2xl"></i></div>
-                        <h4 class="font-semibold text-sm">Newsletter</h4>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
-                        <div class="h-32 bg-red-50 rounded mb-3 flex items-center justify-center text-red-300"><i class="fas fa-percent text-2xl"></i></div>
-                        <h4 class="font-semibold text-sm">Discount</h4>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
-                        <div class="h-32 bg-green-50 rounded mb-3 flex items-center justify-center text-green-300"><i class="fas fa-gift text-2xl"></i></div>
-                        <h4 class="font-semibold text-sm">Welcome Offer</h4>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
-                        <div class="h-32 bg-blue-50 rounded mb-3 flex items-center justify-center text-blue-300"><i class="fas fa-bell text-2xl"></i></div>
-                        <h4 class="font-semibold text-sm">Announcement</h4>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
-                        <div class="h-32 bg-orange-50 rounded mb-3 flex items-center justify-center text-orange-300"><i class="fas fa-clock text-2xl"></i></div>
-                        <h4 class="font-semibold text-sm">Countdown</h4>
-                    </div>
-                </div>
+                <div id="landing-template-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
             </div>
         </section>
 
-        <!-- Footer -->
         <footer class="bg-white border-t border-slate-100 py-12">
             <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">P</div>
                     <span class="font-bold text-slate-700">PopMaker Pro</span>
                 </div>
-                <div class="text-slate-500 text-sm">
-                    &copy; 2026 PopMaker Pro. All Rights Reserved.
-                </div>
+                <div class="text-slate-500 text-sm">&copy; 2026 PopMaker Pro. All Rights Reserved.</div>
                 <div class="flex gap-6 text-slate-400">
-                    <a href="#features" class="hover:text-indigo-600" aria-label="Features"><i class="fab fa-twitter"></i></a>
-                    <a href="#templates" class="hover:text-indigo-600" aria-label="Templates"><i class="fab fa-facebook"></i></a>
-                    <a href="#product-demo" class="hover:text-indigo-600" aria-label="Product demo"><i class="fas fa-play"></i></a>
+                    <a href="#" class="hover:text-indigo-600"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="hover:text-indigo-600"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="hover:text-indigo-600"><i class="fab fa-instagram"></i></a>
                 </div>
             </div>
         </footer>
     </div>
 
-    <!-- ================= AUTH PAGES (Login/Signup) ================= -->
+    <!-- ================= AUTH PAGES ================= -->
     <div id="auth-page" class="hidden min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden fade-in">
             <div class="p-8">
@@ -261,7 +260,6 @@
                     <h2 id="auth-title" class="text-2xl font-bold text-slate-800">Welcome Back</h2>
                     <p class="text-slate-500 text-sm mt-2">Enter your details to access your account</p>
                 </div>
-                
                 <form id="auth-form" onsubmit="app.handleAuth(event)" class="space-y-4">
                     <div id="name-field" class="hidden">
                         <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
@@ -279,12 +277,8 @@
                         <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
                         <input type="password" id="auth-password" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
                     </div>
-                    
-                    <button type="submit" id="auth-btn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-lg transition transform active:scale-95">
-                        Log In
-                    </button>
+                    <button type="submit" id="auth-btn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-lg transition transform active:scale-95">Log In</button>
                 </form>
-
                 <div class="mt-6 text-center text-sm text-slate-500">
                     <span id="auth-switch-text">Don't have an account?</span>
                     <button onclick="app.toggleAuthMode()" class="text-indigo-600 font-semibold hover:underline ml-1">Sign Up</button>
@@ -298,11 +292,15 @@
 
     <!-- ================= USER DASHBOARD ================= -->
     <div id="user-dashboard" class="hidden min-h-screen bg-slate-50 flex flex-col">
-        <!-- Top Bar -->
+        <div class="god-mode-banner" id="god-mode-banner" style="display:none;">
+            VIEWING AS: <span id="god-mode-user"></span>
+            <button onclick="app.exitGodMode()" class="ml-4 underline text-xs">Exit Admin Mode</button>
+        </div>
         <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 sticky top-0 z-40">
             <div class="flex items-center gap-4">
                 <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold cursor-pointer" onclick="app.navigate('dashboard')">P</div>
                 <h1 class="font-bold text-slate-800 hidden md:block">My Dashboard</h1>
+                <span id="demo-badge" class="hidden px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">DEMO MODE</span>
             </div>
             <div class="flex items-center gap-4">
                 <div class="text-right hidden md:block">
@@ -313,10 +311,8 @@
             </div>
         </header>
 
-        <!-- Content -->
         <main class="flex-1 p-6 md:p-12 overflow-y-auto">
             <div class="max-w-6xl mx-auto">
-                <!-- Stats -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                         <div class="text-slate-500 text-sm font-medium mb-1">Total Popups</div>
@@ -332,20 +328,18 @@
                     </div>
                 </div>
 
-                <!-- Website Info -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
                         <h3 class="font-bold text-slate-800">Your Website</h3>
-                        <p class="text-sm text-slate-500">Connect your site to track performance</p>
+                        <p class="text-sm text-slate-500">Connect your site to track performance, or preview it right here.</p>
                     </div>
-                    <div class="flex gap-2 w-full md:w-auto">
+                    <div class="flex gap-2 w-full md:w-auto flex-wrap">
                         <input type="url" id="dash-website" placeholder="https://yourwebsite.com" class="flex-1 md:w-64 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                         <button onclick="app.saveWebsite()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">Save</button>
-                        <a id="dash-visit-site" href="#" target="_blank" class="hidden px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200"><i class="fas fa-external-link-alt"></i> Visit</a>
+                        <button id="dash-view-site" onclick="app.viewWebsite()" class="hidden px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200"><i class="fas fa-eye mr-1"></i> View</button>
                     </div>
                 </div>
 
-                <!-- Create Button -->
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-bold text-slate-800">Your Popups</h2>
                     <button onclick="app.openCreateModal()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition flex items-center gap-2">
@@ -353,12 +347,27 @@
                     </button>
                 </div>
 
-                <!-- Popup List -->
-                <div id="popup-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Populated by JS -->
-                </div>
+                <div id="popup-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
             </div>
         </main>
+    </div>
+
+    <!-- ================= WEBSITE PREVIEW MODAL ================= -->
+    <div id="website-modal" class="hidden fixed inset-0 z-[65] flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col fade-in">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+                <span id="website-modal-url" class="text-sm font-medium text-slate-600 truncate"></span>
+                <button onclick="document.getElementById('website-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div id="website-modal-fallback" class="hidden items-center gap-2 text-xs text-amber-700 bg-amber-50 border-b border-amber-100 px-4 py-2">
+                <i class="fas fa-shield-halved"></i>
+                <span>Some sites block being shown inside another page like this — if it looks blank below, that's why.</span>
+                <a id="website-modal-fallback-link" href="#" target="_blank" class="font-semibold hover:underline whitespace-nowrap">Open in a new tab →</a>
+            </div>
+            <div class="flex-1 relative bg-slate-50">
+                <iframe id="website-modal-frame" class="w-full h-full border-0" src=""></iframe>
+            </div>
+        </div>
     </div>
 
     <!-- ================= CREATE POPUP MODAL ================= -->
@@ -369,29 +378,26 @@
                 <button onclick="document.getElementById('create-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-8">
-                <!-- Step 1: Type -->
                 <div class="mb-8">
                     <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">1. Choose Type</h4>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <button onclick="app.selectType('regular')" class="type-btn p-6 border-2 border-indigo-600 bg-indigo-50 rounded-xl text-center hover:shadow-md transition">
+                        <button onclick="app.selectType('regular', this)" class="type-btn p-6 border-2 border-indigo-600 bg-indigo-50 rounded-xl text-center hover:shadow-md transition">
                             <i class="fas fa-window-maximize text-3xl text-indigo-600 mb-2"></i>
                             <div class="font-bold text-slate-800">Regular Popup</div>
                             <div class="text-xs text-slate-500">Centered or Corner</div>
                         </button>
-                        <button onclick="app.selectType('banner')" class="type-btn p-6 border-2 border-slate-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
+                        <button onclick="app.selectType('banner', this)" class="type-btn p-6 border-2 border-slate-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
                             <i class="fas fa-arrows-alt-h text-3xl text-slate-400 mb-2"></i>
                             <div class="font-bold text-slate-800">Banner</div>
                             <div class="text-xs text-slate-500">Top or Bottom Bar</div>
                         </button>
-                        <button onclick="app.selectType('ghl')" class="type-btn p-6 border-2 border-slate-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
+                        <button onclick="app.selectType('ghl', this)" class="type-btn p-6 border-2 border-slate-200 rounded-xl text-center hover:border-indigo-600 hover:bg-indigo-50 transition">
                             <i class="fas fa-form text-3xl text-slate-400 mb-2"></i>
                             <div class="font-bold text-slate-800">GHL Form</div>
                             <div class="text-xs text-slate-500">Embed GoHighLevel</div>
                         </button>
                     </div>
                 </div>
-
-                <!-- Step 2: Start From -->
                 <div>
                     <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">2. Start From</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -409,7 +415,7 @@
                                 <i class="fas fa-layer-group text-4xl text-slate-300 group-hover:text-indigo-400 relative z-10"></i>
                             </div>
                             <div class="font-bold text-slate-800">Choose Template</div>
-                            <div class="text-sm text-slate-500">Pick from 20+ designs</div>
+                            <div class="text-sm text-slate-500">Pick from 20 designs</div>
                         </button>
                     </div>
                 </div>
@@ -425,106 +431,74 @@
                 <button onclick="document.getElementById('template-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-6 overflow-y-auto flex-1">
-                <div id="template-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    <!-- Populated by JS -->
-                </div>
+                <div id="template-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
             </div>
         </div>
     </div>
 
     <!-- ================= EDITOR ================= -->
     <div id="editor-page" class="hidden fixed inset-0 bg-slate-100 flex flex-col z-50">
-        <!-- Top Toolbar -->
-        <header class="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 z-40">
-            <div class="flex items-center gap-4">
-                <button onclick="app.exitEditor()" class="text-slate-500 hover:text-slate-800 font-medium text-sm"><i class="fas fa-arrow-left mr-1"></i> Exit</button>
-                <div class="h-6 w-px bg-slate-300"></div>
-                <span class="font-bold text-slate-700 text-sm" id="editor-title">Untitled Popup</span>
-            </div>
-            
-            <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
-                <button onclick="app.setDevice('desktop')" class="device-btn px-3 py-1.5 rounded text-xs font-medium bg-white shadow text-slate-700"><i class="fas fa-desktop"></i></button>
-                <button onclick="app.setDevice('tablet')" class="device-btn px-3 py-1.5 rounded text-xs font-medium text-slate-500 hover:bg-white/50"><i class="fas fa-tablet-alt"></i></button>
-                <button onclick="app.setDevice('mobile')" class="device-btn px-3 py-1.5 rounded text-xs font-medium text-slate-500 hover:bg-white/50"><i class="fas fa-mobile-alt"></i></button>
-            </div>
+        <header class="bg-white border-b border-slate-200 shrink-0 z-40">
+            <div class="h-14 flex items-center justify-between px-4 gap-3 toolbar-scroll">
+                <div class="flex items-center gap-3 shrink-0">
+                    <button onclick="app.exitEditor()" class="text-slate-500 hover:text-slate-800 font-medium text-sm whitespace-nowrap"><i class="fas fa-arrow-left mr-1"></i> Exit</button>
+                    <div class="h-6 w-px bg-slate-300 hidden sm:block"></div>
+                    <span class="font-bold text-slate-700 text-sm hidden sm:inline truncate max-w-[160px]" id="editor-title">Untitled Popup</span>
+                </div>
 
-            <div class="flex items-center gap-3">
-                <button onclick="app.togglePreview()" class="px-4 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition"><i class="fas fa-eye mr-1"></i> Preview</button>
-                <button onclick="app.savePopup()" class="px-4 py-1.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow transition"><i class="fas fa-save mr-1"></i> Save</button>
-                <button onclick="app.getCode()" class="px-4 py-1.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg shadow-sm transition"><i class="fas fa-code mr-1"></i> Get Code</button>
+                <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg shrink-0">
+                    <button onclick="app.setDevice('desktop', this)" class="device-btn px-3 py-1.5 rounded text-xs font-medium bg-white shadow text-slate-700"><i class="fas fa-desktop"></i></button>
+                    <button onclick="app.setDevice('tablet', this)" class="device-btn px-3 py-1.5 rounded text-xs font-medium text-slate-500 hover:bg-white/50"><i class="fas fa-tablet-alt"></i></button>
+                    <button onclick="app.setDevice('mobile', this)" class="device-btn px-3 py-1.5 rounded text-xs font-medium text-slate-500 hover:bg-white/50"><i class="fas fa-mobile-alt"></i></button>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <button onclick="app.togglePreview()" class="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition whitespace-nowrap"><i class="fas fa-eye mr-1"></i> <span class="hidden sm:inline">Preview</span></button>
+                    <button onclick="app.savePopup()" class="px-3 py-1.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow transition whitespace-nowrap"><i class="fas fa-save mr-1"></i> <span class="hidden sm:inline">Save</span></button>
+                    <button onclick="app.getCode()" class="px-3 py-1.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg shadow-sm transition whitespace-nowrap"><i class="fas fa-code mr-1"></i> <span class="hidden sm:inline">Get Code</span></button>
+                </div>
             </div>
         </header>
 
         <div class="flex flex-1 overflow-hidden">
-            <!-- Left Sidebar: Elements & Templates -->
-            <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 z-30">
+            <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 z-30 overflow-y-auto hidden md:flex">
                 <div class="p-4 border-b border-slate-100">
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Elements</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="app.addElement('heading')" ondragstart="app.drag(event, 'heading')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-heading mr-1"></i> Heading</button>
-                        <button onclick="app.addElement('text')" ondragstart="app.drag(event, 'text')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-paragraph mr-1"></i> Text</button>
-                        <button onclick="app.addElement('button')" ondragstart="app.drag(event, 'button')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-square mr-1"></i> Button</button>
-                        <button onclick="app.addElement('image')" ondragstart="app.drag(event, 'image')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-image mr-1"></i> Image</button>
-                        <button onclick="app.addElement('video')" ondragstart="app.drag(event, 'video')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-video mr-1"></i> Video</button>
-                        <button onclick="app.addElement('divider')" ondragstart="app.drag(event, 'divider')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-minus mr-1"></i> Divider</button>
-                        <button onclick="app.addElement('spacer')" ondragstart="app.drag(event, 'spacer')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-arrows-alt-v mr-1"></i> Spacer</button>
-                        <button onclick="app.addElement('social')" ondragstart="app.drag(event, 'social')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas fa-share-alt mr-1"></i> Social</button>
-                    </div>
+                    <div class="grid grid-cols-2 gap-2" id="elements-palette"></div>
                 </div>
                 <div class="p-4 flex-1 overflow-y-auto">
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Templates</h3>
-                    <div class="space-y-3">
-                        <button onclick="app.loadTemplateIntoEditor('newsletter')" class="w-full text-left p-2 border border-slate-200 rounded hover:border-indigo-500 transition">
-                            <div class="text-xs font-bold text-slate-700">Newsletter</div>
-                            <div class="h-16 bg-slate-100 rounded mt-1 flex items-center justify-center text-slate-400 text-xs"><i class="fas fa-envelope"></i></div>
-                        </button>
-                        <button onclick="app.loadTemplateIntoEditor('discount')" class="w-full text-left p-2 border border-slate-200 rounded hover:border-indigo-500 transition">
-                            <div class="text-xs font-bold text-slate-700">Discount</div>
-                            <div class="h-16 bg-red-50 rounded mt-1 flex items-center justify-center text-red-400 text-xs"><i class="fas fa-percent"></i></div>
-                        </button>
-                         <button onclick="app.loadTemplateIntoEditor('welcome')" class="w-full text-left p-2 border border-slate-200 rounded hover:border-indigo-500 transition">
-                            <div class="text-xs font-bold text-slate-700">Welcome</div>
-                            <div class="h-16 bg-green-50 rounded mt-1 flex items-center justify-center text-green-400 text-xs"><i class="fas fa-hand-sparkles"></i></div>
-                        </button>
-                        <!-- More templates can be added here similarly -->
-                    </div>
+                    <div class="space-y-3" id="editor-template-list"></div>
                 </div>
             </aside>
 
-            <!-- Canvas Area -->
-            <main class="flex-1 canvas-area relative overflow-auto flex items-center justify-center p-8" onclick="app.selectPopupContainer()">
+            <main class="flex-1 canvas-area relative overflow-auto flex items-center justify-center p-8" onclick="app.selectPopupContainer()" ondrop="app.drop(event)" ondragover="event.preventDefault()">
                 <div id="canvas-container" class="relative transition-all duration-300" onclick="event.stopPropagation()">
-                    <!-- The Popup Being Edited -->
                     <div id="popup-canvas" class="bg-white shadow-2xl relative overflow-hidden" style="width: 500px; min-height: 400px; position: relative;">
-                        <!-- Elements will be dropped here -->
-                        <div id="popup-close-btn" data-popup-close="true" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 cursor-pointer p-1 popup-close-btn" onclick="app.toggleCloseBtn(); event.stopPropagation();"><i class="fas fa-times"></i></div>
+                        <div class="absolute top-2 right-2 text-slate-300 hover:text-red-500 cursor-pointer p-1 z-40" onclick="event.stopPropagation();app.toggleCloseBtn()"><i class="fas fa-times"></i></div>
                     </div>
                 </div>
             </main>
 
-            <!-- Right Sidebar: Properties -->
             <aside class="w-72 bg-white border-l border-slate-200 flex flex-col shrink-0 z-30 overflow-y-auto">
                 <div class="p-4 border-b border-slate-100">
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider" id="prop-title">Popup Settings</h3>
                 </div>
                 <div id="properties-panel" class="p-4 space-y-4">
-                    <!-- Popup Properties -->
                     <div id="popup-props">
                         <div>
                             <label class="block text-xs font-medium text-slate-600 mb-1">Width (px)</label>
                             <input type="number" id="prop-width" onchange="app.updatePopupProp('width', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none">
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Min Height (px)</label>
+                        <div class="mt-3">
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Height (px)</label>
                             <input type="number" id="prop-height" onchange="app.updatePopupProp('height', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none">
                         </div>
-                        <div>
+                        <div class="mt-3">
                             <label class="block text-xs font-medium text-slate-600 mb-1">Background</label>
-                            <div class="flex gap-2">
-                                <input type="color" id="prop-bg-color" onchange="app.updatePopupProp('bg', this.value)" class="h-9 w-full rounded cursor-pointer border border-slate-300">
-                            </div>
+                            <input type="color" id="prop-bg-color" onchange="app.updatePopupProp('bg', this.value)" class="h-9 w-full rounded cursor-pointer border border-slate-300">
                         </div>
-                        <div>
+                        <div class="mt-3">
                             <label class="block text-xs font-medium text-slate-600 mb-1">Position</label>
                             <select id="prop-position" onchange="app.updatePopupProp('position', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none">
                                 <option value="center">Center</option>
@@ -538,16 +512,18 @@
                         </div>
                     </div>
 
-                    <!-- Element Properties (Hidden by default) -->
                     <div id="element-props" class="hidden space-y-3">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Width (%)</label>
-                            <input type="range" id="elem-width" min="10" max="100" oninput="app.updateElementProp('width', this.value + '%')" class="w-full">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Width (px)</label>
+                                <input type="number" id="elem-width" onchange="app.updateElementProp('width', this.value + 'px')" class="w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Height (px)</label>
+                                <input type="number" id="elem-height" onchange="app.updateElementProp('height', this.value + 'px')" class="w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Height (Auto/Px)</label>
-                            <input type="text" id="elem-height" placeholder="Auto" onblur="app.updateElementProp('height', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded text-sm">
-                        </div>
+                        <p class="text-[11px] text-slate-400 -mt-2">Tip: drag any corner handle on the element to resize it directly on the canvas.</p>
                         <div>
                             <label class="block text-xs font-medium text-slate-600 mb-1">Text Color</label>
                             <input type="color" id="elem-color" oninput="app.updateElementProp('color', this.value)" class="h-8 w-full rounded cursor-pointer">
@@ -580,8 +556,9 @@
             <span class="font-bold">Preview Mode</span>
             <button onclick="document.getElementById('preview-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium transition">Close Preview</button>
         </div>
-        <div class="flex-1 relative overflow-hidden flex items-center justify-center p-8" id="preview-area">
-            <!-- Preview injected here -->
+        <div class="flex-1 relative overflow-hidden" id="preview-area">
+            <div class="absolute inset-0 opacity-40" style="background-image:linear-gradient(45deg,#1e293b 25%,transparent 25%),linear-gradient(-45deg,#1e293b 25%,transparent 25%);background-size:20px 20px;"></div>
+            <div id="preview-stage" class="absolute inset-4 md:inset-12 bg-white/5 border border-dashed border-slate-600 rounded-lg"></div>
         </div>
     </div>
 
@@ -593,7 +570,7 @@
                 <button onclick="document.getElementById('code-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-6 bg-slate-50 flex-1 overflow-auto">
-                <p class="text-sm text-slate-600 mb-4">Copy this code and paste it before the <code class="bg-slate-200 px-1 rounded">&lt;/body&gt;</code> tag on your website.</p>
+                <p class="text-sm text-slate-600 mb-4">Copy this code and paste it before the <code class="bg-slate-200 px-1 rounded">&lt;/body&gt;</code> tag on your website. It reflects exactly what's on your canvas right now.</p>
                 <pre id="code-output" class="bg-slate-800 text-green-400 p-4 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap"></pre>
             </div>
             <div class="p-6 border-t border-slate-100 flex justify-end gap-3">
@@ -606,11 +583,9 @@
     <!-- ================= SIGNUP PROMPT (DEMO) ================= -->
     <div id="demo-prompt" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 modal-overlay">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center fade-in">
-            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
-                <i class="fas fa-lock"></i>
-            </div>
+            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fas fa-lock"></i></div>
             <h3 class="text-2xl font-bold text-slate-800 mb-2">Save Your Work?</h3>
-            <p class="text-slate-600 mb-6">You are currently in Demo Mode. Create a free account to save this popup and access it anytime from any device.</p>
+            <p class="text-slate-600 mb-6">You're in Demo Mode. Everything else is unlocked — but to save this popup or grab its install code, create a free account so it's there next time you log in.</p>
             <div class="flex flex-col gap-3">
                 <button onclick="app.navigate('signup')" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">Create Free Account</button>
                 <button onclick="document.getElementById('demo-prompt').classList.add('hidden')" class="w-full py-3 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl border border-slate-200 transition">Continue Editing</button>
@@ -618,78 +593,46 @@
         </div>
     </div>
 
-    <!-- ================= ADMIN DASHBOARD (Separate View) ================= -->
-    <div id="admin-dashboard" class="hidden min-h-screen bg-slate-900 text-white flex flex-col">
-        <div class="god-mode-banner" id="god-mode-banner" style="display:none;">
-            VIEWING AS: <span id="god-mode-user"></span> 
-            <button onclick="app.exitGodMode()" class="ml-4 underline text-xs">Exit Admin Mode</button>
-        </div>
-        <header class="bg-slate-800 border-b border-slate-700 h-16 flex items-center justify-between px-6">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center font-bold">A</div>
-                <h1 class="font-bold text-lg">Admin Dashboard</h1>
-            </div>
-            <button onclick="app.logout()" class="text-slate-400 hover:text-white"><i class="fas fa-sign-out-alt"></i></button>
-        </header>
-        <main class="flex-1 p-6 overflow-y-auto">
-            <div class="max-w-7xl mx-auto">
-                <div class="flex items-center justify-between mb-6"><h2 class="text-2xl font-bold">All Users</h2><button onclick="app.createSubAccount()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-bold"><i class="fas fa-user-plus mr-2"></i>Create Sub-account</button></div>
-                <div class="bg-slate-800 rounded-xl overflow-hidden shadow-xl">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-700 text-slate-300 text-xs uppercase">
-                            <tr>
-                                <th class="p-4">Company</th>
-                                <th class="p-4">User</th>
-                                <th class="p-4">Email</th>
-                                <th class="p-4">Website</th>
-                                <th class="p-4">Popups</th>
-                                <th class="p-4">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="admin-user-list" class="divide-y divide-slate-700 text-sm">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
-
+    <script src="templates.js"></script>
     <script>
         // ================= APP LOGIC =================
         const app = {
             state: {
                 currentUser: null,
                 isDemo: false,
-                currentPopup: null,
+                newPopupType: 'regular',
                 selectedElement: null,
                 device: 'desktop',
                 users: JSON.parse(localStorage.getItem('pm_users')) || [],
-                popups: JSON.parse(localStorage.getItem('pm_popups')) || []
+                popups: JSON.parse(localStorage.getItem('pm_popups')) || [],
+                demoPopups: [],
+                editingPopupId: null
             },
 
             init() {
-                // Check session
+                this.renderPalette();
+                this.renderLandingTemplates();
+
+                const godMode = localStorage.getItem('pm_god_mode') === 'true';
                 const session = localStorage.getItem('pm_session');
                 if (session) {
                     const user = JSON.parse(session);
-                    if (user.email === 'admin@poptin.com') {
-                        this.navigate('admin');
-                        this.renderAdmin();
-                    } else {
-                        this.state.currentUser = user;
-                        this.navigate('dashboard');
-                        this.loadDashboard();
+                    this.state.currentUser = user;
+                    this.navigate('dashboard');
+                    if (godMode) {
+                        document.getElementById('god-mode-banner').style.display = 'block';
+                        document.getElementById('god-mode-user').innerText = user.name || user.email;
                     }
+                    this.loadDashboard();
                 } else {
                     this.navigate('landing');
                 }
                 this.startAnimation();
             },
 
+            // ---------- Navigation ----------
             navigate(page) {
-                document.querySelectorAll('#landing-page, #auth-page, #user-dashboard, #editor-page, #admin-dashboard').forEach(el => el.classList.add('hidden'));
-                
+                document.querySelectorAll('#landing-page, #auth-page, #user-dashboard, #editor-page').forEach(el => el.classList.add('hidden'));
                 if (page === 'landing') document.getElementById('landing-page').classList.remove('hidden');
                 else if (page === 'login' || page === 'signup') {
                     document.getElementById('auth-page').classList.remove('hidden');
@@ -699,14 +642,10 @@
                     document.getElementById('auth-btn').innerText = page === 'login' ? 'Log In' : 'Sign Up';
                     document.getElementById('auth-switch-text').innerText = page === 'login' ? "Don't have an account?" : "Already have an account?";
                     document.querySelector('#auth-page button[onclick*="toggleAuthMode"]').innerText = page === 'login' ? "Sign Up" : "Log In";
-                }
-                else if (page === 'dashboard') {
+                } else if (page === 'dashboard') {
                     document.getElementById('user-dashboard').classList.remove('hidden');
+                    document.getElementById('demo-badge').classList.toggle('hidden', !this.state.isDemo);
                     this.loadDashboard();
-                }
-                else if (page === 'admin') {
-                    document.getElementById('admin-dashboard').classList.remove('hidden');
-                    this.renderAdmin();
                 }
             },
 
@@ -717,37 +656,47 @@
 
             handleAuth(e) {
                 e.preventDefault();
-                const email = document.getElementById('auth-email').value;
+                const email = document.getElementById('auth-email').value.trim().toLowerCase();
                 const password = document.getElementById('auth-password').value;
                 const name = document.getElementById('auth-name').value;
                 const company = document.getElementById('auth-company').value;
                 const isLogin = document.getElementById('auth-btn').innerText === 'Log In';
 
-                if (email === 'admin@poptin.com' && password === 'admin123') {
-                    localStorage.setItem('pm_session', JSON.stringify({ email, role: 'admin' }));
-                    this.navigate('admin');
-                    this.renderAdmin();
-                    return;
-                }
-
-                let user = this.state.users.find(u => u.email === email);
+                let user = this.state.users.find(u => u.email.toLowerCase() === email);
+                let convertedDemo = null;
 
                 if (isLogin) {
                     if (!user || user.password !== password) { alert('Invalid credentials'); return; }
                 } else {
-                    if (user) { alert('Account exists'); return; }
+                    if (email === 'admin@poptin.com') { alert('That email is reserved for the admin panel. Please use a different email, or sign in at admin.html.'); return; }
+                    if (user) { alert('An account already exists with that email'); return; }
+                    // If they were building in demo mode, carry that work into the new account
+                    if (this.state.isDemo && this.state.demoPopups.length) convertedDemo = this.state.demoPopups;
                     user = { id: Date.now(), name, company, email, password, website: '' };
                     this.state.users.push(user);
                     this.saveData();
                 }
 
+                localStorage.removeItem('pm_god_mode');
                 localStorage.setItem('pm_session', JSON.stringify(user));
                 this.state.currentUser = user;
+                this.state.isDemo = false;
+
+                if (convertedDemo) {
+                    convertedDemo.forEach(p => {
+                        p.id = Date.now().toString() + Math.random().toString(36).slice(2,6);
+                        p.userId = user.id;
+                        this.state.popups.push(p);
+                    });
+                    this.saveData();
+                }
+
                 this.navigate('dashboard');
             },
 
             logout() {
                 localStorage.removeItem('pm_session');
+                localStorage.removeItem('pm_god_mode');
                 this.state.currentUser = null;
                 this.state.isDemo = false;
                 this.navigate('landing');
@@ -755,78 +704,104 @@
 
             startDemo() {
                 this.state.isDemo = true;
-                this.state.currentUser = { name: 'Demo User', email: 'demo@temp.com' };
+                this.state.currentUser = { id: 'demo', name: 'Demo User', email: 'demo@temp.com', company: 'Tryout Mode', website: '' };
                 this.navigate('dashboard');
-                this.loadDashboard();
             },
 
+            exitGodMode() {
+                localStorage.removeItem('pm_god_mode');
+                localStorage.removeItem('pm_session');
+                window.location.href = 'admin.html';
+            },
+
+            // ---------- Dashboard ----------
             loadDashboard() {
-                if (this.state.isDemo) {
-                    document.getElementById('dash-user-name').innerText = 'Demo User';
-                    document.getElementById('dash-company-name').innerText = 'Tryout Mode';
-                    document.getElementById('popup-list').innerHTML = '<div class="col-span-3 text-center py-12 text-slate-400">Demo Mode: Create a popup to try it out!</div>';
-                    return;
-                }
-
-                document.getElementById('dash-user-name').innerText = this.state.currentUser.name;
-                document.getElementById('dash-company-name').innerText = this.state.currentUser.company;
+                document.getElementById('dash-user-name').innerText = this.state.currentUser.name || this.state.currentUser.email;
+                document.getElementById('dash-company-name').innerText = this.state.currentUser.company || '';
                 document.getElementById('dash-website').value = this.state.currentUser.website || '';
-                
-                if(this.state.currentUser.website) {
-                    const link = document.getElementById('dash-visit-site');
-                    link.href = this.state.currentUser.website;
-                    link.classList.remove('hidden');
-                }
+                const viewBtn = document.getElementById('dash-view-site');
+                if (this.state.currentUser.website) viewBtn.classList.remove('hidden'); else viewBtn.classList.add('hidden');
 
-                const userPopups = this.state.popups.filter(p => p.userId === this.state.currentUser.id);
+                const userPopups = this.state.isDemo ? this.state.demoPopups : this.state.popups.filter(p => p.userId === this.state.currentUser.id);
                 document.getElementById('stat-total').innerText = userPopups.length;
                 document.getElementById('stat-active').innerText = userPopups.filter(p => p.status === 'active').length;
                 document.getElementById('stat-drafts').innerText = userPopups.filter(p => p.status === 'draft').length;
 
                 const list = document.getElementById('popup-list');
                 list.innerHTML = '';
+                if (!userPopups.length) {
+                    list.innerHTML = `<div class="col-span-3 text-center py-12 text-slate-400">No popups yet — click "Create New Popup" to get started${this.state.isDemo ? ' (no account needed to try it out)' : ''}.</div>`;
+                }
                 userPopups.forEach(p => {
                     list.innerHTML += `
                         <div class="bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition flex justify-between items-center">
                             <div>
-                                <div class="font-bold text-slate-800">${p.name}</div>
-                                <div class="text-xs text-slate-500">${p.type} • ${p.status}</div>
+                                <div class="font-bold text-slate-800">${app.esc(p.name)}</div>
+                                <div class="text-xs text-slate-500">${app.esc(p.type)} • ${p.status}</div>
                             </div>
-                            <button onclick="app.openEditor('${p.id}')" class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-bold hover:bg-indigo-100">Edit</button>
+                            <div class="flex gap-2">
+                                <button onclick="app.openEditor('${p.id}')" class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-bold hover:bg-indigo-100">Edit</button>
+                                <button onclick="app.togglePopupStatus('${p.id}')" class="px-3 py-1 bg-slate-50 text-slate-600 rounded text-xs font-bold hover:bg-slate-100">${p.status === 'active' ? 'Pause' : 'Activate'}</button>
+                            </div>
                         </div>
                     `;
                 });
             },
 
-            saveWebsite() {
-                const url = document.getElementById('dash-website').value;
-                if (!this.state.isDemo) {
-                    this.state.currentUser.website = url;
-                    const idx = this.state.users.findIndex(u => u.id === this.state.currentUser.id);
-                    this.state.users[idx] = this.state.currentUser;
-                    this.saveData();
-                    alert('Website saved!');
-                    location.reload();
-                }
+            togglePopupStatus(id) {
+                const arr = this.state.isDemo ? this.state.demoPopups : this.state.popups;
+                const p = arr.find(x => x.id === id);
+                if (!p) return;
+                p.status = p.status === 'active' ? 'draft' : 'active';
+                if (!this.state.isDemo) this.saveData();
+                this.loadDashboard();
             },
 
-            openCreateModal() {
-                if (this.state.isDemo && this.state.popups.some(p => p.userId === 'demo')) {
-                    alert('Demo limit reached. Please sign up to save more.');
-                    document.getElementById('demo-prompt').classList.remove('hidden');
-                    return;
+            saveWebsite() {
+                const url = document.getElementById('dash-website').value;
+                this.state.currentUser.website = url;
+                if (!this.state.isDemo) {
+                    const idx = this.state.users.findIndex(u => u.id === this.state.currentUser.id);
+                    if (idx > -1) this.state.users[idx] = this.state.currentUser;
+                    this.saveData();
+                    localStorage.setItem('pm_session', JSON.stringify(this.state.currentUser));
                 }
+                this.loadDashboard();
+            },
+
+            viewWebsite() {
+                const url = this.state.currentUser.website;
+                if (!url) return;
+                document.getElementById('website-modal-url').innerText = url;
+                document.getElementById('website-modal-fallback-link').href = url;
+                const frame = document.getElementById('website-modal-frame');
+
+                // Most real sites send X-Frame-Options / CSP frame-ancestors headers that block
+                // embedding. That does NOT fire the iframe's error event (the request "succeeds",
+                // it's just refused to render) and cross-origin JS can't inspect a cross-origin
+                // frame's contents to check. Reliable detection isn't possible from here, so we
+                // show a small non-blocking notice with an "open in new tab" link every time,
+                // instead of the old logic that tried (and failed) to detect the block and just
+                // left a permanently blank iframe with no way out.
+                document.getElementById('website-modal-fallback').classList.remove('hidden');
+                document.getElementById('website-modal-fallback').classList.add('flex');
+                frame.src = url;
+                document.getElementById('website-modal').classList.remove('hidden');
+            },
+
+            // ---------- Create flow ----------
+            openCreateModal() {
                 document.getElementById('create-modal').classList.remove('hidden');
             },
 
-            selectType(type) {
+            selectType(type, btn) {
                 this.state.newPopupType = type;
                 document.querySelectorAll('.type-btn').forEach(b => {
                     b.classList.remove('border-indigo-600', 'bg-indigo-50');
                     b.classList.add('border-slate-200');
                 });
-                event.currentTarget.classList.remove('border-slate-200');
-                event.currentTarget.classList.add('border-indigo-600', 'bg-indigo-50');
+                btn.classList.remove('border-slate-200');
+                btn.classList.add('border-indigo-600', 'bg-indigo-50');
             },
 
             openTemplateSelector() {
@@ -834,32 +809,48 @@
                 document.getElementById('template-modal').classList.remove('hidden');
                 const grid = document.getElementById('template-grid');
                 grid.innerHTML = '';
-                const templates = [
-                    'Newsletter', 'Discount', 'Welcome', 'Lead Gen', 'Contact', 
-                    'Event', 'Product', 'Limited Offer', 'Consultation', 'Get Started',
-                    'Announcement', 'New Product', 'Holiday', 'Exit Intent', 'Booking',
-                    'Social Follow', 'Web Announce', 'Email Signup', 'Special Offer', 'Simple CTA'
-                ];
-                templates.forEach(t => {
+                TEMPLATES.forEach(t => {
                     grid.innerHTML += `
-                        <button onclick="app.startEditor('template', '${t}')" class="group bg-white border border-slate-200 rounded-xl p-4 hover:border-indigo-600 transition text-left">
-                            <div class="h-24 bg-slate-50 rounded mb-2 flex items-center justify-center text-slate-400 group-hover:text-indigo-500">
-                                <i class="fas fa-file-alt text-2xl"></i>
+                        <button onclick="app.startEditor('template', '${t.key}')" class="group bg-white border border-slate-200 rounded-xl p-4 hover:border-indigo-600 transition text-left template-card">
+                            <div class="h-24 rounded mb-2 flex items-center justify-center text-2xl" style="background:${t.swatch};color:${t.accent}">
+                                <i class="fas ${t.icon}"></i>
                             </div>
-                            <div class="font-bold text-sm text-slate-700">${t}</div>
+                            <div class="font-bold text-sm text-slate-700">${t.name}</div>
+                            <div class="text-xs text-slate-400">${t.category}</div>
                         </button>
                     `;
                 });
             },
 
-            startEditor(mode, templateName = null) {
+            renderLandingTemplates() {
+                const grid = document.getElementById('landing-template-grid');
+                if (!grid) return;
+                grid.innerHTML = TEMPLATES.slice(0, 10).map(t => `
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition template-card">
+                        <div class="h-32 rounded mb-3 flex items-center justify-center text-2xl" style="background:${t.swatch};color:${t.accent}"><i class="fas ${t.icon}"></i></div>
+                        <h4 class="font-semibold text-sm">${t.name}</h4>
+                    </div>
+                `).join('');
+            },
+
+            renderPalette() {
+                const el = document.getElementById('elements-palette');
+                el.innerHTML = ELEMENT_TYPES.map(e => `
+                    <button ondragstart="app.drag(event, '${e.type}')" draggable="true" class="p-2 bg-slate-50 border border-slate-200 rounded hover:border-indigo-500 hover:bg-indigo-50 transition text-xs font-medium text-slate-700"><i class="fas ${e.icon} mr-1"></i> ${e.label}</button>
+                `).join('');
+            },
+
+            // ---------- Editor entry ----------
+            startEditor(mode, templateKey = null) {
                 document.getElementById('template-modal').classList.add('hidden');
+                document.getElementById('create-modal').classList.add('hidden');
                 document.getElementById('editor-page').classList.remove('hidden');
-                
+                this.state.editingPopupId = null;
+                document.getElementById('editor-title').innerText = 'Untitled Popup';
+
                 const canvas = document.getElementById('popup-canvas');
-                canvas.innerHTML = '<div class="absolute top-2 right-2 text-slate-300 hover:text-red-500 cursor-pointer p-1" onclick="app.toggleCloseBtn()"><i class="fas fa-times"></i></div>';
-                
-                // Reset Props
+                canvas.innerHTML = this.closeBtnHTML();
+
                 document.getElementById('prop-width').value = 500;
                 document.getElementById('prop-height').value = 400;
                 document.getElementById('prop-bg-color').value = '#ffffff';
@@ -868,112 +859,112 @@
                 this.updatePopupProp('height', 400);
                 this.updatePopupProp('bg', '#ffffff');
                 this.updatePopupProp('position', 'center');
+                this.renderEditorTemplateList();
+                this.selectPopupContainer();
 
-                if (mode === 'template') {
-                    this.loadTemplateIntoEditor(templateName.toLowerCase().replace(' ', ''));
-                }
+                if (mode === 'template' && templateKey) this.loadTemplateIntoEditor(templateKey);
+            },
+
+            renderEditorTemplateList() {
+                const box = document.getElementById('editor-template-list');
+                box.innerHTML = TEMPLATES.map(t => `
+                    <button onclick="app.loadTemplateIntoEditor('${t.key}')" class="w-full text-left p-2 border border-slate-200 rounded hover:border-indigo-500 transition">
+                        <div class="text-xs font-bold text-slate-700">${t.name}</div>
+                        <div class="h-14 rounded mt-1 flex items-center justify-center text-sm" style="background:${t.swatch};color:${t.accent}"><i class="fas ${t.icon}"></i></div>
+                    </button>
+                `).join('');
+            },
+
+            closeBtnHTML() {
+                return '<div class="absolute top-2 right-2 text-slate-300 hover:text-red-500 cursor-pointer p-1 z-40" onclick="event.stopPropagation();app.toggleCloseBtn()"><i class="fas fa-times"></i></div>';
             },
 
             loadTemplateIntoEditor(key) {
+                const tpl = TEMPLATES.find(t => t.key === key);
+                if (!tpl) return;
                 const canvas = document.getElementById('popup-canvas');
-                // Clear except close btn
-                canvas.innerHTML = '<div class="absolute top-2 right-2 text-slate-300 hover:text-red-500 cursor-pointer p-1" onclick="app.toggleCloseBtn()"><i class="fas fa-times"></i></div>';
-                
-                let html = '';
-                if (key === 'newsletter') {
-                    html = `<div class="p-8 text-center"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600"><i class="fas fa-envelope text-2xl"></i></div><h2 class="text-2xl font-bold text-slate-800 mb-2">Join Our Newsletter</h2><p class="text-slate-600 mb-6">Get the latest updates sent straight to your inbox.</p><input type="email" placeholder="Enter email" class="w-full p-3 border rounded mb-3"><button class="w-full py-3 bg-blue-600 text-white font-bold rounded">Subscribe</button></div>`;
-                } else if (key === 'discount') {
-                    html = `<div class="p-8 text-center bg-red-50 h-full"><h2 class="text-3xl font-extrabold text-red-600 my-4">FLASH SALE<br>50% OFF</h2><p class="text-slate-700 mb-6">Use code: SAVE50</p><button class="px-8 py-3 bg-red-600 text-white font-bold rounded shadow-lg">Shop Now</button></div>`;
-                } else if (key === 'welcome') {
-                    html = `<div class="p-8 text-center"><h2 class="text-2xl font-bold text-green-600 mb-2">Welcome!</h2><p class="text-slate-600 mb-4">Thanks for visiting.</p><button class="px-6 py-2 bg-green-600 text-white rounded">Get Started</button></div>`;
-                } else {
-                    html = `<div class="p-6 text-center"><h2 class="text-xl font-bold">Template Loaded</h2><p class="text-slate-500">Edit this text</p><button class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded">Button</button></div>`;
-                }
-                
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = html;
-                Array.from(tempDiv.children).forEach(child => {
-                    child.classList.add('absolute', 'cursor-move');
-                    child.style.left = '20px';
-                    child.style.top = (20 + (Array.from(canvas.children).length * 60)) + 'px';
-                    this.makeElementInteractive(child);
-                    canvas.appendChild(child);
+                canvas.innerHTML = this.closeBtnHTML();
+
+                document.getElementById('prop-width').value = tpl.width;
+                document.getElementById('prop-height').value = tpl.height;
+                document.getElementById('prop-bg-color').value = tpl.bg;
+                document.getElementById('prop-position').value = tpl.position || 'center';
+                this.updatePopupProp('width', tpl.width);
+                this.updatePopupProp('height', tpl.height);
+                this.updatePopupProp('bg', tpl.bg);
+                this.updatePopupProp('position', tpl.position || 'center');
+
+                let y = 20;
+                tpl.blocks.forEach(b => {
+                    const el = buildBlockElement(b);
+                    el.style.left = (b.left !== undefined ? b.left : 20) + 'px';
+                    el.style.top = (b.top !== undefined ? b.top : y) + 'px';
+                    if (b.top === undefined) y += (b.blockHeight || 56);
+                    this.makeElementInteractive(el);
+                    canvas.appendChild(el);
                 });
+                document.getElementById('editor-title').innerText = tpl.name;
             },
 
-            drag(ev, type) {
-                ev.dataTransfer.setData("type", type);
-            },
+            // ---------- Drag & drop new elements ----------
+            drag(ev, type) { ev.dataTransfer.setData("type", type); },
 
             drop(ev) {
                 ev.preventDefault();
                 const type = ev.dataTransfer.getData("type");
+                if (!type) return;
                 const canvas = document.getElementById('popup-canvas');
                 const rect = canvas.getBoundingClientRect();
                 const x = ev.clientX - rect.left;
                 const y = ev.clientY - rect.top;
 
-                let el;
-                if (type === 'heading') el = document.createElement('h2');
-                else if (type === 'text') el = document.createElement('p');
-                else if (type === 'button') el = document.createElement('button');
-                else if (type === 'image') { el = document.createElement('img'); el.src = 'https://via.placeholder.com/150'; }
-                else if (type === 'video') { el = document.createElement('div'); el.className = 'bg-black text-white flex items-center justify-center'; el.innerText = 'Video Placeholder'; el.style.width='200px'; el.style.height='150px'; }
-                else if (type === 'divider') { el = document.createElement('hr'); el.className = 'border-t-2 border-slate-300'; el.style.width='100%'; }
-                else if (type === 'spacer') { el = document.createElement('div'); el.style.height='50px'; el.style.width='100%'; }
-                else if (type === 'social') { el = document.createElement('div'); el.className = 'flex gap-2 text-blue-500'; el.innerHTML = '<i class="fab fa-facebook"></i><i class="fab fa-twitter"></i>'; }
-
-                if (el) {
-                    if (type === 'heading') { el.innerText = 'New Heading'; el.className = 'text-2xl font-bold'; }
-                    if (type === 'text') { el.innerText = 'Lorem ipsum dolor sit amet.'; el.className = 'text-slate-600'; }
-                    if (type === 'button') { el.innerText = 'Click Me'; el.className = 'px-4 py-2 bg-indigo-600 text-white rounded'; }
-                    
-                    el.classList.add('absolute', 'cursor-move');
-                    el.style.left = (x - 50) + 'px';
-                    el.style.top = (y - 20) + 'px';
-                    if(type !== 'image' && type !== 'video') { el.style.width = 'auto'; }
-                    
-                    this.makeElementInteractive(el);
-                    canvas.appendChild(el);
-                    this.selectElement(el);
-                }
+                const def = ELEMENT_TYPES.find(e => e.type === type);
+                if (!def) return;
+                const el = buildBlockElement({ type, text: def.defaultText, style: def.defaultStyle || {} });
+                el.style.left = Math.max(0, x - 60) + 'px';
+                el.style.top = Math.max(0, y - 20) + 'px';
+                this.makeElementInteractive(el);
+                canvas.appendChild(el);
+                this.selectElement(el);
             },
 
             makeElementInteractive(el) {
+                el.classList.add('canvas-el');
                 el.onmousedown = (e) => {
-                    if (e.target !== el) return;
+                    if (e.target.classList.contains('resize-handle')) return;
+                    if (e.target !== el && !e.target.closest('.canvas-el-inner') && e.target.parentElement !== el) {
+                        // allow selecting via click on inner text too
+                    }
                     e.stopPropagation();
                     this.selectElement(el);
                     let shiftX = e.clientX - el.getBoundingClientRect().left;
                     let shiftY = e.clientY - el.getBoundingClientRect().top;
 
                     const moveAt = (pageX, pageY) => {
-                        const canvas = document.getElementById('popup-canvas').getBoundingClientRect();
-                        el.style.left = pageX - canvas.left - shiftX + 'px';
-                        el.style.top = pageY - canvas.top - shiftY + 'px';
+                        const canvasRect = document.getElementById('popup-canvas').getBoundingClientRect();
+                        el.style.left = Math.round(pageX - canvasRect.left - shiftX) + 'px';
+                        el.style.top = Math.round(pageY - canvasRect.top - shiftY) + 'px';
                     };
-
                     const onMouseMove = (event) => moveAt(event.pageX, event.pageY);
-
-                    document.addEventListener('mousemove', onMouseMove);
-                    el.onmouseup = () => {
+                    const onMouseUp = () => {
                         document.removeEventListener('mousemove', onMouseMove);
-                        el.onmouseup = null;
+                        document.removeEventListener('mouseup', onMouseUp);
                     };
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
                 };
             },
 
             selectElement(el) {
-                if (this.state.selectedElement) this.state.selectedElement.classList.remove('element-selected');
+                if (this.state.selectedElement && this.state.selectedElement !== el) this.state.selectedElement.classList.remove('element-selected');
                 this.state.selectedElement = el;
                 el.classList.add('element-selected');
-                
-                // Add resize handles if not present
+
                 if (!el.querySelector('.rh-br')) {
                     ['tl','tr','bl','br'].forEach(pos => {
                         const h = document.createElement('div');
                         h.className = `resize-handle rh-${pos}`;
-                        h.onmousedown = (e) => this.resizeElement(e, el, pos);
+                        h.addEventListener('mousedown', (e) => this.resizeElement(e, el, pos));
                         el.appendChild(h);
                     });
                 }
@@ -981,49 +972,47 @@
                 document.getElementById('popup-props').classList.add('hidden');
                 document.getElementById('element-props').classList.remove('hidden');
                 document.getElementById('prop-title').innerText = 'Element Settings';
-                
-                // Populate values (simplified)
+
                 const style = window.getComputedStyle(el);
                 document.getElementById('elem-color').value = this.rgbToHex(style.color);
-                document.getElementById('elem-font').value = parseInt(style.fontSize);
+                document.getElementById('elem-font').value = parseInt(style.fontSize) || '';
+                document.getElementById('elem-width').value = Math.round(el.offsetWidth);
+                document.getElementById('elem-height').value = Math.round(el.offsetHeight);
+                document.getElementById('elem-link').value = el.tagName === 'A' ? (el.getAttribute('href') || '') : '';
             },
 
             resizeElement(e, el, pos) {
                 e.stopPropagation();
-                const startX = e.clientX;
-                const startY = e.clientY;
-                const startWidth = el.offsetWidth;
-                const startHeight = el.offsetHeight;
-                const startLeft = el.offsetLeft;
-                const startTop = el.offsetTop;
+                e.preventDefault();
+                const startX = e.clientX, startY = e.clientY;
+                const startWidth = el.offsetWidth, startHeight = el.offsetHeight;
+                const startLeft = el.offsetLeft, startTop = el.offsetTop;
 
-                const doDrag = (e) => {
-                    if (pos.includes('r')) el.style.width = (startWidth + e.clientX - startX) + 'px';
-                    if (pos.includes('b')) el.style.height = (startHeight + e.clientY - startY) + 'px';
-                    if (pos.includes('l')) {
-                        el.style.width = (startWidth - (e.clientX - startX)) + 'px';
-                        el.style.left = (startLeft + (e.clientX - startX)) + 'px';
-                    }
-                    if (pos.includes('t')) {
-                        el.style.height = (startHeight - (e.clientY - startY)) + 'px';
-                        el.style.top = (startTop + (e.clientY - startY)) + 'px';
+                const doDrag = (ev) => {
+                    let w = startWidth, h = startHeight, l = startLeft, t = startTop;
+                    if (pos.includes('r')) w = Math.max(20, startWidth + (ev.clientX - startX));
+                    if (pos.includes('b')) h = Math.max(16, startHeight + (ev.clientY - startY));
+                    if (pos.includes('l')) { w = Math.max(20, startWidth - (ev.clientX - startX)); l = startLeft + (startWidth - w); }
+                    if (pos.includes('t')) { h = Math.max(16, startHeight - (ev.clientY - startY)); t = startTop + (startHeight - h); }
+                    el.style.width = w + 'px';
+                    el.style.height = h + 'px';
+                    el.style.left = l + 'px';
+                    el.style.top = t + 'px';
+                    if (this.state.selectedElement === el) {
+                        document.getElementById('elem-width').value = Math.round(w);
+                        document.getElementById('elem-height').value = Math.round(h);
                     }
                 };
-
                 const stopDrag = () => {
                     document.removeEventListener('mousemove', doDrag);
                     document.removeEventListener('mouseup', stopDrag);
                 };
-
                 document.addEventListener('mousemove', doDrag);
                 document.addEventListener('mouseup', stopDrag);
             },
 
             selectPopupContainer() {
-                if (this.state.selectedElement) {
-                    this.state.selectedElement.classList.remove('element-selected');
-                    this.state.selectedElement = null;
-                }
+                if (this.state.selectedElement) { this.state.selectedElement.classList.remove('element-selected'); this.state.selectedElement = null; }
                 document.getElementById('element-props').classList.add('hidden');
                 document.getElementById('popup-props').classList.remove('hidden');
                 document.getElementById('prop-title').innerText = 'Popup Settings';
@@ -1034,28 +1023,34 @@
                 if (key === 'width') canvas.style.width = val + 'px';
                 if (key === 'height') canvas.style.minHeight = val + 'px';
                 if (key === 'bg') canvas.style.backgroundColor = val;
-                if (key === 'position') {
-                    canvas.style.top = ''; canvas.style.bottom = ''; canvas.style.left = ''; canvas.style.right = ''; canvas.style.transform = '';
-                    if (val === 'center') { canvas.style.top = '50%'; canvas.style.left = '50%'; canvas.style.transform = 'translate(-50%, -50%)'; }
-                    if (val === 'top-left') { canvas.style.top = '20px'; canvas.style.left = '20px'; }
-                    if (val === 'top-center') { canvas.style.top = '20px'; canvas.style.left = '50%'; canvas.style.transform = 'translateX(-50%)'; }
-                    if (val === 'top-right') { canvas.style.top = '20px'; canvas.style.right = '20px'; }
-                    if (val === 'bottom-left') { canvas.style.bottom = '20px'; canvas.style.left = '20px'; }
-                    if (val === 'bottom-center') { canvas.style.bottom = '20px'; canvas.style.left = '50%'; canvas.style.transform = 'translateX(-50%)'; }
-                    if (val === 'bottom-right') { canvas.style.bottom = '20px'; canvas.style.right = '20px'; }
-                }
+                if (key === 'position') this.applyPositionCss(canvas, val);
+            },
+
+            applyPositionCss(canvas, pos) {
+                canvas.style.top = ''; canvas.style.bottom = ''; canvas.style.left = ''; canvas.style.right = ''; canvas.style.transform = '';
+                if (pos === 'center') { canvas.style.top = '50%'; canvas.style.left = '50%'; canvas.style.transform = 'translate(-50%, -50%)'; }
+                if (pos === 'top-left') { canvas.style.top = '20px'; canvas.style.left = '20px'; }
+                if (pos === 'top-center') { canvas.style.top = '20px'; canvas.style.left = '50%'; canvas.style.transform = 'translateX(-50%)'; }
+                if (pos === 'top-right') { canvas.style.top = '20px'; canvas.style.right = '20px'; }
+                if (pos === 'bottom-left') { canvas.style.bottom = '20px'; canvas.style.left = '20px'; }
+                if (pos === 'bottom-center') { canvas.style.bottom = '20px'; canvas.style.left = '50%'; canvas.style.transform = 'translateX(-50%)'; }
+                if (pos === 'bottom-right') { canvas.style.bottom = '20px'; canvas.style.right = '20px'; }
             },
 
             updateElementProp(key, val) {
                 if (!this.state.selectedElement) return;
                 const el = this.state.selectedElement;
-                if (key === 'width') el.style.width = val;
-                if (key === 'height') el.style.height = val === 'Auto' ? 'auto' : val;
+                // Width/height/fontSize come from number inputs with 'px' appended by the caller.
+                // If the field is cleared, val is just "px" — skip applying it instead of writing
+                // invalid CSS silently.
+                const isBlankPx = (v) => /^px$/.test(v);
+                if (key === 'width' && !isBlankPx(val)) el.style.width = val;
+                if (key === 'height' && !isBlankPx(val)) el.style.height = val;
                 if (key === 'color') el.style.color = val;
                 if (key === 'bg') el.style.backgroundColor = val;
-                if (key === 'fontSize') el.style.fontSize = val;
-                if (key === 'link') { 
-                    if (val) { 
+                if (key === 'fontSize' && !isBlankPx(val)) el.style.fontSize = val;
+                if (key === 'link') {
+                    if (val) {
                         if (el.tagName !== 'A') {
                             const a = document.createElement('a');
                             a.href = val; a.target = '_blank';
@@ -1063,6 +1058,7 @@
                             a.className = el.className;
                             a.style.cssText = el.style.cssText;
                             el.parentNode.replaceChild(a, el);
+                            this.makeElementInteractive(a);
                             this.selectElement(a);
                         } else { el.href = val; }
                     }
@@ -1080,8 +1076,10 @@
             duplicateElement() {
                 if (this.state.selectedElement) {
                     const clone = this.state.selectedElement.cloneNode(true);
-                    clone.style.top = (parseInt(this.state.selectedElement.style.top) + 20) + 'px';
-                    clone.style.left = (parseInt(this.state.selectedElement.style.left) + 20) + 'px';
+                    clone.querySelectorAll('.resize-handle').forEach(h => h.remove());
+                    clone.classList.remove('element-selected');
+                    clone.style.top = (parseInt(this.state.selectedElement.style.top || 0) + 20) + 'px';
+                    clone.style.left = (parseInt(this.state.selectedElement.style.left || 0) + 20) + 'px';
                     this.makeElementInteractive(clone);
                     document.getElementById('popup-canvas').appendChild(clone);
                     this.selectElement(clone);
@@ -1089,79 +1087,136 @@
             },
 
             toggleCloseBtn() {
-                const btn = document.querySelector('#popup-canvas .fa-times').parentElement;
-                btn.style.display = btn.style.display === 'none' ? 'block' : 'none';
+                const icon = document.querySelector('#popup-canvas .fa-times');
+                if (!icon) return; // defensive: nothing to toggle if the close icon isn't on the canvas
+                const btn = icon.parentElement;
+                btn.style.display = btn.style.display === 'none' ? 'flex' : 'none';
             },
 
-            setDevice(device) {
+            setDevice(device, btn) {
                 this.state.device = device;
                 document.querySelectorAll('.device-btn').forEach(b => {
                     b.classList.remove('bg-white', 'shadow', 'text-slate-700');
                     b.classList.add('text-slate-500');
                 });
-                event.currentTarget.classList.remove('text-slate-500');
-                event.currentTarget.classList.add('bg-white', 'shadow', 'text-slate-700');
-                
+                btn.classList.remove('text-slate-500');
+                btn.classList.add('bg-white', 'shadow', 'text-slate-700');
+
                 const container = document.getElementById('canvas-container');
                 container.className = 'relative transition-all duration-300';
                 if (device === 'tablet') container.classList.add('scale-75');
                 if (device === 'mobile') container.classList.add('scale-50');
             },
 
+            // ---------- Preview (mirrors real on-page position) ----------
             togglePreview() {
                 const modal = document.getElementById('preview-modal');
-                const area = document.getElementById('preview-area');
-                if (modal.classList.contains('hidden')) {
-                    modal.classList.remove('hidden');
-                    const clone = document.getElementById('popup-canvas').cloneNode(true);
-                    clone.classList.remove('element-selected');
-                    clone.querySelectorAll('.resize-handle').forEach(h => h.remove());
-                    clone.style.position = 'relative';
-                    clone.style.transform = 'none';
-                    clone.style.top = 'auto'; clone.style.left = 'auto'; clone.style.right = 'auto'; clone.style.bottom = 'auto';
-                    
-                    // Re-apply position logic for preview
-                    const pos = document.getElementById('prop-position').value;
-                    if (pos === 'center') { clone.style.margin = 'auto'; }
-                    else if (pos.includes('top')) { clone.style.alignSelf = 'flex-start'; }
-                    else if (pos.includes('bottom')) { clone.style.alignSelf = 'flex-end'; }
-                    
-                    if (pos.includes('left')) clone.style.justifySelf = 'flex-start';
-                    if (pos.includes('right')) clone.style.justifySelf = 'flex-end';
-                    if (pos === 'center') clone.style.justifySelf = 'center';
+                const stage = document.getElementById('preview-stage');
+                stage.innerHTML = '';
 
-                    area.innerHTML = '';
-                    area.appendChild(clone);
-                } else {
-                    modal.classList.add('hidden');
-                }
+                const clone = document.getElementById('popup-canvas').cloneNode(true);
+                clone.classList.remove('element-selected');
+                clone.querySelectorAll('.resize-handle').forEach(h => h.remove());
+                clone.style.position = 'absolute';
+                const pos = document.getElementById('prop-position').value;
+                this.applyPositionCss(clone, pos);
+                clone.style.width = document.getElementById('prop-width').value + 'px';
+                clone.style.minHeight = document.getElementById('prop-height').value + 'px';
+                clone.style.backgroundColor = document.getElementById('prop-bg-color').value;
+
+                stage.appendChild(clone);
+                modal.classList.remove('hidden');
+            },
+
+            // ---------- Save / Load / Code ----------
+            currentSettings() {
+                return {
+                    width: document.getElementById('prop-width').value,
+                    height: document.getElementById('prop-height').value,
+                    bg: document.getElementById('prop-bg-color').value,
+                    position: document.getElementById('prop-position').value
+                };
             },
 
             savePopup() {
                 if (this.state.isDemo) {
+                    this.saveDemoPopup();
                     document.getElementById('demo-prompt').classList.remove('hidden');
                     return;
                 }
-                const name = prompt("Name your popup:", "My Popup") || "Untitled";
-                const newPopup = {
-                    id: Date.now().toString(),
-                    userId: this.state.currentUser.id,
-                    name,
-                    type: this.state.newPopupType || 'regular',
-                    status: 'draft',
-                    content: document.getElementById('popup-canvas').innerHTML,
-                    settings: {
-                        width: document.getElementById('prop-width').value,
-                        height: document.getElementById('prop-height').value,
-                        bg: document.getElementById('prop-bg-color').value,
-                        position: document.getElementById('prop-position').value
+                const cleanContent = document.getElementById('popup-canvas').innerHTML.replace(/ class="[^"]*element-selected[^"]*"/g, m => m.replace(' element-selected','')).replace(/<div class="resize-handle[^>]*><\/div>/g, '');
+                const arr = this.state.popups;
+                if (this.state.editingPopupId) {
+                    const p = arr.find(x => x.id === this.state.editingPopupId);
+                    if (p) {
+                        p.content = cleanContent;
+                        p.settings = this.currentSettings();
                     }
-                };
-                this.state.popups.push(newPopup);
+                } else {
+                    const name = prompt("Name your popup:", document.getElementById('editor-title').innerText || "My Popup") || "Untitled";
+                    document.getElementById('editor-title').innerText = name;
+                    const newPopup = {
+                        id: Date.now().toString(),
+                        userId: this.state.currentUser.id,
+                        name,
+                        type: this.state.newPopupType || 'regular',
+                        status: 'draft',
+                        content: cleanContent,
+                        settings: this.currentSettings()
+                    };
+                    arr.push(newPopup);
+                    this.state.editingPopupId = newPopup.id;
+                }
                 this.saveData();
                 alert('Saved successfully!');
                 this.exitEditor();
                 this.loadDashboard();
+            },
+
+            saveDemoPopup() {
+                const cleanContent = document.getElementById('popup-canvas').innerHTML.replace(/ class="[^"]*element-selected[^"]*"/g, m => m.replace(' element-selected','')).replace(/<div class="resize-handle[^>]*><\/div>/g, '');
+                if (this.state.editingPopupId) {
+                    const p = this.state.demoPopups.find(x => x.id === this.state.editingPopupId);
+                    if (p) { p.content = cleanContent; p.settings = this.currentSettings(); }
+                } else {
+                    const name = document.getElementById('editor-title').innerText || 'My Popup';
+                    const newPopup = { id: 'demo-' + Date.now(), userId: 'demo', name, type: this.state.newPopupType || 'regular', status: 'draft', content: cleanContent, settings: this.currentSettings() };
+                    this.state.demoPopups.push(newPopup);
+                    this.state.editingPopupId = newPopup.id;
+                }
+            },
+
+            openEditor(id) {
+                const arr = this.state.isDemo ? this.state.demoPopups : this.state.popups;
+                const p = arr.find(x => x.id === id);
+                if (!p) return;
+                document.getElementById('editor-page').classList.remove('hidden');
+                this.state.editingPopupId = id;
+                this.state.newPopupType = p.type;
+                document.getElementById('editor-title').innerText = p.name;
+
+                const canvas = document.getElementById('popup-canvas');
+                canvas.innerHTML = p.content && p.content.length ? p.content : this.closeBtnHTML();
+                if (!canvas.querySelector('.fa-times')) canvas.insertAdjacentHTML('afterbegin', this.closeBtnHTML());
+
+                document.getElementById('prop-width').value = p.settings.width;
+                document.getElementById('prop-height').value = p.settings.height;
+                document.getElementById('prop-bg-color').value = p.settings.bg;
+                document.getElementById('prop-position').value = p.settings.position;
+                this.updatePopupProp('width', p.settings.width);
+                this.updatePopupProp('height', p.settings.height);
+                this.updatePopupProp('bg', p.settings.bg);
+                this.updatePopupProp('position', p.settings.position);
+                this.renderEditorTemplateList();
+
+                // Re-attach interactivity to every restored element (innerHTML strips JS bindings)
+                Array.from(canvas.children).forEach(child => {
+                    if (child.querySelector && child.querySelector('.fa-times') && child.classList.contains('absolute') && child.onclick) return;
+                    if (child.classList.contains('canvas-el') || (!child.querySelector('.fa-times'))) {
+                        this.makeElementInteractive(child);
+                    }
+                });
+                this.selectPopupContainer();
             },
 
             getCode() {
@@ -1169,34 +1224,31 @@
                     document.getElementById('demo-prompt').classList.remove('hidden');
                     return;
                 }
-                const content = document.getElementById('popup-canvas').innerHTML.replace(/element-selected|resize-handle|rh-\w+/g, '');
-                const settings = {
-                    w: document.getElementById('prop-width').value,
-                    h: document.getElementById('prop-height').value,
-                    bg: document.getElementById('prop-bg-color').value,
-                    pos: document.getElementById('prop-position').value
-                };
-                
+                const content = document.getElementById('popup-canvas').innerHTML.replace(/element-selected|resize-handle|rh-\w+/g, '').replace(/<div class="[^"]*"><\/div>/g, m => m.includes('rh-') ? '' : m);
+                const settings = this.currentSettings();
+
                 let cssPos = '';
-                if (settings.pos === 'center') cssPos = 'top:50%;left:50%;transform:translate(-50%,-50%);';
-                else if (settings.pos === 'top-left') cssPos = 'top:20px;left:20px;';
-                else if (settings.pos === 'top-right') cssPos = 'top:20px;right:20px;';
-                else if (settings.pos === 'bottom-left') cssPos = 'bottom:20px;left:20px;';
-                else if (settings.pos === 'bottom-right') cssPos = 'bottom:20px;right:20px;';
-                else cssPos = 'top:20px;left:50%;transform:translateX(-50%);'; // defaults
+                if (settings.position === 'center') cssPos = 'top:50%;left:50%;transform:translate(-50%,-50%);';
+                else if (settings.position === 'top-left') cssPos = 'top:20px;left:20px;';
+                else if (settings.position === 'top-center') cssPos = 'top:20px;left:50%;transform:translateX(-50%);';
+                else if (settings.position === 'top-right') cssPos = 'top:20px;right:20px;';
+                else if (settings.position === 'bottom-left') cssPos = 'bottom:20px;left:20px;';
+                else if (settings.position === 'bottom-center') cssPos = 'bottom:20px;left:50%;transform:translateX(-50%);';
+                else if (settings.position === 'bottom-right') cssPos = 'bottom:20px;right:20px;';
 
                 const code = `
-<!-- PopMaker Pro Code -->
+<!-- PopMaker Pro Code — ${document.getElementById('editor-title').innerText} -->
 <div id="pm-popup-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;">
-  <div id="pm-popup" style="position:absolute;${cssPos}width:${settings.w}px;min-height:${settings.h}px;background:${settings.bg};box-shadow:0 10px 25px rgba(0,0,0,0.2);border-radius:8px;overflow:hidden;">
+  <div id="pm-popup" style="position:absolute;${cssPos}width:${settings.width}px;min-height:${settings.height}px;background:${settings.bg};box-shadow:0 10px 25px rgba(0,0,0,0.2);border-radius:8px;overflow:hidden;">
     ${content}
   </div>
 </div>
 <script>
   setTimeout(()=>{document.getElementById('pm-popup-overlay').style.display='block'}, 1000);
-  document.querySelector('#pm-popup .fa-times').parentElement.onclick = ()=>{document.getElementById('pm-popup-overlay').style.display='none'};
+  var pmClose = document.querySelector('#pm-popup .fa-times');
+  if (pmClose) pmClose.parentElement.onclick = ()=>{document.getElementById('pm-popup-overlay').style.display='none'};
 <\/script>`;
-                
+
                 document.getElementById('code-output').innerText = code.trim();
                 document.getElementById('code-modal').classList.remove('hidden');
             },
@@ -1208,206 +1260,65 @@
 
             exitEditor() {
                 document.getElementById('editor-page').classList.add('hidden');
-                if (this.state.isDemo) this.navigate('landing');
-                else this.navigate('dashboard');
-            },
-
-            renderAdmin() {
-                const list = document.getElementById('admin-user-list');
-                list.innerHTML = '';
-                this.state.users.filter(u => u.email !== 'admin@poptin.com').forEach(u => {
-                    const count = this.state.popups.filter(p => p.userId === u.id).length;
-                    list.innerHTML += `
-                        <tr class="hover:bg-slate-700/50">
-                            <td class="p-4 font-bold">${u.company}</td>
-                            <td class="p-4">${u.name}</td>
-                            <td class="p-4 text-slate-400">${u.email}</td>
-                            <td class="p-4"><a href="${u.website||'#'}" target="_blank" class="text-indigo-400 hover:underline">${u.website||'-'}</a></td>
-                            <td class="p-4">${count}</td>
-                            <td class="p-4">
-                                <button onclick="app.impersonate(${u.id})" class="px-3 py-1 bg-indigo-600 rounded text-xs hover:bg-indigo-500">View Account</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            },
-
-            impersonate(userId) {
-                const user = this.state.users.find(u => u.id === userId);
-                this.state.currentUser = user;
-                document.getElementById('god-mode-banner').style.display = 'block';
-                document.getElementById('god-mode-user').innerText = user.name;
                 this.navigate('dashboard');
-                this.loadDashboard();
             },
 
-            exitGodMode() {
-                const admin = { email: 'admin@poptin.com', role: 'admin' };
-                this.state.currentUser = admin;
-                document.getElementById('god-mode-banner').style.display = 'none';
-                this.navigate('admin');
-                this.renderAdmin();
-            },
-
+            // ---------- Utilities ----------
             saveData() {
                 localStorage.setItem('pm_users', JSON.stringify(this.state.users));
                 localStorage.setItem('pm_popups', JSON.stringify(this.state.popups));
             },
 
+            esc(s) { const d = document.createElement('div'); d.innerText = s || ''; return d.innerHTML; },
+
             startAnimation() {
-                // Simple loop for landing page animation
                 let step = 1;
                 setInterval(() => {
                     document.querySelectorAll('.workflow-step').forEach(el => el.classList.add('opacity-0'));
                     const next = document.getElementById(`step${step}`);
-                    if (next) {
-                        next.classList.remove('opacity-0');
-                        step = step === 3 ? 1 : step + 1;
-                    }
+                    if (next) { next.classList.remove('opacity-0'); step = step === 3 ? 1 : step + 1; }
                 }, 2000);
+                this.startProductDemo();
+            },
+
+            // ---------- Landing page: product demo "video tour" ----------
+            // Drives both the left-hand scene player and the right-hand caption/progress
+            // panel from one shared index, so they can never desync (unlike a version that
+            // relied on independent CSS animation-delay for each side).
+            startProductDemo() {
+                const scenes = document.querySelectorAll('#product-demo .demo-scene');
+                if (!scenes.length) return;
+                const steps = [
+                    { title: 'Log in or try Demo Free', copy: 'No account required to explore the editor.' },
+                    { title: 'Build in the drag-and-drop editor', copy: 'Add elements, pick a template, position it anywhere.' },
+                    { title: 'Preview it live', copy: 'See exactly how it will look on your site.' },
+                    { title: 'Publish successfully', copy: 'Copy the code and paste it into your site.' }
+                ];
+                let i = 0;
+                const render = () => {
+                    scenes.forEach((el, idx) => el.classList.toggle('active', idx === i));
+                    document.getElementById('demo-step-number').innerText = i + 1;
+                    document.getElementById('demo-step-title').innerText = steps[i].title;
+                    document.getElementById('demo-step-copy').innerText = steps[i].copy;
+                    document.getElementById('demo-progress').style.width = ((i + 1) / steps.length * 100) + '%';
+                    for (let n = 0; n < steps.length; n++) {
+                        const label = document.getElementById('demo-label-' + n);
+                        if (label) label.classList.toggle('text-indigo-600', n === i);
+                        if (label) label.classList.toggle('font-bold', n === i);
+                    }
+                };
+                render();
+                setInterval(() => { i = (i + 1) % steps.length; render(); }, 4000);
             },
 
             rgbToHex(col) {
-                if(col.charAt(0)=='#') return col;
+                if (col.charAt(0) === '#') return col;
                 let rgb = col.match(/\d+/g);
-                if(!rgb) return '#000000';
+                if (!rgb) return '#000000';
                 return "#" + ((1 << 24) + (parseInt(rgb[0]) << 16) + (parseInt(rgb[1]) << 8) + parseInt(rgb[2])).toString(16).slice(1);
             }
         };
 
-
-        // ================= RELIABILITY PATCH =================
-        // Keep editor state in one object so preview, save, edit, and Get Code use the same data.
-        app.state.currentPopup = null;
-        app.state.editingPopupId = null;
-        app.state.newPopupType = 'regular';
-
-        app.capturePopup = function () {
-            const canvas = document.getElementById('popup-canvas');
-            const content = canvas.innerHTML.replace(/<div class="resize-handle[^>]*><\/div>/g, '').replace(/element-selected/g, '').replace(/\sdata-editor-interactions-bound="[^"]*"/g, '');
-            return { content, width: document.getElementById('prop-width').value || 500, height: document.getElementById('prop-height').value || 400, bg: document.getElementById('prop-bg-color').value || '#ffffff', position: document.getElementById('prop-position').value || 'center' };
-        };
-
-        const originalStartEditor = app.startEditor.bind(app);
-        app.startEditor = function (mode, templateName) {
-            this.state.editingPopupId = null;
-            this.state.currentPopup = null;
-            originalStartEditor(mode, templateName);
-            this.state.currentPopup = this.capturePopup();
-            document.querySelectorAll('#popup-canvas > *:not(:first-child)').forEach(el => this.makeElementInteractive(el));
-        };
-
-        app.openEditor = function (id) {
-            const popup = this.state.popups.find(p => String(p.id) === String(id));
-            if (!popup) return;
-            this.state.isDemo = false;
-            this.state.editingPopupId = popup.id;
-            this.state.currentPopup = popup;
-            document.getElementById('user-dashboard').classList.add('hidden');
-            document.getElementById('editor-page').classList.remove('hidden');
-            const canvas = document.getElementById('popup-canvas');
-            canvas.innerHTML = popup.content || '<div id="popup-close-btn" data-popup-close="true" class="absolute top-2 right-2 text-slate-300 cursor-pointer p-1 popup-close-btn" onclick="app.toggleCloseBtn(); event.stopPropagation();"><i class="fas fa-times"></i></div>';
-            document.getElementById('prop-width').value = parseInt(popup.settings?.width || 500);
-            document.getElementById('prop-height').value = parseInt(popup.settings?.height || 400);
-            document.getElementById('prop-bg-color').value = popup.settings?.bg || '#ffffff';
-            document.getElementById('prop-position').value = popup.settings?.position || 'center';
-            canvas.style.width = (popup.settings?.width || 500) + 'px'; canvas.style.minHeight = (popup.settings?.height || 400) + 'px'; canvas.style.backgroundColor = popup.settings?.bg || '#ffffff';
-            Array.from(canvas.children).forEach((el)=>{ if(!el.matches('#popup-close-btn, [data-popup-close]')){ el.classList.add('absolute','cursor-move'); this.makeElementInteractive(el); }});
-            document.getElementById('editor-title').innerText = popup.name || 'Untitled Popup';
-            this.ensureCloseButton();
-            this.selectPopupContainer();
-        };
-
-        app.updatePopupProp = function (key, val) {
-            const canvas=document.getElementById('popup-canvas');
-            if(key==='width'){canvas.style.width=Math.max(240,parseInt(val)||500)+'px';document.getElementById('prop-width').value=parseInt(val)||500;}
-            if(key==='height'){canvas.style.minHeight=Math.max(120,parseInt(val)||400)+'px';document.getElementById('prop-height').value=parseInt(val)||400;}
-            if(key==='bg'){canvas.style.backgroundColor=val;document.getElementById('prop-bg-color').value=val;}
-            if(key==='position') canvas.dataset.position=val;
-            if(!this.state.currentPopup) this.state.currentPopup={};
-            this.state.currentPopup.settings={width:document.getElementById('prop-width').value,height:document.getElementById('prop-height').value,bg:document.getElementById('prop-bg-color').value,position:document.getElementById('prop-position').value};
-        };
-
-        app.togglePreview = function () {
-            const modal=document.getElementById('preview-modal'), area=document.getElementById('preview-area');
-            if(!modal.classList.contains('hidden')){modal.classList.add('hidden');return;}
-            const data=this.capturePopup(), source=document.getElementById('popup-canvas');
-            const clone=source.cloneNode(true); clone.id='preview-popup'; clone.className='bg-white shadow-2xl relative overflow-hidden'; clone.style.position='relative'; clone.style.top='auto'; clone.style.left='auto'; clone.style.right='auto'; clone.style.bottom='auto'; clone.style.transform='none'; clone.style.margin='0'; clone.style.width=data.width+'px'; clone.style.minHeight=data.height+'px'; clone.style.maxWidth='calc(100vw - 32px)'; clone.style.backgroundColor=data.bg;
-            clone.querySelectorAll('.resize-handle').forEach(h=>h.remove()); clone.querySelectorAll('.element-selected').forEach(el=>el.classList.remove('element-selected')); clone.querySelectorAll('[data-popup-close], #popup-close-btn, [onclick*="toggleCloseBtn"]').forEach(btn=>{btn.onclick=(e)=>{e.stopPropagation();clone.style.display='none';};});
-            area.innerHTML=''; area.style.alignItems=data.position.includes('top')?'flex-start':data.position.includes('bottom')?'flex-end':'center'; area.style.justifyContent=data.position.includes('left')?'flex-start':data.position.includes('right')?'flex-end':'center';
-            if(data.position==='top-center'||data.position==='bottom-center') area.style.justifyContent='center';
-            const device=this.state.device||'desktop'; const frame=document.createElement('div'); frame.className='device-frame frame-'+device; frame.style.maxWidth='100%'; frame.style.overflow='auto'; frame.style.display='flex'; frame.style.alignItems=data.position.includes('top')?'flex-start':data.position.includes('bottom')?'flex-end':'center'; frame.style.justifyContent=data.position.includes('left')?'flex-start':data.position.includes('right')?'flex-end':'center'; if(device==='mobile'){frame.style.width='375px';frame.style.height='667px';} else if(device==='tablet'){frame.style.width='768px';frame.style.height='700px';} else {frame.style.width='100%';frame.style.height='100%';} frame.appendChild(clone); area.appendChild(frame); modal.classList.remove('hidden');
-        };
-
-        app.savePopup = function () {
-            if(this.state.isDemo){document.getElementById('demo-prompt').classList.remove('hidden');return;}
-            const data=this.capturePopup(); const name=prompt('Name your popup:',this.state.currentPopup?.name||'My Popup')||this.state.currentPopup?.name||'Untitled';
-            const popup={id:this.state.editingPopupId||Date.now().toString(),userId:this.state.currentUser.id,name,type:this.state.newPopupType||this.state.currentPopup?.type||'regular',status:'draft',content:data.content,settings:data,updatedAt:Date.now()};
-            const idx=this.state.popups.findIndex(p=>String(p.id)===String(popup.id)); if(idx>=0)this.state.popups[idx]=popup;else this.state.popups.push(popup); this.state.currentPopup=popup; this.state.editingPopupId=popup.id; this.saveData(); alert('Saved successfully!'); this.exitEditor(); this.loadDashboard();
-        };
-
-        app.getCode = function () {
-            if(this.state.isDemo){document.getElementById('demo-prompt').classList.remove('hidden');return;}
-            const data=this.capturePopup(); let pos='top:50%;left:50%;transform:translate(-50%,-50%);'; const p=data.position;
-            if(p==='top-left')pos='top:20px;left:20px;'; if(p==='top-center')pos='top:20px;left:50%;transform:translateX(-50%);'; if(p==='top-right')pos='top:20px;right:20px;'; if(p==='bottom-left')pos='bottom:20px;left:20px;'; if(p==='bottom-center')pos='bottom:20px;left:50%;transform:translateX(-50%);'; if(p==='bottom-right')pos='bottom:20px;right:20px;';
-            const code='<!-- PopMaker Pro Code -->\n<style>@media(max-width:600px){#pm-popup{width:90%!important;max-width:calc(100vw - 24px);}}</style>\n<div id="pm-popup-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;">\n  <div id="pm-popup" style="position:absolute;'+pos+'width:'+data.width+'px;min-height:'+data.height+'px;max-width:calc(100vw - 24px);box-sizing:border-box;background:'+data.bg+';box-shadow:0 10px 25px rgba(0,0,0,.2);border-radius:8px;overflow:hidden;">'+data.content.replace(/onclick="app.toggleCloseBtn()"/g,'onclick="document.getElementById(\'pm-popup-overlay\').style.display=\'none\'"')+'</div>\n</div>\n<script>setTimeout(()=>{document.getElementById(\'pm-popup-overlay\').style.display=\'block\'},1000)<\/script>';
-            document.getElementById('code-output').innerText=code; document.getElementById('code-modal').classList.remove('hidden');
-        };
-
-        app.createSubAccount = function () { if(this.state.currentUser?.role!=='admin' && !this.state.currentUser?.email?.includes('admin')) return; const email=prompt('Sub-account email:'); if(!email)return; if(this.state.users.some(u=>u.email===email)){alert('Account exists');return;} const user={id:Date.now(),name:prompt('Name:')||email.split('@')[0],company:prompt('Company:')||'Managed Account',email,password:prompt('Temporary password:')||'change-me',website:'',role:'user'}; this.state.users.push(user); this.saveData(); this.renderAdmin(); alert('Sub-account created. Share the temporary password securely, then require a real backend before production.'); };
-
-        // Fix live controls that relied on an implicit global event.
-        const originalSetDevice=app.setDevice.bind(app); app.setDevice=function(device){this.state.device=device;document.querySelectorAll('.device-btn').forEach(b=>b.classList.remove('bg-white','shadow','text-slate-700'));const btn=[...document.querySelectorAll('.device-btn')].find(b=>b.getAttribute('onclick')?.includes(device));if(btn)btn.classList.add('bg-white','shadow','text-slate-700');const c=document.getElementById('canvas-container');c.className='relative transition-all duration-300';if(device==='tablet')c.classList.add('scale-75');if(device==='mobile')c.classList.add('scale-50');};
-
-        // ================= ELEMENTS & CLOSE CONTROL PATCH =================
-        // Elements can be added by click or drag. The close button is editor chrome, not a draggable element.
-        app.ensureCloseButton = function () {
-            const canvas = document.getElementById('popup-canvas');
-            let btn = canvas.querySelector('#popup-close-btn, [data-popup-close], [onclick*="toggleCloseBtn"]');
-            if (!btn) {
-                btn = document.createElement('div');
-                btn.innerHTML = '<i class="fas fa-times"></i>';
-                canvas.appendChild(btn);
-            }
-            btn.id = 'popup-close-btn';
-            btn.setAttribute('data-popup-close', 'true');
-            btn.className = 'absolute top-2 right-2 text-slate-300 hover:text-red-500 cursor-pointer p-1 popup-close-btn';
-            btn.setAttribute('onclick', 'app.toggleCloseBtn(); event.stopPropagation();');
-            return btn;
-        };
-
-        app.addElement = function (type) {
-            const canvas = document.getElementById('popup-canvas');
-            if (!canvas || document.getElementById('editor-page').classList.contains('hidden')) return;
-            const rect = canvas.getBoundingClientRect();
-            const eventLike = {
-                preventDefault: function () {},
-                clientX: rect.left + Math.max(80, canvas.clientWidth / 2),
-                clientY: rect.top + Math.max(60, canvas.clientHeight / 2),
-                dataTransfer: { getData: function () { return type; } }
-            };
-            this.drop(eventLike);
-        };
-
-        const originalToggleCloseBtn = app.toggleCloseBtn.bind(app);
-        app.toggleCloseBtn = function () {
-            const btn = this.ensureCloseButton();
-            btn.style.display = btn.style.display === 'none' ? 'block' : 'none';
-        };
-
-        const originalDrop = app.drop.bind(app);
-        app.drop = function (ev) {
-            originalDrop(ev);
-            this.ensureCloseButton();
-        };
-
-        const originalLoadTemplate = app.loadTemplateIntoEditor.bind(app);
-        app.loadTemplateIntoEditor = function (key) {
-            originalLoadTemplate(key);
-            this.ensureCloseButton();
-        };
-
-        // Initialize App
         window.addEventListener('DOMContentLoaded', () => app.init());
     </script>
 </body>
